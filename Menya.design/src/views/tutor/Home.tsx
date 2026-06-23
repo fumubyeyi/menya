@@ -10,7 +10,7 @@ import SubjectTag from "../../components/SubjectTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
-  tutorStudents, tutorSessions, tutorWeeklyData, CURRENT_TUTOR_NAME,
+  tutorStudents, tutorSessions, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById, tutorNameById,
 } from "../../data";
 import { statusMeta } from "../../lib/constants";
 
@@ -31,10 +31,10 @@ export default function TutorHome() {
         style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0f3d32 100%)" }}
       >
         <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold font-display flex-shrink-0">
-          MU
+          {(() => { const t = getTutorById(CURRENT_TUTOR_ID); return t ? t.firstName[0] + t.lastName[0] : ""; })()}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-display font-semibold text-white leading-none">{CURRENT_TUTOR_NAME}</h1>
+          <h1 className="text-xl font-display font-semibold text-white leading-none">{tutorNameById(CURRENT_TUTOR_ID)}</h1>
           <p className="text-sm text-white/70 mt-1 font-mono">Pre-Calculus · Calculus · {tutorStudents.length} students</p>
         </div>
         <span className="text-xs font-mono text-white/60 hidden sm:block">Summer 2026 · Week 6</span>

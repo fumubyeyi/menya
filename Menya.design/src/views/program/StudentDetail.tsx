@@ -7,7 +7,7 @@ import {
 import Avatar from "../../components/Avatar";
 import SubjectTag from "../../components/SubjectTag";
 import ScheduleModal from "../../components/ScheduleModal";
-import { students, studentSubjectDetail, studentSessionHistory } from "../../data";
+import { students, studentSubjectDetail, studentSessionHistory, tutorNameById } from "../../data";
 import { statusMeta, achievements } from "../../lib/constants";
 import type { StudentStatus } from "../../types";
 
@@ -35,7 +35,7 @@ export default function StudentDetail() {
   const subjects    = studentSubjectDetail[student.id] ?? [];
   const history     = studentSessionHistory[student.id] ?? [];
   const earned      = achievements.filter((a) => a.condition({ streak: student.streak, progress: student.progress, sessions: student.sessions }));
-  const upcoming    = [{ subject: subjects[0]?.subject ?? "TBD", time: "Tomorrow 3:00 PM", tutor: "Ms. Chen" }];
+  const upcoming    = [{ subject: subjects[0]?.subject ?? "TBD", time: "Tomorrow 3:00 PM", tutorId: 1 }];
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
@@ -111,7 +111,7 @@ export default function StudentDetail() {
               <div key={i} className="flex items-center gap-3 px-4 py-3">
                 <SubjectTag subject={h.subject} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">{h.tutor}</p>
+                  <p className="text-sm text-foreground">{tutorNameById(h.tutorId)}</p>
                   <p className="text-xs text-muted-foreground">{h.date} · {h.duration}min</p>
                 </div>
                 <span className="text-sm font-mono font-semibold text-foreground">{h.score}%</span>
@@ -143,7 +143,7 @@ export default function StudentDetail() {
               <div key={i} className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                 <div>
-                  <p className="text-sm text-foreground">{u.subject} · {u.tutor}</p>
+                  <p className="text-sm text-foreground">{u.subject} · {tutorNameById(u.tutorId)}</p>
                   <p className="text-xs text-muted-foreground">{u.time}</p>
                 </div>
               </div>

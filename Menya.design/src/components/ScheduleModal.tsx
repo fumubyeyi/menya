@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Calendar, CheckCircle2 } from "lucide-react";
-import { students, tutors } from "../data";
+import { students, tutors, tutorNameById } from "../data";
 import { subjectColor } from "../lib/constants";
 import Avatar from "./Avatar";
 
@@ -24,6 +24,7 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
     return t.subjects.includes(form.subject) ? 2 : t.subjects.some((s) => studentSubjects.includes(s)) ? 1 : 0;
   };
   const sortedTutors = [...tutors].sort((a, b) => matchScore(b) - matchScore(a));
+  const selectedTutorName = form.tutor ? tutorNameById(Number(form.tutor)) : "";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -47,7 +48,7 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
             <div>
               <h3 className="font-semibold text-foreground text-base">Session Scheduled</h3>
               <p className="text-sm text-muted-foreground mt-1">{form.student} · {form.subject} · {form.date} at {form.time}</p>
-              <p className="text-xs font-mono text-muted-foreground mt-0.5">{form.tutor} · {form.duration}m</p>
+              <p className="text-xs font-mono text-muted-foreground mt-0.5">{selectedTutorName} · {form.duration}m</p>
             </div>
             <div className="flex gap-3 mt-2">
               <button onClick={() => setSubmitted(false)} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">Add Another</button>
@@ -112,13 +113,13 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
                 <div className="grid grid-cols-1 gap-2">
                   {sortedTutors.map((t) => {
                     const score = matchScore(t);
-                    const sel = form.tutor === t.name;
+                    const sel = form.tutor === String(t.id);
                     return (
-                      <button key={t.name} type="button" onClick={() => set("tutor", t.name)}
+                      <button key={t.id} type="button" onClick={() => set("tutor", String(t.id))}
                         className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all ${sel ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-background hover:border-primary/30 hover:bg-muted/30"}`}>
-                        <Avatar name={t.name} size={9} />
+                        <Avatar name={`${t.firstName} ${t.lastName}`} size={9} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                          <p className="text-sm font-semibold text-foreground">{t.firstName} {t.lastName}</p>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {t.subjects.map((s) => (
                               <span key={s} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${s === form.subject ? "bg-primary/15 text-primary font-semibold" : studentSubjects.includes(s) ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{s}</span>

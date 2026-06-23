@@ -4,7 +4,7 @@ import Avatar from "../../components/Avatar";
 import SubjectTag from "../../components/SubjectTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
-import { sessions, tutors } from "../../data";
+import { sessions, tutors, tutorNameById } from "../../data";
 
 const FILTER_TABS = [
   { key: "all",       label: "All"       },
@@ -81,7 +81,7 @@ export default function Sessions() {
                     </div>
                   </td>
                   <td className="px-4 py-3"><SubjectTag subject={s.subject} /></td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{s.tutor}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{tutorNameById(s.tutorId)}</td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.time}</td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.clock}</td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.duration}min</td>
@@ -101,10 +101,10 @@ export default function Sessions() {
         <h2 className="text-sm font-semibold text-foreground mb-3">Active Tutors</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
           {tutors.map((t) => (
-            <div key={t.name} className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors">
+            <div key={t.id} className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <Avatar name={t.name} size={9} />
-                <p className="text-sm font-semibold text-foreground leading-tight">{t.name}</p>
+                <Avatar name={`${t.firstName} ${t.lastName}`} size={9} />
+                <p className="text-sm font-semibold text-foreground leading-tight">{t.firstName} {t.lastName}</p>
               </div>
               <div className="flex flex-wrap gap-1 mb-3">
                 {t.subjects.map((s) => <SubjectTag key={s} subject={s} />)}

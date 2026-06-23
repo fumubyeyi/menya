@@ -1,7 +1,7 @@
 import type { Student, Session, CurriculumItem, Tutor, SubjectDetail, SessionRecord, AIProject, HomeworkItem } from "../types";
 
 export const CURRENT_STUDENT_ID = 3;
-export const CURRENT_TUTOR_NAME = "Ms. Umubyeyi";
+export const CURRENT_TUTOR_ID = 5;
 
 export const students: Student[] = [
   { id: 1, name: "Aaliyah Johnson",  grade: 7, subjects: ["Algebra", "Biology"],        progress: 78, sessions: 12, streak: 5, status: "on-track"       },
@@ -15,16 +15,16 @@ export const students: Student[] = [
 ];
 
 export const sessions: Session[] = [
-  { id: 1,  student: "Aaliyah Johnson",  tutor: "Ms. Chen",      subject: "Algebra",       time: "Today",    clock: "3:30 PM", duration: 60, status: "upcoming"    },
-  { id: 2,  student: "Marcus Rivera",    tutor: "Mr. Thompson",  subject: "Chemistry",     time: "Today",    clock: "4:00 PM", duration: 45, status: "upcoming"    },
-  { id: 3,  student: "Sofia Patel",      tutor: "Ms. Umubyeyi",  subject: "Pre-Alg",       time: "Today",    clock: "4:30 PM", duration: 60, status: "in-progress" },
-  { id: 4,  student: "Isabella Chen",    tutor: "Dr. Kim",       subject: "Biology",       time: "Tomorrow", clock: "2:00 PM", duration: 60, status: "scheduled"   },
-  { id: 5,  student: "DeShawn Williams", tutor: "Mr. Thompson",  subject: "Physics",       time: "Tomorrow", clock: "3:00 PM", duration: 45, status: "scheduled"   },
-  { id: 6,  student: "Jaylen Brooks",    tutor: "Ms. Chen",      subject: "Algebra",       time: "Jun 22",   clock: "2:30 PM", duration: 60, status: "scheduled"   },
-  { id: 7,  student: "Amara Osei",       tutor: "Ms. Rodriguez", subject: "Earth Science", time: "Jun 22",   clock: "3:00 PM", duration: 45, status: "scheduled"   },
-  { id: 8,  student: "Noah Fitzgerald",  tutor: "Ms. Umubyeyi",  subject: "Calculus",      time: "Today",    clock: "5:00 PM", duration: 60, status: "upcoming"    },
-  { id: 9,  student: "DeShawn Williams", tutor: "Ms. Umubyeyi",  subject: "Pre-Calculus",  time: "Jun 22",   clock: "4:30 PM", duration: 60, status: "scheduled"   },
-  { id: 10, student: "Sofia Patel",      tutor: "Ms. Umubyeyi",  subject: "Pre-Alg",       time: "Jun 23",   clock: "3:00 PM", duration: 60, status: "scheduled"   },
+  { id: 1,  student: "Aaliyah Johnson",  tutorId: 1, subject: "Algebra",       time: "Today",    clock: "3:30 PM", duration: 60, status: "upcoming"    },
+  { id: 2,  student: "Marcus Rivera",    tutorId: 2, subject: "Chemistry",     time: "Today",    clock: "4:00 PM", duration: 45, status: "upcoming"    },
+  { id: 3,  student: "Sofia Patel",      tutorId: 3, subject: "Pre-Alg",       time: "Today",    clock: "4:30 PM", duration: 60, status: "in-progress" },
+  { id: 4,  student: "Isabella Chen",    tutorId: 4, subject: "Biology",       time: "Tomorrow", clock: "2:00 PM", duration: 60, status: "scheduled"   },
+  { id: 5,  student: "DeShawn Williams", tutorId: 2, subject: "Physics",       time: "Tomorrow", clock: "3:00 PM", duration: 45, status: "scheduled"   },
+  { id: 6,  student: "Jaylen Brooks",    tutorId: 1, subject: "Algebra",       time: "Jun 22",   clock: "2:30 PM", duration: 60, status: "scheduled"   },
+  { id: 7,  student: "Amara Osei",       tutorId: 3, subject: "Earth Science", time: "Jun 22",   clock: "3:00 PM", duration: 45, status: "scheduled"   },
+  { id: 8,  student: "Noah Fitzgerald",  tutorId: 5, subject: "Calculus",      time: "Today",    clock: "5:00 PM", duration: 60, status: "upcoming"    },
+  { id: 9,  student: "DeShawn Williams", tutorId: 5, subject: "Pre-Calculus",  time: "Jun 22",   clock: "4:30 PM", duration: 60, status: "scheduled"   },
+  { id: 10, student: "Sofia Patel",      tutorId: 5, subject: "Pre-Alg",       time: "Jun 23",   clock: "3:00 PM", duration: 60, status: "scheduled"   },
 ];
 
 export const curriculum: CurriculumItem[] = [
@@ -39,12 +39,21 @@ export const curriculum: CurriculumItem[] = [
 ];
 
 export const tutors: Tutor[] = [
-  { name: "Ms. Chen",      subjects: ["Algebra", "Geometry"],        students: 14, sessions: 38 },
-  { name: "Mr. Thompson",  subjects: ["Chemistry", "Physics"],       students: 11, sessions: 29 },
-  { name: "Ms. Rodriguez", subjects: ["Pre-Algebra", "Statistics"],  students: 16, sessions: 44 },
-  { name: "Dr. Kim",       subjects: ["Biology", "Earth Science"],   students: 13, sessions: 35 },
-  { name: "Ms. Umubyeyi",  subjects: ["Pre-Calculus", "Calculus"],   students: 20, sessions: 25 },
+  { id: 1, firstName: "Jennifer", lastName: "Chen",      subjects: ["Algebra", "Geometry"],        students: 14, sessions: 38 },
+  { id: 2, firstName: "David",    lastName: "Thompson",  subjects: ["Chemistry", "Biology"],       students: 11, sessions: 29 },
+  { id: 3, firstName: "Maria",    lastName: "Rodriguez", subjects: ["Pre-Algebra", "Statistics"],  students: 16, sessions: 44 },
+  { id: 4, firstName: "Andrew",   lastName: "Kim",       subjects: ["Physics", "Earth Science"],   students: 13, sessions: 35 },
+  { id: 5, firstName: "Francoise",lastName: "Umubyeyi",  subjects: ["Pre-Calculus", "Calculus"],   students: 20, sessions: 25 },
 ];
+
+export function getTutorById(id: number): Tutor | undefined {
+  return tutors.find((t) => t.id === id);
+}
+
+export function tutorNameById(id: number): string {
+  const t = getTutorById(id);
+  return t ? `${t.firstName} ${t.lastName}` : "";
+}
 
 export const studentSubjectDetail: Record<number, SubjectDetail[]> = {
   1: [{ subject: "Algebra",       score: 82, sessions: 7, lastSession: "Jun 18", trend: "up"   }, { subject: "Biology",       score: 74, sessions: 5, lastSession: "Jun 15", trend: "up"   }],
@@ -58,14 +67,14 @@ export const studentSubjectDetail: Record<number, SubjectDetail[]> = {
 };
 
 export const studentSessionHistory: Record<number, SessionRecord[]> = {
-  1: [{ subject: "Algebra",       tutor: "Ms. Chen",      date: "Jun 18", score: 84, duration: 60 }, { subject: "Biology",       tutor: "Dr. Kim",       date: "Jun 15", score: 76, duration: 45 }, { subject: "Algebra",       tutor: "Ms. Chen",     date: "Jun 11", score: 79, duration: 60 }, { subject: "Biology",  tutor: "Dr. Kim",      date: "Jun 8",  score: 71, duration: 45 }],
-  2: [{ subject: "Chemistry",     tutor: "Mr. Thompson",  date: "Jun 17", score: 63, duration: 45 }, { subject: "Geometry",      tutor: "Ms. Chen",      date: "Jun 14", score: 70, duration: 60 }, { subject: "Chemistry",     tutor: "Mr. Thompson", date: "Jun 10", score: 58, duration: 45 }],
-  3: [{ subject: "Earth Science", tutor: "Dr. Kim",       date: "Jun 19", score: 96, duration: 60 }, { subject: "Pre-Alg",       tutor: "Ms. Umubyeyi",  date: "Jun 16", score: 91, duration: 60 }, { subject: "Earth Science", tutor: "Dr. Kim",      date: "Jun 12", score: 93, duration: 45 }, { subject: "Pre-Alg",  tutor: "Ms. Umubyeyi", date: "Jun 9",  score: 88, duration: 60 }],
-  4: [{ subject: "Physics",       tutor: "Mr. Thompson",  date: "Jun 12", score: 54, duration: 45 }, { subject: "Pre-Calculus",  tutor: "Ms. Umubyeyi",  date: "Jun 10", score: 57, duration: 60 }, { subject: "Physics",       tutor: "Mr. Thompson", date: "Jun 5",  score: 49, duration: 45 }, { subject: "Pre-Calculus", tutor: "Ms. Umubyeyi", date: "Jun 1", score: 52, duration: 60 }],
-  5: [{ subject: "Biology",       tutor: "Dr. Kim",       date: "Jun 18", score: 88, duration: 60 }, { subject: "Statistics",    tutor: "Ms. Rodriguez", date: "Jun 16", score: 82, duration: 45 }, { subject: "Biology",       tutor: "Dr. Kim",      date: "Jun 13", score: 85, duration: 60 }, { subject: "Statistics", tutor: "Ms. Rodriguez", date: "Jun 10", score: 78, duration: 45 }],
-  6: [{ subject: "Chemistry",     tutor: "Mr. Thompson",  date: "Jun 17", score: 69, duration: 45 }, { subject: "Algebra",       tutor: "Ms. Chen",      date: "Jun 15", score: 74, duration: 60 }, { subject: "Chemistry",     tutor: "Mr. Thompson", date: "Jun 11", score: 64, duration: 45 }],
-  7: [{ subject: "Pre-Alg",       tutor: "Ms. Rodriguez", date: "Jun 19", score: 93, duration: 60 }, { subject: "Earth Science", tutor: "Dr. Kim",       date: "Jun 17", score: 87, duration: 45 }, { subject: "Pre-Alg",       tutor: "Ms. Rodriguez",date: "Jun 14", score: 90, duration: 60 }, { subject: "Earth Science", tutor: "Dr. Kim", date: "Jun 11", score: 84, duration: 45 }],
-  8: [{ subject: "Calculus",      tutor: "Ms. Umubyeyi",  date: "Jun 18", score: 68, duration: 60 }, { subject: "Physics",       tutor: "Mr. Thompson",  date: "Jun 14", score: 60, duration: 45 }, { subject: "Calculus",      tutor: "Ms. Umubyeyi", date: "Jun 11", score: 63, duration: 60 }, { subject: "Physics",  tutor: "Mr. Thompson", date: "Jun 7",  score: 56, duration: 45 }],
+  1: [{ subject: "Algebra",       tutorId: 1, date: "Jun 18", score: 84, duration: 60 }, { subject: "Biology",       tutorId: 4, date: "Jun 15", score: 76, duration: 45 }, { subject: "Algebra",       tutorId: 1, date: "Jun 11", score: 79, duration: 60 }, { subject: "Biology",  tutorId: 4, date: "Jun 8",  score: 71, duration: 45 }],
+  2: [{ subject: "Chemistry",     tutorId: 2, date: "Jun 17", score: 63, duration: 45 }, { subject: "Geometry",      tutorId: 1, date: "Jun 14", score: 70, duration: 60 }, { subject: "Chemistry",     tutorId: 2, date: "Jun 10", score: 58, duration: 45 }],
+  3: [{ subject: "Earth Science", tutorId: 4, date: "Jun 19", score: 96, duration: 60 }, { subject: "Pre-Alg",       tutorId: 3, date: "Jun 16", score: 91, duration: 60 }, { subject: "Earth Science", tutorId: 4, date: "Jun 12", score: 93, duration: 45 }, { subject: "Pre-Alg",  tutorId: 5, date: "Jun 9",  score: 88, duration: 60 }],
+  4: [{ subject: "Physics",       tutorId: 4, date: "Jun 12", score: 54, duration: 45 }, { subject: "Pre-Calculus",  tutorId: 5, date: "Jun 10", score: 57, duration: 60 }, { subject: "Physics",       tutorId: 2, date: "Jun 5",  score: 49, duration: 45 }, { subject: "Pre-Calculus", tutorId: 5, date: "Jun 1", score: 52, duration: 60 }],
+  5: [{ subject: "Biology",       tutorId: 2, date: "Jun 18", score: 88, duration: 60 }, { subject: "Statistics",    tutorId: 3, date: "Jun 16", score: 82, duration: 45 }, { subject: "Biology",       tutorId: 4, date: "Jun 13", score: 85, duration: 60 }, { subject: "Statistics", tutorId: 3, date: "Jun 10", score: 78, duration: 45 }],
+  6: [{ subject: "Chemistry",     tutorId: 2, date: "Jun 17", score: 69, duration: 45 }, { subject: "Algebra",       tutorId: 1, date: "Jun 15", score: 74, duration: 60 }, { subject: "Chemistry",     tutorId: 2, date: "Jun 11", score: 64, duration: 45 }],
+  7: [{ subject: "Pre-Alg",       tutorId: 3, date: "Jun 19", score: 93, duration: 60 }, { subject: "Earth Science", tutorId: 4, date: "Jun 17", score: 87, duration: 45 }, { subject: "Pre-Alg",       tutorId: 3, date: "Jun 14", score: 90, duration: 60 }, { subject: "Earth Science", tutorId: 4, date: "Jun 11", score: 84, duration: 45 }],
+  8: [{ subject: "Pre-Calculus",      tutorId: 5, date: "Jun 18", score: 68, duration: 60 }, { subject: "Physics",       tutorId: 2, date: "Jun 14", score: 60, duration: 45 }, { subject: "Calculus",      tutorId: 5, date: "Jun 11", score: 63, duration: 60 }, { subject: "Physics",  tutorId: 2, date: "Jun 7",  score: 56, duration: 45 }],
 };
 
 export const tutorAssignedIds = [3, 4, 8];
@@ -119,15 +128,27 @@ export const aiProjects: AIProject[] = [
   { id: 6, title: "Pre-Algebra Word Problems",         subject: "Pre-Alg",     module: "Pre-Algebra Foundations",  student: "Sofia Patel",      difficulty: "Intermediate", estimatedMins: 20, status: "approved", generatedAt: "Jun 15", assignedAt: "Jun 16", dueDate: "Jun 22", aiNote: "Applied problems targeting equation setup and variable isolation, aligned with Sofia's current module progress.", tasks: ["Maria has 3× more stickers than Jake. Together they have 48. How many each?", "Rectangle length is 5 more than width. Perimeter = 42. Find dimensions.", "Solve: 4(x−2) = 3x + 5", "A train at 60mph covers 210 miles. Find travel time."] },
 ];
 
-export const sofiaAssignments: HomeworkItem[] = [
-  { id: 6, title: "Pre-Algebra Word Problems", subject: "Pre-Alg", assignedBy: "Ms. Umubyeyi", assignedAt: "Jun 16", dueDate: "Jun 22", status: "in-progress", completion: 65 },
-];
+export const studentAssignments: Record<number, HomeworkItem[]> = {
+  3: [
+    { id: 6, studentId: 3, title: "Pre-Algebra Word Problems",        subject: "Pre-Alg",    assignedByTutorId: 5, assignedAt: "Jun 16", dueDate: "Jun 22", status: "in-progress", completion: 65 },
+  ],
+  8: [
+    { id: 7, studentId: 8, title: "Limits & Continuity — Intro Set",  subject: "Calculus",   assignedByTutorId: 5, assignedAt: "Jun 18", dueDate: "Jun 25", status: "not-started", completion: 0  },
+    { id: 8, studentId: 8, title: "Rate of Change Word Problems",      subject: "Calculus",   assignedByTutorId: 5, assignedAt: "Jun 20", dueDate: "Jun 27", status: "not-started", completion: 0  },
+  ],
+};
 
 // Computed helpers
 export const tutorStudents = students.filter((s) =>
-  studentSessionHistory[s.id]?.some((h) => h.tutor === CURRENT_TUTOR_NAME)
+  studentSessionHistory[s.id]?.some((h) => h.tutorId === CURRENT_TUTOR_ID)
 );
 
-export const tutorSessions = sessions.filter((s) => s.tutor === CURRENT_TUTOR_NAME);
+export const tutorSessions = sessions.filter((s) => s.tutorId === CURRENT_TUTOR_ID);
+
+export const tutorSubjects = tutors.filter((t) => t.id === CURRENT_TUTOR_ID).map((t) => ({
+  id: t.id,
+  fullname: `${t.firstName} ${t.lastName}`,
+  subjects: t.subjects,
+}));
 
 export const sofia = students.find((s) => s.id === CURRENT_STUDENT_ID)!;

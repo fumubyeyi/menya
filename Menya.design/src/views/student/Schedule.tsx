@@ -4,7 +4,7 @@ import SubjectTag from "../../components/SubjectTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
-  sofia, sessions, studentSessionHistory, sofiaAssignments, aiProjects,
+  sofia, sessions, studentSessionHistory, studentAssignments, CURRENT_STUDENT_ID, aiProjects, tutorNameById,
 } from "../../data";
 import { getSubjectIcon, subjectColor } from "../../lib/constants";
 
@@ -48,7 +48,7 @@ export default function StudentSchedule() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">{s.subject}</p>
-                  <p className="text-[11px] font-mono text-muted-foreground">{s.tutor} · {s.time}</p>
+                  <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(s.tutorId)} · {s.time}</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
                   <Clock className="w-3.5 h-3.5" /> {s.clock}
@@ -82,7 +82,7 @@ export default function StudentSchedule() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground">{h.subject}</p>
-                <p className="text-[11px] font-mono text-muted-foreground">{h.tutor} · {h.duration}m</p>
+                <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(h.tutorId)} · {h.duration}m</p>
               </div>
               <div className="text-right">
                 <p className={`text-sm font-mono font-semibold ${h.score >= 80 ? "text-emerald-600" : h.score >= 65 ? "text-amber-600" : "text-red-600"}`}>
@@ -99,7 +99,7 @@ export default function StudentSchedule() {
       <div className="bg-card border border-border rounded-xl p-5">
         <h2 className="text-sm font-semibold text-foreground mb-4">Assignments</h2>
         <div className="space-y-4">
-          {sofiaAssignments.map((hw) => {
+          {(studentAssignments[CURRENT_STUDENT_ID] ?? []).map((hw) => {
             const project = aiProjects.find((p) => p.id === hw.id);
             const previewTasks = project?.tasks.slice(0, 2) ?? [];
 

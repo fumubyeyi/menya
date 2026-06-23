@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import Avatar from "../../components/Avatar";
-import { sessions, weeklyData, subjectBreakdown } from "../../data";
+import { sessions, weeklyData, subjectBreakdown, tutorNameById } from "../../data";
 
 const kpis = [
   { label: "Students Enrolled", value: "247", delta: "+12 this month", Icon: Users,         color: "#1B5E4F" },
@@ -104,7 +104,7 @@ export default function Dashboard() {
               <Avatar name={s.student} size={8} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{s.student}</p>
-                <p className="text-xs text-muted-foreground">{s.subject} · {s.tutor}</p>
+                <p className="text-xs text-muted-foreground">{s.subject} · {tutorNameById(s.tutorId)}</p>
               </div>
               <span className="text-xs text-muted-foreground font-mono">{s.clock}</span>
               <SessionStatusPill status={s.status} />

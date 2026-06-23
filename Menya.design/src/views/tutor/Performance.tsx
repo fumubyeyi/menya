@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  tutorStudents, tutorWeeklyData, tutors, CURRENT_TUTOR_NAME,
+  tutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
 import { statusMeta, subjectColor } from "../../lib/constants";
 
@@ -12,7 +12,7 @@ const avgProgress = Math.round(
   tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length
 );
 
-const tutorRecord = tutors.find((t) => t.name === CURRENT_TUTOR_NAME);
+const tutorRecord = getTutorById(CURRENT_TUTOR_ID);
 
 const outcomeCounts = {
   exceeding: tutorStudents.filter((s) => s.status === "exceeding").length,

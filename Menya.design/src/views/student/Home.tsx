@@ -6,7 +6,7 @@ import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
   sofia, sessions, studentSubjectDetail, studentSessionHistory,
-  sofiaAssignments, studentGoals, aiProjects,
+  studentAssignments, CURRENT_STUDENT_ID, studentGoals, aiProjects, tutorNameById,
 } from "../../data";
 import { achievements, getSubjectIcon, subjectColor } from "../../lib/constants";
 
@@ -72,7 +72,7 @@ export default function StudentHome() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">{todaySession.subject}</p>
-                  <p className="text-[11px] font-mono text-muted-foreground">{todaySession.tutor} · {todaySession.clock}</p>
+                  <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(todaySession.tutorId)} · {todaySession.clock}</p>
                 </div>
                 <SessionStatusPill status={todaySession.status} />
                 {todaySession.status === "in-progress" && (
@@ -109,7 +109,7 @@ export default function StudentHome() {
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-foreground mb-3">Assignments</h2>
             <div className="space-y-3">
-              {sofiaAssignments.map((hw) => (
+              {(studentAssignments[CURRENT_STUDENT_ID] ?? []).map((hw) => (
                 <div key={hw.id} className="border border-border rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>

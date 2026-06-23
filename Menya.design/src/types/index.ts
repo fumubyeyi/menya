@@ -19,7 +19,7 @@ export interface Student {
 export interface Session {
   id: number;
   student: string;
-  tutor: string;
+  tutorId: number;
   subject: string;
   time: string;
   clock: string;
@@ -39,7 +39,9 @@ export interface CurriculumItem {
 }
 
 export interface Tutor {
-  name: string;
+  id: number;
+  firstName: string;
+  lastName: string;
   subjects: string[];
   students: number;
   sessions: number;
@@ -55,7 +57,7 @@ export interface SubjectDetail {
 
 export interface SessionRecord {
   subject: string;
-  tutor: string;
+  tutorId: number;
   date: string;
   score: number;
   duration: number;
@@ -80,9 +82,10 @@ export interface AIProject {
 
 export interface HomeworkItem {
   id: number;
+  studentId: number;
   title: string;
   subject: string;
-  assignedBy: string;
+  assignedByTutorId: number;
   assignedAt: string;
   dueDate: string;
   status: "not-started" | "in-progress" | "submitted";

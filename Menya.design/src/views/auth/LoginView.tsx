@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { students, tutors } from "../../data";
+import { students, tutors, tutorNameById } from "../../data";
 import type { Role } from "../../types";
 
 const ROLE_OPTIONS: {
@@ -39,7 +39,7 @@ const ROLE_OPTIONS: {
   },
   {
     role: "program",
-    label: "Program Director",
+    label: "Program Staff",
     Icon: Briefcase,
     description: "Org-wide oversight, accounts & analytics",
     color: "#F0981E",
@@ -286,7 +286,7 @@ export default function LoginView() {
   const [studentName, setStudentName] = useState(
     students[2].name,
   ); // Sofia
-  const [tutorName, setTutorName] = useState(tutors[4].name); // Ms. Umubyeyi
+  const [tutorId, setTutorId] = useState(tutors[4].id);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -307,12 +307,12 @@ export default function LoginView() {
       }
       login({ role: "student", name: s.name, studentId: s.id });
     } else if (selectedRole === "tutor") {
-      const t = tutors.find((tu) => tu.name === tutorName);
+      const t = tutors.find((tu) => tu.id === tutorId);
       if (!t) {
         setError("Tutor not found.");
         return;
       }
-      login({ role: "tutor", name: t.name });
+      login({ role: "tutor", name: `${t.firstName} ${t.lastName}` });
     } else {
       if (!email) {
         setError("Please enter your email.");
@@ -480,14 +480,12 @@ export default function LoginView() {
                     Select your name
                   </span>
                   <select
-                    value={tutorName}
-                    onChange={(e) =>
-                      setTutorName(e.target.value)
-                    }
+                    value={tutorId}
+                    onChange={(e) => setTutorId(Number(e.target.value))}
                     className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer"
                   >
                     {tutors.map((t) => (
-                      <option key={t.name}>{t.name}</option>
+                      <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
                     ))}
                   </select>
                 </label>

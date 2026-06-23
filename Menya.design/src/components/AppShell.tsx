@@ -97,7 +97,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
             <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
               <Atom className="w-4 h-4 text-white" />
             </div>
-            <span className="font-display font-bold text-white text-base leading-none">StemBridge</span>
+            <span className="font-display font-bold text-white text-base leading-none">Menya</span>
           </div>
           <button onClick={() => setMobileOpen(false)} className="lg:hidden text-white/60 hover:text-white">
             <X className="w-4 h-4" />
