@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Clock, Plus } from "lucide-react";
+import ZoomModal from "../../components/ZoomModal";
+import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
 import SubjectTag from "../../components/SubjectTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
+import SessionArtifacts from "../../components/SessionArtifacts";
 import {
-  tutorSessions, tutorStudents, studentSessionHistory,
+  tutorSessions, tutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID,
 } from "../../data";
 
 function scoreCls(score: number) {
@@ -16,6 +19,8 @@ function scoreCls(score: number) {
 
 export default function TutorSchedule() {
   const [modal, setModal] = useState(false);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const currentTutor = getTutorById(CURRENT_TUTOR_ID);
 
   const history = tutorStudents.flatMap((s) =>
     (studentSessionHistory[s.id] ?? []).map((h) => ({ ...h, studentName: s.name }))
@@ -55,6 +60,14 @@ export default function TutorSchedule() {
               </div>
               <span className="text-[11px] font-mono text-muted-foreground hidden sm:block">{s.duration}m</span>
               <SessionStatusPill status={s.status} />
+              {s.status === "in-progress" && s.meetingId && (
+                <button
+                  onClick={() => setActiveSession(s)}
+                  className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Start
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -71,7 +84,8 @@ export default function TutorSchedule() {
                 <th className="text-left pb-3 pr-4">Subject</th>
                 <th className="text-left pb-3 pr-4">Score</th>
                 <th className="text-left pb-3 pr-4">Date</th>
-                <th className="text-left pb-3">Duration</th>
+                <th className="text-left pb-3 pr-4">Duration</th>
+                <th className="text-left pb-3">Materials</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -88,7 +102,10 @@ export default function TutorSchedule() {
                   </td>
                   <td className={`py-2.5 pr-4 font-mono font-semibold text-xs ${scoreCls(h.score)}`}>{h.score}</td>
                   <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.date}</td>
-                  <td className="py-2.5 font-mono text-xs text-muted-foreground">{h.duration}m</td>
+                  <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.duration}m</td>
+                  <td className="py-2.5">
+                    <SessionArtifacts artifacts={h.artifacts} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -97,6 +114,14 @@ export default function TutorSchedule() {
       </div>
 
       {modal && <ScheduleModal onClose={() => setModal(false)} />}
+      {activeSession?.meetingId && (
+        <ZoomModal
+          meetingId={activeSession.meetingId}
+          password={activeSession.password ?? ""}
+          userName={currentTutor ? `${currentTutor.firstName} ${currentTutor.lastName}` : undefined}
+          onClose={() => setActiveSession(null)}
+        />
+      )}
     </div>
   );
 }

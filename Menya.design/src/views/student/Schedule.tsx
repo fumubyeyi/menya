@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Clock, Plus } from "lucide-react";
+import ZoomModal from "../../components/ZoomModal";
+import type { Session } from "../../types";
 import SubjectTag from "../../components/SubjectTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
+import SessionArtifacts from "../../components/SessionArtifacts";
 import {
   sofia, sessions, studentSessionHistory, studentAssignments, CURRENT_STUDENT_ID, aiProjects, tutorNameById,
 } from "../../data";
@@ -13,6 +16,7 @@ const sessionHistory = studentSessionHistory[sofia.id] ?? [];
 
 export default function StudentSchedule() {
   const [modal, setModal] = useState(false);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -55,8 +59,11 @@ export default function StudentSchedule() {
                 </div>
                 <span className="text-[11px] font-mono text-muted-foreground hidden sm:block">{s.duration}m</span>
                 <SessionStatusPill status={s.status} />
-                {s.status === "in-progress" && (
-                  <button className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors">
+                {s.status === "in-progress" && s.meetingId && (
+                  <button
+                    onClick={() => setActiveSession(s)}
+                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                  >
                     Join
                   </button>
                 )}
@@ -71,24 +78,29 @@ export default function StudentSchedule() {
         <h2 className="text-sm font-semibold text-foreground mb-4">Past Sessions</h2>
         <div className="divide-y divide-border">
           {sessionHistory.map((h, i) => (
-            <div key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: `${subjectColor[h.subject] ?? "#1B5E4F"}15` }}
-              >
-                <span style={{ color: subjectColor[h.subject] ?? "#1B5E4F" }}>
-                  {getSubjectIcon(h.subject)}
-                </span>
+            <div key={i} className="py-3 first:pt-0 last:pb-0 space-y-2">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${subjectColor[h.subject] ?? "#1B5E4F"}15` }}
+                >
+                  <span style={{ color: subjectColor[h.subject] ?? "#1B5E4F" }}>
+                    {getSubjectIcon(h.subject)}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{h.subject}</p>
+                  <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(h.tutorId)} · {h.duration}m</p>
+                </div>
+                <div className="text-right">
+                  <p className={`text-sm font-mono font-semibold ${h.score >= 80 ? "text-emerald-600" : h.score >= 65 ? "text-amber-600" : "text-red-600"}`}>
+                    {h.score}
+                  </p>
+                  <p className="text-[11px] font-mono text-muted-foreground">{h.date}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{h.subject}</p>
-                <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(h.tutorId)} · {h.duration}m</p>
-              </div>
-              <div className="text-right">
-                <p className={`text-sm font-mono font-semibold ${h.score >= 80 ? "text-emerald-600" : h.score >= 65 ? "text-amber-600" : "text-red-600"}`}>
-                  {h.score}
-                </p>
-                <p className="text-[11px] font-mono text-muted-foreground">{h.date}</p>
+              <div className="pl-12">
+                <SessionArtifacts artifacts={h.artifacts} />
               </div>
             </div>
           ))}
@@ -145,6 +157,14 @@ export default function StudentSchedule() {
       </div>
 
       {modal && <ScheduleModal defaultStudent={sofia.name} onClose={() => setModal(false)} />}
+      {activeSession?.meetingId && (
+        <ZoomModal
+          meetingId={activeSession.meetingId}
+          password={activeSession.password ?? ""}
+          userName={sofia.name}
+          onClose={() => setActiveSession(null)}
+        />
+      )}
     </div>
   );
 }

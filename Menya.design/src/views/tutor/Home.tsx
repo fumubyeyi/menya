@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { CalendarDays, Clock, Plus, TrendingUp, Users, ChevronRight } from "lucide-react";
+import ZoomModal from "../../components/ZoomModal";
+import type { Session } from "../../types";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -22,6 +24,8 @@ const todayQueue = tutorSessions.filter((s) => s.time === "Today");
 export default function TutorHome() {
   const navigate = useNavigate();
   const [modal, setModal] = useState(false);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const currentTutor = getTutorById(CURRENT_TUTOR_ID);
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -87,6 +91,14 @@ export default function TutorHome() {
                       <Clock className="w-3.5 h-3.5" /> {s.clock}
                     </div>
                     <SessionStatusPill status={s.status} />
+                    {s.status === "in-progress" && s.meetingId && (
+                      <button
+                        onClick={() => setActiveSession(s)}
+                        className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        Start
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -157,6 +169,14 @@ export default function TutorHome() {
       </div>
 
       {modal && <ScheduleModal onClose={() => setModal(false)} />}
+      {activeSession?.meetingId && (
+        <ZoomModal
+          meetingId={activeSession.meetingId}
+          password={activeSession.password ?? ""}
+          userName={currentTutor ? `${currentTutor.firstName} ${currentTutor.lastName}` : undefined}
+          onClose={() => setActiveSession(null)}
+        />
+      )}
     </div>
   );
 }

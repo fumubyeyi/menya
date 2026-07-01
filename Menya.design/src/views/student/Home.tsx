@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Flame, Clock, BookOpen, ChevronRight } from "lucide-react";
+import ZoomModal from "../../components/ZoomModal";
 import ProgressRing from "../../components/ProgressRing";
 import SubjectTag from "../../components/SubjectTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
@@ -20,6 +21,7 @@ const lockedAchievements = achievements.filter((a) => !a.condition(sofia));
 
 export default function StudentHome() {
   const [modal, setModal] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
@@ -75,8 +77,11 @@ export default function StudentHome() {
                   <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(todaySession.tutorId)} · {todaySession.clock}</p>
                 </div>
                 <SessionStatusPill status={todaySession.status} />
-                {todaySession.status === "in-progress" && (
-                  <button className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors">
+                {todaySession.status === "in-progress" && todaySession.meetingId && (
+                  <button
+                    onClick={() => setZoomOpen(true)}
+                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                  >
                     Join
                   </button>
                 )}
@@ -206,6 +211,14 @@ export default function StudentHome() {
       </div>
 
       {modal && <ScheduleModal defaultStudent={sofia.name} onClose={() => setModal(false)} />}
+      {zoomOpen && todaySession?.meetingId && (
+        <ZoomModal
+          meetingId={todaySession.meetingId}
+          password={todaySession.password ?? ""}
+          userName={sofia.name}
+          onClose={() => setZoomOpen(false)}
+        />
+      )}
     </div>
   );
 }

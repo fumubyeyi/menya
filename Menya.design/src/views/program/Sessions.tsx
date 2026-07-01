@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { CalendarPlus } from "lucide-react";
+import ZoomModal from "../../components/ZoomModal";
+import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
 import SubjectTag from "../../components/SubjectTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
@@ -16,6 +18,7 @@ const FILTER_TABS = [
 export default function Sessions() {
   const [tab,   setTab]   = useState("all");
   const [modal, setModal] = useState(false);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
 
   const filtered = sessions.filter((s) => {
     if (tab === "all")       return true;
@@ -64,7 +67,7 @@ export default function Sessions() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                {["Student", "Subject", "Tutor", "Date", "Time", "Duration", "Status"].map((h) => (
+                {["Student", "Subject", "Tutor", "Date", "Time", "Duration", "Status", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-mono text-muted-foreground uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -86,6 +89,16 @@ export default function Sessions() {
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.clock}</td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.duration}min</td>
                   <td className="px-4 py-3"><SessionStatusPill status={s.status} /></td>
+                  <td className="px-4 py-3">
+                    {s.status === "in-progress" && s.meetingId && (
+                      <button
+                        onClick={() => setActiveSession(s)}
+                        className="px-3 py-1 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        Watch
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -120,6 +133,14 @@ export default function Sessions() {
       </div>
 
       {modal && <ScheduleModal onClose={() => setModal(false)} />}
+      {activeSession?.meetingId && (
+        <ZoomModal
+          meetingId={activeSession.meetingId}
+          password={activeSession.password ?? ""}
+          userName="Program Admin"
+          onClose={() => setActiveSession(null)}
+        />
+      )}
     </div>
   );
 }

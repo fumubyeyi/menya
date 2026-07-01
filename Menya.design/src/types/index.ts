@@ -25,6 +25,8 @@ export interface Session {
   clock: string;
   duration: number;
   status: SessionStatus;
+  meetingId?: string;
+  password?: string;
 }
 
 export interface CurriculumItem {
@@ -55,12 +57,20 @@ export interface SubjectDetail {
   trend: TrendDirection;
 }
 
+export interface SessionArtifact {
+  id: number;
+  type: "notes" | "whiteboard";
+  label: string;
+  url: string;
+}
+
 export interface SessionRecord {
   subject: string;
   tutorId: number;
   date: string;
   score: number;
   duration: number;
+  artifacts?: SessionArtifact[];
 }
 
 export interface AIProject {
@@ -96,4 +106,17 @@ export interface AuthUser {
   role: Role;
   name: string;
   studentId?: number;
+}
+
+export interface ZoomIFrameProps {
+  meetingId: string;
+  password: string;
+  userName?: string;
+}
+
+export interface ZoomModalProps {
+  meetingId: string;
+  password: string;
+  userName?: string;
+  onClose: () => void;
 }

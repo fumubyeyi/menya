@@ -15,16 +15,16 @@ export const students: Student[] = [
 ];
 
 export const sessions: Session[] = [
-  { id: 1,  student: "Aaliyah Johnson",  tutorId: 1, subject: "Algebra",       time: "Today",    clock: "3:30 PM", duration: 60, status: "upcoming"    },
-  { id: 2,  student: "Marcus Rivera",    tutorId: 2, subject: "Chemistry",     time: "Today",    clock: "4:00 PM", duration: 45, status: "upcoming"    },
-  { id: 3,  student: "Sofia Patel",      tutorId: 3, subject: "Pre-Alg",       time: "Today",    clock: "4:30 PM", duration: 60, status: "in-progress" },
-  { id: 4,  student: "Isabella Chen",    tutorId: 4, subject: "Biology",       time: "Tomorrow", clock: "2:00 PM", duration: 60, status: "scheduled"   },
-  { id: 5,  student: "DeShawn Williams", tutorId: 2, subject: "Physics",       time: "Tomorrow", clock: "3:00 PM", duration: 45, status: "scheduled"   },
-  { id: 6,  student: "Jaylen Brooks",    tutorId: 1, subject: "Algebra",       time: "Jun 22",   clock: "2:30 PM", duration: 60, status: "scheduled"   },
-  { id: 7,  student: "Amara Osei",       tutorId: 3, subject: "Earth Science", time: "Jun 22",   clock: "3:00 PM", duration: 45, status: "scheduled"   },
-  { id: 8,  student: "Noah Fitzgerald",  tutorId: 5, subject: "Calculus",      time: "Today",    clock: "5:00 PM", duration: 60, status: "upcoming"    },
-  { id: 9,  student: "DeShawn Williams", tutorId: 5, subject: "Pre-Calculus",  time: "Jun 22",   clock: "4:30 PM", duration: 60, status: "scheduled"   },
-  { id: 10, student: "Sofia Patel",      tutorId: 5, subject: "Pre-Alg",       time: "Jun 23",   clock: "3:00 PM", duration: 60, status: "scheduled"   },
+  { id: 1,  student: "Aaliyah Johnson",  tutorId: 1, subject: "Algebra",       time: "Today",    clock: "3:30 PM", duration: 60, status: "upcoming", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 2,  student: "Marcus Rivera",    tutorId: 2, subject: "Chemistry",     time: "Today",    clock: "4:00 PM", duration: 45, status: "upcoming", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 3,  student: "Sofia Patel",      tutorId: 3, subject: "Pre-Alg",       time: "Today",    clock: "4:30 PM", duration: 60, status: "in-progress", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 4,  student: "Isabella Chen",    tutorId: 4, subject: "Biology",       time: "Tomorrow", clock: "2:00 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 5,  student: "DeShawn Williams", tutorId: 2, subject: "Physics",       time: "Tomorrow", clock: "3:00 PM", duration: 45, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 6,  student: "Jaylen Brooks",    tutorId: 1, subject: "Algebra",       time: "Jun 22",   clock: "2:30 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 7,  student: "Amara Osei",       tutorId: 3, subject: "Earth Science", time: "Jun 22",   clock: "3:00 PM", duration: 45, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 8,  student: "Noah Fitzgerald",  tutorId: 5, subject: "Calculus",      time: "Today",    clock: "5:00 PM", duration: 60, status: "upcoming", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 9,  student: "DeShawn Williams", tutorId: 5, subject: "Pre-Calculus",  time: "Jun 22",   clock: "4:30 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 10, student: "Sofia Patel",      tutorId: 5, subject: "Pre-Alg",       time: "Jun 23",   clock: "3:00 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
 ];
 
 export const curriculum: CurriculumItem[] = [
@@ -69,7 +69,7 @@ export const studentSubjectDetail: Record<number, SubjectDetail[]> = {
 export const studentSessionHistory: Record<number, SessionRecord[]> = {
   1: [{ subject: "Algebra",       tutorId: 1, date: "Jun 18", score: 84, duration: 60 }, { subject: "Biology",       tutorId: 4, date: "Jun 15", score: 76, duration: 45 }, { subject: "Algebra",       tutorId: 1, date: "Jun 11", score: 79, duration: 60 }, { subject: "Biology",  tutorId: 4, date: "Jun 8",  score: 71, duration: 45 }],
   2: [{ subject: "Chemistry",     tutorId: 2, date: "Jun 17", score: 63, duration: 45 }, { subject: "Geometry",      tutorId: 1, date: "Jun 14", score: 70, duration: 60 }, { subject: "Chemistry",     tutorId: 2, date: "Jun 10", score: 58, duration: 45 }],
-  3: [{ subject: "Earth Science", tutorId: 4, date: "Jun 19", score: 96, duration: 60 }, { subject: "Pre-Alg",       tutorId: 3, date: "Jun 16", score: 91, duration: 60 }, { subject: "Earth Science", tutorId: 4, date: "Jun 12", score: 93, duration: 45 }, { subject: "Pre-Alg",  tutorId: 5, date: "Jun 9",  score: 88, duration: 60 }],
+  3: [{ subject: "Earth Science", tutorId: 4, date: "Jun 19", score: 96, duration: 60, artifacts: [{ id: 1, type: "notes", label: "Session notes", url: "https://notes.menya.app/sessions/3-jun19" }, { id: 2, type: "whiteboard", label: "Whiteboard", url: "https://whiteboard.menya.app/sessions/3-jun19" }] }, { subject: "Pre-Alg",       tutorId: 3, date: "Jun 16", score: 91, duration: 60, artifacts: [{ id: 3, type: "notes", label: "Session notes", url: "https://notes.menya.app/sessions/3-jun16" }] }, { subject: "Earth Science", tutorId: 4, date: "Jun 12", score: 93, duration: 45 }, { subject: "Pre-Alg",  tutorId: 5, date: "Jun 9",  score: 88, duration: 60 }],
   4: [{ subject: "Physics",       tutorId: 4, date: "Jun 12", score: 54, duration: 45 }, { subject: "Pre-Calculus",  tutorId: 5, date: "Jun 10", score: 57, duration: 60 }, { subject: "Physics",       tutorId: 2, date: "Jun 5",  score: 49, duration: 45 }, { subject: "Pre-Calculus", tutorId: 5, date: "Jun 1", score: 52, duration: 60 }],
   5: [{ subject: "Biology",       tutorId: 2, date: "Jun 18", score: 88, duration: 60 }, { subject: "Statistics",    tutorId: 3, date: "Jun 16", score: 82, duration: 45 }, { subject: "Biology",       tutorId: 4, date: "Jun 13", score: 85, duration: 60 }, { subject: "Statistics", tutorId: 3, date: "Jun 10", score: 78, duration: 45 }],
   6: [{ subject: "Chemistry",     tutorId: 2, date: "Jun 17", score: 69, duration: 45 }, { subject: "Algebra",       tutorId: 1, date: "Jun 15", score: 74, duration: 60 }, { subject: "Chemistry",     tutorId: 2, date: "Jun 11", score: 64, duration: 45 }],
