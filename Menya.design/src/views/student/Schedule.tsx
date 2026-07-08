@@ -159,6 +159,7 @@ export default function StudentSchedule() {
       {modal && <ScheduleModal defaultStudent={sofia.name} onClose={() => setModal(false)} />}
       {activeSession?.meetingId && (
         <ZoomModal
+          sessionId={activeSession.id}
           meetingId={activeSession.meetingId}
           password={activeSession.password ?? ""}
           userName={sofia.name}

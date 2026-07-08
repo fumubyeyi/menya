@@ -135,6 +135,7 @@ export default function Sessions() {
       {modal && <ScheduleModal onClose={() => setModal(false)} />}
       {activeSession?.meetingId && (
         <ZoomModal
+          sessionId={activeSession.id}
           meetingId={activeSession.meetingId}
           password={activeSession.password ?? ""}
           userName="Program Admin"

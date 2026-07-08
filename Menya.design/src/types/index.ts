@@ -110,6 +110,7 @@ export interface AuthUser {
 }
 
 export interface ZoomModalProps {
+  sessionId: number;
   meetingId: string;
   password: string;
   userName?: string;
