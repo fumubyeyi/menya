@@ -1,17 +1,51 @@
 import { useState } from "react";
-import { PlusCircle, BookOpen, Users } from "lucide-react";
+import { PlusCircle, Plus, BookOpen, Users, ChevronRight } from "lucide-react";
 import SubjectTag from "../../components/SubjectTag";
+import AddCourseModal from "../../components/AddCourseModal";
+import AddChapterModal from "../../components/AddChapterModal";
+import AddModuleModal from "../../components/AddModuleModal";
+import ChapterModulesModal from "../../components/ChapterModulesModal";
 import { curriculum } from "../../data";
 import { diffCls, subjectColor } from "../../lib/constants";
+import type { CurriculumCourse, CurriculumChapter, Difficulty } from "../../types";
 
-const SUBJECT_TABS = ["All", "Algebra", "Biology", "Chemistry", "Physics", "Earth Science", "Statistics"];
+const VISIBLE_MODULES = 5;
 
 export default function Curriculum() {
+  const [courses, setCourses] = useState<CurriculumCourse[]>(curriculum);
   const [activeTab, setActiveTab] = useState("All");
+  const [showAddCourse, setShowAddCourse] = useState(false);
+  const [addChapterFor, setAddChapterFor] = useState<CurriculumCourse | null>(null);
+  const [addModuleFor, setAddModuleFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
+  const [viewModulesFor, setViewModulesFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
 
-  const filtered = activeTab === "All"
-    ? curriculum
-    : curriculum.filter((c) => c.subject === activeTab || c.subject.includes(activeTab));
+  const subjectTabs = ["All", ...courses.map((c) => c.subject)];
+  const filteredCourses = activeTab === "All" ? courses : courses.filter((c) => c.subject === activeTab);
+
+  const totalChapters = courses.reduce((sum, c) => sum + c.chapters.length, 0);
+  const totalModules = courses.reduce((sum, c) => sum + c.chapters.reduce((s, ch) => s + ch.modules.length, 0), 0);
+
+  const addCourse = (course: CurriculumCourse) => setCourses((prev) => [...prev, course]);
+
+  const addChapter = (courseId: number, title: string, difficulty: Difficulty) => {
+    setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
+      ...c,
+      chapters: [...c.chapters, { id: Date.now(), title, difficulty, modules: [] }],
+    }));
+  };
+
+  const addModule = (courseId: number, chapterId: number, title: string) => {
+    if (!title) return;
+    setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
+      ...c,
+      chapters: c.chapters.map((ch) => ch.id !== chapterId ? ch : { ...ch, modules: [...ch.modules, { title }] }),
+    }));
+  };
+
+  // Keep the "see all" modal's chapter data in sync as modules get added.
+  const liveViewModulesFor = viewModulesFor
+    ? { course: viewModulesFor.course, chapter: courses.find((c) => c.id === viewModulesFor.course.id)?.chapters.find((ch) => ch.id === viewModulesFor.chapter.id) ?? viewModulesFor.chapter }
+    : null;
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
@@ -19,17 +53,17 @@ export default function Curriculum() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-display font-semibold text-foreground">Curriculum Library</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{curriculum.length} modules across {SUBJECT_TABS.length - 1} subjects</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{totalChapters} chapters · {totalModules} modules across {courses.length} math subjects</p>
         </div>
-        <button className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+        <button onClick={() => setShowAddCourse(true)} className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
           <PlusCircle className="w-4 h-4" />
-          Add New Module
+          Add Course
         </button>
       </div>
 
       {/* Subject Filter Tabs */}
       <div className="flex gap-1 flex-wrap border-b border-border pb-0">
-        {SUBJECT_TABS.map((tab) => (
+        {subjectTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -44,66 +78,107 @@ export default function Curriculum() {
         ))}
       </div>
 
-      {/* Module Grid */}
-      {filtered.length === 0 ? (
+      {/* Courses */}
+      {filteredCourses.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
           <BookOpen className="w-8 h-8 opacity-40" />
-          <p className="text-sm">No modules for this subject yet.</p>
+          <p className="text-sm">No courses yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((item) => {
-            const color = subjectColor[item.subject] ?? "#1B5E4F";
+        <div className="space-y-8">
+          {filteredCourses.map((course) => {
+            const color = subjectColor[course.subject] ?? "#1B5E4F";
             return (
-              <div key={item.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-sm hover:border-primary/30 transition-all cursor-pointer group">
-                {/* Colored top bar */}
-                <div className="h-1.5" style={{ backgroundColor: color }} />
-
-                <div className="p-4 space-y-3">
-                  {/* Title & Difficulty */}
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-foreground leading-snug flex-1">{item.title}</h3>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono flex-shrink-0 ${diffCls[item.difficulty]}`}>
-                      {item.difficulty}
-                    </span>
-                  </div>
-
-                  {/* Tags */}
-                  <div className="flex gap-1.5 flex-wrap">
-                    <SubjectTag subject={item.subject} />
-                    <span className="text-[11px] px-2 py-0.5 rounded-md font-mono bg-muted text-muted-foreground">
-                      Grade {item.grade}
-                    </span>
-                  </div>
-
-                  {/* Completion Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-muted-foreground">Completion</span>
-                      <span className="text-xs font-mono font-semibold text-foreground">{item.completion}%</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${item.completion}%`, backgroundColor: color }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 pt-1 border-t border-border">
+              <div key={course.id} className="space-y-3">
+                {/* Course header */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <SubjectTag subject={course.subject} />
+                    <span className="text-[11px] px-2 py-0.5 rounded-md font-mono bg-muted text-muted-foreground">Grade {course.grade}</span>
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <BookOpen className="w-3.5 h-3.5" />{item.modules} modules
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Users className="w-3.5 h-3.5" />{item.students} students
+                      <Users className="w-3.5 h-3.5" />{course.students} students
                     </span>
                   </div>
+                  <button onClick={() => setAddChapterFor(course)} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    Add Chapter
+                  </button>
                 </div>
+
+                {/* Chapter Grid */}
+                {course.chapters.length === 0 ? (
+                  <div className="text-sm text-muted-foreground py-6 px-4 border border-dashed border-border rounded-xl text-center">
+                    No chapters yet — add the first one.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {course.chapters.map((chapter) => {
+                      const visibleModules = chapter.modules.slice(0, VISIBLE_MODULES);
+                      const remaining = chapter.modules.length - visibleModules.length;
+                      return (
+                        <div key={chapter.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-sm hover:border-primary/30 transition-all">
+                          {/* Colored top bar */}
+                          <div className="h-1.5" style={{ backgroundColor: color }} />
+
+                          <div className="p-4 space-y-3">
+                            {/* Title & Difficulty */}
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="text-sm font-semibold text-foreground leading-snug flex-1">{chapter.title}</h3>
+                              <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono flex-shrink-0 ${diffCls[chapter.difficulty]}`}>
+                                {chapter.difficulty}
+                              </span>
+                            </div>
+
+                            {/* Module list */}
+                            {chapter.modules.length > 0 && (
+                              <ul className="space-y-1 pt-1 border-t border-border">
+                                {visibleModules.map((m, i) => (
+                                  <li key={i} className="text-xs text-muted-foreground truncate">· {m.title}</li>
+                                ))}
+                              </ul>
+                            )}
+                            {remaining > 0 && (
+                              <button onClick={() => setViewModulesFor({ course, chapter })}
+                                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                                See all {chapter.modules.length} <ChevronRight className="w-3 h-3" />
+                              </button>
+                            )}
+
+                            {/* Stats & actions */}
+                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
+                              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <BookOpen className="w-3.5 h-3.5" />{chapter.modules.length} modules
+                              </span>
+                              <button onClick={() => setAddModuleFor({ course, chapter })}
+                                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                                <Plus className="w-3 h-3" />Add Module
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {showAddCourse && <AddCourseModal onClose={() => setShowAddCourse(false)} onAdd={addCourse} />}
+      {addChapterFor && (
+        <AddChapterModal course={addChapterFor} onClose={() => setAddChapterFor(null)}
+          onAdd={(title, difficulty) => addChapter(addChapterFor.id, title, difficulty)} />
+      )}
+      {addModuleFor && (
+        <AddModuleModal chapter={addModuleFor.chapter} onClose={() => setAddModuleFor(null)}
+          onAdd={(title) => addModule(addModuleFor.course.id, addModuleFor.chapter.id, title)} />
+      )}
+      {liveViewModulesFor && (
+        <ChapterModulesModal subject={liveViewModulesFor.course.subject} chapter={liveViewModulesFor.chapter}
+          onClose={() => setViewModulesFor(null)}
+          onAddModule={(title) => addModule(liveViewModulesFor.course.id, liveViewModulesFor.chapter.id, title)} />
       )}
     </div>
   );

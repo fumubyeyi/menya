@@ -1,4 +1,4 @@
-import type { Student, Session, CurriculumItem, Tutor, SubjectDetail, SessionRecord, AIProject, HomeworkItem } from "../types";
+import type { Student, Session, CurriculumCourse, Tutor, SubjectDetail, SessionRecord, AIProject, HomeworkItem } from "../types";
 
 export const CURRENT_STUDENT_ID = 3;
 export const CURRENT_TUTOR_ID = 5;
@@ -28,23 +28,129 @@ export const sessions: Session[] = [
   { id: 11, student: "DeShawn Williams", tutorId: 5, subject: "Pre-Calculus",  time: "Today",    clock: "1:00 PM", duration: 60, status: "upcoming", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
 ];
 
-export const curriculum: CurriculumItem[] = [
-  { id: 1, title: "Quadratic Equations",       subject: "Algebra",       grade: "7–8", difficulty: "Intermediate", modules: 6,  students: 42, completion: 68 },
-  { id: 2, title: "Cell Biology Fundamentals", subject: "Biology",       grade: "6–7", difficulty: "Beginner",     modules: 8,  students: 38, completion: 81 },
-  { id: 3, title: "Stoichiometry & Reactions", subject: "Chemistry",     grade: "8–9", difficulty: "Advanced",     modules: 10, students: 24, completion: 45 },
-  { id: 4, title: "Newtonian Mechanics",        subject: "Physics",       grade: "9",   difficulty: "Advanced",     modules: 9,  students: 19, completion: 38 },
-  { id: 5, title: "Earth Systems Overview",     subject: "Earth Science", grade: "6",   difficulty: "Beginner",     modules: 7,  students: 51, completion: 72 },
-  { id: 6, title: "Intro to Statistics",        subject: "Statistics",    grade: "7–8", difficulty: "Intermediate", modules: 5,  students: 33, completion: 59 },
-  { id: 7, title: "Pre-Algebra Foundations",    subject: "Pre-Alg",       grade: "6",   difficulty: "Beginner",     modules: 6,  students: 44, completion: 80 },
-  { id: 8, title: "Geometry Essentials",        subject: "Geometry",      grade: "7–8", difficulty: "Intermediate", modules: 8,  students: 29, completion: 55 },
+// Curriculum library — math subjects only for now (other subjects to follow later).
+// Each course (subject) is broken into chapters, and each chapter into named modules.
+export const curriculum: CurriculumCourse[] = [
+  {
+    id: 1, subject: "Algebra", grade: "7–8", students: 108,
+    chapters: [
+      { id: 101, title: "Linear Equations & Inequalities", difficulty: "Beginner", modules: [
+        { title: "Solving One-Step Equations" }, { title: "Solving Multi-Step Equations" },
+        { title: "Graphing Linear Inequalities" }, { title: "Compound Inequalities" },
+      ] },
+      { id: 102, title: "Quadratic Equations", difficulty: "Intermediate", modules: [
+        { title: "Factoring Quadratics" }, { title: "Completing the Square" },
+        { title: "The Quadratic Formula" }, { title: "Graphing Parabolas" },
+      ] },
+      { id: 103, title: "Systems of Equations", difficulty: "Advanced", modules: [
+        { title: "Solving by Substitution" }, { title: "Solving by Elimination" },
+        { title: "Graphing Systems" }, { title: "Systems of Inequalities" },
+      ] },
+    ],
+  },
+  {
+    id: 2, subject: "Algebra II", grade: "9", students: 40,
+    chapters: [
+      { id: 201, title: "Polynomial Functions", difficulty: "Intermediate", modules: [
+        { title: "Polynomial Operations" }, { title: "Factoring Higher-Degree Polynomials" },
+        { title: "Graphing Polynomial Functions" }, { title: "The Remainder & Factor Theorems" },
+      ] },
+      { id: 202, title: "Exponential & Logarithmic Functions", difficulty: "Advanced", modules: [
+        { title: "Exponential Growth & Decay" }, { title: "Properties of Logarithms" },
+        { title: "Solving Exponential Equations" }, { title: "Solving Logarithmic Equations" },
+      ] },
+    ],
+  },
+  {
+    id: 3, subject: "Pre-Alg", grade: "6", students: 131,
+    chapters: [
+      { id: 301, title: "Pre-Algebra Foundations", difficulty: "Beginner", modules: [
+        { title: "Number Properties" }, { title: "Order of Operations Basics" },
+        { title: "Variables & Expressions" }, { title: "Simple Equations" },
+        { title: "Factors & Multiples" }, { title: "Prime Factorization" },
+        { title: "Exponents & Powers of Ten" },
+      ] },
+      { id: 302, title: "Ratios, Rates & Proportions", difficulty: "Beginner", modules: [
+        { title: "Understanding Ratios" }, { title: "Unit Rates" },
+        { title: "Solving Proportions" }, { title: "Percent Problems" },
+      ] },
+      { id: 303, title: "Integers & Order of Operations", difficulty: "Intermediate", modules: [
+        { title: "Adding & Subtracting Integers" }, { title: "Multiplying & Dividing Integers" },
+        { title: "The Order of Operations" }, { title: "Absolute Value" },
+      ] },
+    ],
+  },
+  {
+    id: 4, subject: "Geometry", grade: "7–8", students: 80,
+    chapters: [
+      { id: 401, title: "Geometry Essentials", difficulty: "Intermediate", modules: [
+        { title: "Points, Lines & Planes" }, { title: "Angle Relationships" },
+        { title: "Classifying Polygons" }, { title: "Congruence & Similarity" },
+        { title: "Parallel Lines & Transversals" }, { title: "Coordinate Geometry Basics" },
+        { title: "Symmetry & Transformations" }, { title: "Constructions with Compass & Straightedge" },
+      ] },
+      { id: 402, title: "Triangles & the Pythagorean Theorem", difficulty: "Intermediate", modules: [
+        { title: "Triangle Angle Sum" }, { title: "Special Right Triangles" },
+        { title: "The Pythagorean Theorem" }, { title: "Applications of the Pythagorean Theorem" },
+      ] },
+      { id: 403, title: "Circles, Area & Volume", difficulty: "Advanced", modules: [
+        { title: "Circumference & Area of Circles" }, { title: "Surface Area of Solids" },
+        { title: "Volume of Prisms & Cylinders" }, { title: "Volume of Pyramids & Cones" },
+      ] },
+    ],
+  },
+  {
+    id: 5, subject: "Statistics", grade: "7–8", students: 94,
+    chapters: [
+      { id: 501, title: "Intro to Statistics", difficulty: "Intermediate", modules: [
+        { title: "Collecting & Organizing Data" }, { title: "Measures of Center" },
+        { title: "Measures of Spread" }, { title: "Interpreting Graphs" },
+        { title: "Sampling Methods" }, { title: "Correlation vs. Causation" },
+      ] },
+      { id: 502, title: "Data Displays & Measures of Center", difficulty: "Beginner", modules: [
+        { title: "Histograms & Box Plots" }, { title: "Mean, Median & Mode" },
+        { title: "Outliers & Their Effects" }, { title: "Comparing Data Sets" },
+      ] },
+      { id: 503, title: "Probability Fundamentals", difficulty: "Intermediate", modules: [
+        { title: "Basic Probability Rules" }, { title: "Independent & Dependent Events" },
+        { title: "Compound Probability" }, { title: "Expected Value" },
+      ] },
+    ],
+  },
+  {
+    id: 6, subject: "Pre-Calculus", grade: "10", students: 31,
+    chapters: [
+      { id: 601, title: "Functions & Their Graphs", difficulty: "Intermediate", modules: [
+        { title: "Function Notation & Transformations" }, { title: "Piecewise Functions" },
+        { title: "Inverse Functions" }, { title: "Rational Functions" },
+      ] },
+      { id: 602, title: "Trigonometry Foundations", difficulty: "Advanced", modules: [
+        { title: "The Unit Circle" }, { title: "Graphing Sine & Cosine" },
+        { title: "Trig Identities" }, { title: "Solving Trig Equations" },
+      ] },
+    ],
+  },
+  {
+    id: 7, subject: "Calculus", grade: "11–12", students: 28,
+    chapters: [
+      { id: 701, title: "Limits & Continuity", difficulty: "Intermediate", modules: [
+        { title: "Evaluating Limits Graphically" }, { title: "Evaluating Limits Algebraically" },
+        { title: "Continuity & Discontinuities" }, { title: "Limits at Infinity" },
+      ] },
+      { id: 702, title: "Derivatives & Applications", difficulty: "Advanced", modules: [
+        { title: "The Derivative as a Rate of Change" }, { title: "Derivative Rules" },
+        { title: "The Chain Rule" }, { title: "Applications: Related Rates & Optimization" },
+      ] },
+    ],
+  },
 ];
 
 export const tutors: Tutor[] = [
-  { id: 1, firstName: "Jennifer", lastName: "Chen",      subjects: ["Algebra", "Geometry"],        students: 14, sessions: 38 },
-  { id: 2, firstName: "David",    lastName: "Thompson",  subjects: ["Chemistry", "Biology"],       students: 11, sessions: 29 },
-  { id: 3, firstName: "Maria",    lastName: "Rodriguez", subjects: ["Pre-Algebra", "Statistics"],  students: 16, sessions: 44 },
-  { id: 4, firstName: "Andrew",   lastName: "Kim",       subjects: ["Physics", "Earth Science"],   students: 13, sessions: 35 },
-  { id: 5, firstName: "Francoise",lastName: "Umubyeyi",  subjects: ["Pre-Calculus", "Calculus"],   students: 20, sessions: 25 },
+  { id: 1, firstName: "Jennifer", lastName: "Chen",      subjects: ["Algebra", "Geometry"],        students: 14, sessions: 38, description: "Breaks down algebra and geometry into visual, step-by-step problems so abstract rules finally click. Patient with students who need concepts repeated a few different ways." },
+  { id: 2, firstName: "David",    lastName: "Thompson",  subjects: ["Chemistry", "Biology"],       students: 11, sessions: 29, description: "Makes chemistry and biology stick by tying lessons to real-world examples and hands-on thought experiments instead of rote memorization." },
+  { id: 3, firstName: "Maria",    lastName: "Rodriguez", subjects: ["Pre-Algebra", "Statistics"],  students: 16, sessions: 44, description: "Builds strong number-sense foundations in pre-algebra and statistics, with a calm, encouraging style that's great for students still building math confidence." },
+  { id: 4, firstName: "Andrew",   lastName: "Kim",       subjects: ["Physics", "Earth Science"],   students: 13, sessions: 35, description: "Turns physics and earth science into everyday phenomena students can see and test themselves, focusing on intuition before formulas." },
+  { id: 5, firstName: "Francoise",lastName: "Umubyeyi",  subjects: ["Pre-Calculus", "Calculus"],   students: 20, sessions: 25, description: "Guides students through pre-calculus and calculus with a focus on problem-solving strategy, helping them recognize patterns across problem types rather than memorizing steps." },
 ];
 
 export function getTutorById(id: number): Tutor | undefined {
@@ -116,8 +222,18 @@ export const studentGoals = [
 
 export const studentModules = [
   { subject: "Earth Science", title: "Earth Systems Overview",  completion: 72, totalModules: 7, currentModule: 5, active: true  },
-  { subject: "Pre-Alg",       title: "Pre-Algebra Foundations", completion: 80, totalModules: 6, currentModule: 5, active: false },
-  { subject: "Pre-Alg",       title: "Linear Equations (next)", completion: 0,  totalModules: 5, currentModule: 0, active: false },
+  { subject: "Pre-Alg",       title: "Pre-Algebra Foundations", totalModules: 6, currentModule: 5, active: false },
+  { subject: "Pre-Alg",       title: "Linear Equations (next)",  totalModules: 5, currentModule: 0, active: false },
+
+  // Math — additional module progress (more subjects to follow later)
+  { subject: "Algebra",       title: "Quadratic Equations",                completion: 68, totalModules: 6, currentModule: 4, active: true  },
+  { subject: "Algebra",       title: "Systems of Equations (next)",        completion: 0,  totalModules: 7, currentModule: 0, active: false },
+  { subject: "Algebra II",    title: "Polynomial Functions",               completion: 45, totalModules: 8, currentModule: 4, active: true  },
+  { subject: "Geometry",      title: "Geometry Essentials",                completion: 55, totalModules: 8, currentModule: 4, active: true  },
+  { subject: "Geometry",      title: "Triangles & the Pythagorean Theorem (next)", totalModules: 6, currentModule: 0, active: false },
+  { subject: "Statistics",    title: "Intro to Statistics",                completion: 59, totalModules: 5, currentModule: 3, active: true  },
+  { subject: "Pre-Calculus",  title: "Functions & Their Graphs",           completion: 30, totalModules: 7, currentModule: 2, active: true  },
+  { subject: "Calculus",      title: "Limits & Continuity",                completion: 68, totalModules: 6, currentModule: 4, active: true  },
 ];
 
 export const aiProjects: AIProject[] = [

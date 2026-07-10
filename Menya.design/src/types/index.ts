@@ -30,15 +30,23 @@ export interface Session {
   password?: string;
 }
 
-export interface CurriculumItem {
+export interface CurriculumModule {
+  title: string;
+}
+
+export interface CurriculumChapter {
   id: number;
   title: string;
+  difficulty: Difficulty;
+  modules: CurriculumModule[];
+}
+
+export interface CurriculumCourse {
+  id: number;
   subject: string;
   grade: string;
-  difficulty: Difficulty;
-  modules: number;
   students: number;
-  completion: number;
+  chapters: CurriculumChapter[];
 }
 
 export interface Tutor {
@@ -48,6 +56,7 @@ export interface Tutor {
   subjects: string[];
   students: number;
   sessions: number;
+  description: string;
 }
 
 export interface SubjectDetail {

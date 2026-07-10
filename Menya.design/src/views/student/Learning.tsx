@@ -87,29 +87,24 @@ export default function Learning() {
         <h2 className="text-sm font-semibold text-foreground mb-4">All Curriculum</h2>
         <div className="divide-y divide-border">
           {curriculum
-            .filter((c) => sofia.subjects.includes(c.subject))
-            .map((c) => {
-              const color = subjectColor[c.subject] ?? "#1B5E4F";
+            .filter((course) => sofia.subjects.includes(course.subject))
+            .flatMap((course) => course.chapters.map((chapter) => ({ course, chapter })))
+            .map(({ course, chapter }) => {
+              const color = subjectColor[course.subject] ?? "#1B5E4F";
               return (
-                <div key={c.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <div key={chapter.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: `${color}15` }}
                   >
-                    <span style={{ color }}>{getSubjectIcon(c.subject)}</span>
+                    <span style={{ color }}>{getSubjectIcon(course.subject)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{c.title}</p>
+                    <p className="text-sm font-medium text-foreground">{chapter.title}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <SubjectTag subject={c.subject} />
-                      <span className="text-[10px] font-mono text-muted-foreground">{c.modules} modules</span>
+                      <SubjectTag subject={course.subject} />
+                      <span className="text-[10px] font-mono text-muted-foreground">{chapter.modules.length} modules</span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 w-32">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${c.completion}%`, backgroundColor: color }} />
-                    </div>
-                    <span className="text-[11px] font-mono text-muted-foreground w-7 text-right">{c.completion}%</span>
                   </div>
                 </div>
               );

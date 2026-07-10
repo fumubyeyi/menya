@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { X, Calendar, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { students, tutors, tutorNameById } from "../data";
 import { subjectColor } from "../lib/constants";
 import Avatar from "./Avatar";
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "../app/components/ui/carousel";
 
 const ALL_SUBJECTS = ["Algebra","Algebra II","Pre-Alg","Geometry","Calculus","Biology","Chemistry","Physics","Earth Science","Statistics","Pre-Calculus"];
 
@@ -25,6 +26,31 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
   };
   const sortedTutors = [...tutors].sort((a, b) => matchScore(b) - matchScore(a));
   const selectedTutorName = form.tutor ? tutorNameById(Number(form.tutor)) : "";
+
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  useEffect(() => {
+    if (!api) return;
+    const onSelect = () => {
+      setCurrent(api.selectedScrollSnap());
+      setCanScrollPrev(api.canScrollPrev());
+      setCanScrollNext(api.canScrollNext());
+    };
+    onSelect();
+    api.on("select", onSelect);
+    api.on("reInit", onSelect);
+    return () => {
+      api.off("select", onSelect);
+      api.off("reInit", onSelect);
+    };
+  }, [api]);
+
+  useEffect(() => {
+    api?.scrollTo(0);
+  }, [form.subject, api]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -108,34 +134,65 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Select Tutor *</span>
-                  {form.subject && <span className="text-[10px] font-mono text-primary">Sorted by subject match</span>}
+                  <div className="flex items-center gap-2">
+                    {form.subject && <span className="text-[10px] font-mono text-primary">Sorted by subject match</span>}
+                    <span className="text-[10px] font-mono text-muted-foreground">{current + 1} / {sortedTutors.length}</span>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {sortedTutors.map((t) => {
-                    const score = matchScore(t);
-                    const sel = form.tutor === String(t.id);
-                    return (
-                      <button key={t.id} type="button" onClick={() => set("tutor", String(t.id))}
-                        className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all ${sel ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-background hover:border-primary/30 hover:bg-muted/30"}`}>
-                        <Avatar name={`${t.firstName} ${t.lastName}`} size={9} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground">{t.firstName} {t.lastName}</p>
-                          <div className="flex flex-wrap gap-1 mt-0.5">
-                            {t.subjects.map((s) => (
-                              <span key={s} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${s === form.subject ? "bg-primary/15 text-primary font-semibold" : studentSubjects.includes(s) ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{s}</span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          {score === 2 && <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">Best match</span>}
-                          {score === 1 && !form.subject && <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Good fit</span>}
-                          <span className="text-[10px] font-mono text-muted-foreground">{t.students} students</span>
-                        </div>
-                        {sel && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
-                      </button>
-                    );
-                  })}
+
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => api?.scrollPrev()} disabled={!canScrollPrev} aria-label="Previous tutor"
+                    className="w-8 h-8 flex-shrink-0 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  <Carousel setApi={setApi} className="flex-1 min-w-0">
+                    <CarouselContent>
+                      {sortedTutors.map((t) => {
+                        const score = matchScore(t);
+                        const sel = form.tutor === String(t.id);
+                        return (
+                          <CarouselItem key={t.id}>
+                            <button type="button" onClick={() => set("tutor", String(t.id))}
+                              className={`w-full flex flex-col gap-3 px-4 py-4 rounded-xl border text-left transition-all ${sel ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-background hover:border-primary/30 hover:bg-muted/30"}`}>
+                              <div className="flex items-center gap-3">
+                                <Avatar name={`${t.firstName} ${t.lastName}`} size={10} />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-foreground">{t.firstName} {t.lastName}</p>
+                                  <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {t.subjects.map((s) => (
+                                      <span key={s} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${s === form.subject ? "bg-primary/15 text-primary font-semibold" : studentSubjects.includes(s) ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{s}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                {sel && <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />}
+                              </div>
+                              <p className="text-xs text-muted-foreground leading-snug">{t.description}</p>
+                              <div className="flex items-center gap-2">
+                                {score === 2 && <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">Best match</span>}
+                                {score === 1 && !form.subject && <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Good fit</span>}
+                                <span className="text-[10px] font-mono text-muted-foreground ml-auto">{t.students} students · {t.sessions} sessions</span>
+                              </div>
+                            </button>
+                          </CarouselItem>
+                        );
+                      })}
+                    </CarouselContent>
+                  </Carousel>
+
+                  <button type="button" onClick={() => api?.scrollNext()} disabled={!canScrollNext} aria-label="Next tutor"
+                    className="w-8 h-8 flex-shrink-0 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
+
+                <div className="flex items-center justify-center gap-1.5 pt-1">
+                  {sortedTutors.map((t, i) => (
+                    <button key={t.id} type="button" onClick={() => api?.scrollTo(i)} aria-label={`Go to ${t.firstName} ${t.lastName}`}
+                      className={`h-1.5 rounded-full transition-all ${i === current ? "w-5 bg-primary" : "w-1.5 bg-border hover:bg-muted-foreground/40"}`} />
+                  ))}
+                </div>
+
                 {!form.tutor && <input type="text" required value={form.tutor} className="sr-only" readOnly tabIndex={-1} />}
               </div>
 

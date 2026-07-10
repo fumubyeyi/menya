@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Flame, Clock, BookOpen, ChevronRight } from "lucide-react";
+import { Flame, Plus } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import ProgressRing from "../../components/ProgressRing";
 import SubjectTag from "../../components/SubjectTag";
@@ -141,6 +141,13 @@ export default function StudentHome() {
         </div>
 
         <div className="space-y-4">
+          <button
+            onClick={() => setModal(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Request a Session
+          </button>
+
           {/* Recent Sessions */}
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-foreground mb-3">Recent Sessions</h2>
@@ -200,13 +207,6 @@ export default function StudentHome() {
               ))}
             </div>
           </div>
-
-          <button
-            onClick={() => setModal(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
-          >
-            <BookOpen className="w-4 h-4" /> Request a Session
-          </button>
         </div>
       </div>
 
