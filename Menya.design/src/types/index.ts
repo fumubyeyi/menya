@@ -30,8 +30,15 @@ export interface Session {
   password?: string;
 }
 
+export type ModuleStatus = "not-started" | "in-progress" | "completed";
+
 export interface CurriculumModule {
   title: string;
+  status: ModuleStatus;
+  description?: string;
+  content?: string[];
+  exercises?: string[];
+  test?: string[];
 }
 
 export interface CurriculumChapter {

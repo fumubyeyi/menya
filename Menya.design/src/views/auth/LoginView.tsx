@@ -76,13 +76,9 @@ function CreateAccountModal({
     "Algebra II",
     "Pre-Alg",
     "Geometry",
-    "Calculus",
-    "Biology",
-    "Chemistry",
-    "Physics",
-    "Earth Science",
     "Statistics",
     "Pre-Calculus",
+    "Calculus",
   ];
 
   const toggleSubject = (s: string) =>

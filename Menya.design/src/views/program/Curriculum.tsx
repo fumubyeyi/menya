@@ -38,7 +38,7 @@ export default function Curriculum() {
     if (!title) return;
     setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
       ...c,
-      chapters: c.chapters.map((ch) => ch.id !== chapterId ? ch : { ...ch, modules: [...ch.modules, { title }] }),
+      chapters: c.chapters.map((ch) => ch.id !== chapterId ? ch : { ...ch, modules: [...ch.modules, { title, status: "not-started" as const }] }),
     }));
   };
 

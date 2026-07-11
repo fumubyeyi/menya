@@ -5,7 +5,7 @@ import { subjectColor } from "../lib/constants";
 import Avatar from "./Avatar";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "../app/components/ui/carousel";
 
-const ALL_SUBJECTS = ["Algebra","Algebra II","Pre-Alg","Geometry","Calculus","Biology","Chemistry","Physics","Earth Science","Statistics","Pre-Calculus"];
+const ALL_SUBJECTS = ["Algebra","Algebra II","Pre-Alg","Geometry","Statistics","Pre-Calculus","Calculus"];
 
 interface Props {
   onClose: () => void;

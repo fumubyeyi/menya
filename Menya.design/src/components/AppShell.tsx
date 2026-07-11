@@ -77,6 +77,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/student/learning":   "My Subjects",
     "/student/schedule":   "My Schedule",
     "/student/goals":      "Goals",
+    "/student/module":     "Module Workspace",
   };
 
   const basePath = "/" + location.pathname.split("/").slice(1, 3).join("/");

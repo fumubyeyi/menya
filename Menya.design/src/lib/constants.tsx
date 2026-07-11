@@ -1,25 +1,72 @@
 import {
-  Sigma, Atom, FlaskConical, Calculator, Globe, BarChart3, BookOpen,
+  Sigma, Variable, Divide, Compass, BarChart3, FunctionSquare, Infinity, BookOpen,
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, ProjectStatus } from "../types";
+import type { StudentStatus, Difficulty, ProjectStatus, CurriculumChapter, CurriculumModule } from "../types";
+import { curriculum } from "../data";
 
+// Math subjects only, matching the Program > Curriculum library. Each gets a distinct color/icon.
 export const subjectColor: Record<string, string> = {
-  Algebra: "#1B5E4F", "Algebra II": "#1B5E4F", "Pre-Alg": "#1B5E4F",
-  Biology: "#059669", Chemistry: "#3B82F6", Physics: "#8B5CF6",
-  "Earth Science": "#0EA5E9", Statistics: "#F59E0B",
-  Geometry: "#1B5E4F", Calculus: "#6366F1", "Pre-Calculus": "#8B5CF6",
+  Algebra: "#1B5E4F", "Algebra II": "#059669", "Pre-Alg": "#F59E0B",
+  Geometry: "#3B82F6", Statistics: "#EC4899", "Pre-Calculus": "#8B5CF6", Calculus: "#6366F1",
 };
 
 export const subjectIcon: Record<string, React.ReactNode> = {
-  Algebra: <Sigma className="w-4 h-4" />, "Algebra II": <Sigma className="w-4 h-4" />, "Pre-Alg": <Sigma className="w-4 h-4" />,
-  Biology: <Atom className="w-4 h-4" />, Chemistry: <FlaskConical className="w-4 h-4" />, Physics: <Atom className="w-4 h-4" />,
-  "Earth Science": <Globe className="w-4 h-4" />, Statistics: <BarChart3 className="w-4 h-4" />,
-  Geometry: <Calculator className="w-4 h-4" />, Calculus: <Sigma className="w-4 h-4" />, "Pre-Calculus": <Sigma className="w-4 h-4" />,
+  Algebra: <Sigma className="w-4 h-4" />, "Algebra II": <Variable className="w-4 h-4" />, "Pre-Alg": <Divide className="w-4 h-4" />,
+  Geometry: <Compass className="w-4 h-4" />, Statistics: <BarChart3 className="w-4 h-4" />,
+  "Pre-Calculus": <FunctionSquare className="w-4 h-4" />, Calculus: <Infinity className="w-4 h-4" />,
 };
 
 export function getSubjectIcon(subject: string) {
   return subjectIcon[subject] ?? <BookOpen className="w-4 h-4" />;
+}
+
+// A chapter's single next action: resume the in-progress module, start the next
+// not-started one, or nothing left to do. moduleIndex points into chapter.modules
+// so callers can link straight into that module's workspace.
+export function chapterAction(chapter: CurriculumChapter): { label: "Resume" | "Start" | "Completed"; moduleTitle?: string; moduleIndex?: number } {
+  const inProgressIndex = chapter.modules.findIndex((m) => m.status === "in-progress");
+  if (inProgressIndex !== -1) return { label: "Resume", moduleTitle: chapter.modules[inProgressIndex].title, moduleIndex: inProgressIndex };
+  const notStartedIndex = chapter.modules.findIndex((m) => m.status === "not-started");
+  if (notStartedIndex !== -1) return { label: "Start", moduleTitle: chapter.modules[notStartedIndex].title, moduleIndex: notStartedIndex };
+  return { label: "Completed" };
+}
+
+// Percentage of a subject's modules (across every chapter) marked completed.
+export function courseCompletion(subject: string): number {
+  const modules = curriculum.find((c) => c.subject === subject)?.chapters.flatMap((ch) => ch.modules) ?? [];
+  if (modules.length === 0) return 0;
+  return Math.round((modules.filter((m) => m.status === "completed").length / modules.length) * 100);
+}
+
+export interface ModuleWorkspaceContent {
+  description: string;
+  content: string[];
+  exercises: string[];
+  test: string[];
+}
+
+// Returns a module's authored workspace content, or generates a reasonable
+// fallback from its title/chapter/subject when none has been written yet.
+export function getModuleContent(module: CurriculumModule, chapterTitle: string, subject: string): ModuleWorkspaceContent {
+  const topic = module.title;
+  return {
+    description: module.description ?? `Build a solid understanding of ${topic.toLowerCase()}, part of ${chapterTitle} in ${subject}.`,
+    content: module.content ?? [
+      `${topic} is one of the key ideas in ${chapterTitle}. Review the explanation your tutor covered in session, and use the notes area below to jot down anything that isn't clicking yet.`,
+      `Once the idea feels clear, move on to the exercises to practice it, then check your understanding with the short test.`,
+    ],
+    exercises: module.exercises ?? [
+      `Restate ${topic.toLowerCase()} in your own words.`,
+      `Work through a few practice problems on ${topic.toLowerCase()}.`,
+      `Bring one question about ${topic.toLowerCase()} to your next session.`,
+    ],
+    test: module.test ?? [
+      `Explain or demonstrate ${topic.toLowerCase()}.`,
+      `Solve a problem that applies ${topic.toLowerCase()}.`,
+      `Describe a common mistake with ${topic.toLowerCase()} and how to avoid it.`,
+    ],
+  };
 }
 
 export const statusMeta: Record<StudentStatus, { label: string; cls: string; Icon: React.ElementType }> = {

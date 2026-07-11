@@ -18,10 +18,11 @@ import TutorReview      from "../views/tutor/Review";
 import TutorPerformance from "../views/tutor/Performance";
 
 // Student views
-import StudentHome     from "../views/student/Home";
-import StudentLearning from "../views/student/Learning";
-import StudentSchedule from "../views/student/Schedule";
-import StudentGoals    from "../views/student/Goals";
+import StudentHome       from "../views/student/Home";
+import StudentLearning   from "../views/student/Learning";
+import StudentSchedule   from "../views/student/Schedule";
+import StudentGoals      from "../views/student/Goals";
+import ModuleWorkspace   from "../views/student/ModuleWorkspace";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: LoginView },
@@ -67,6 +68,7 @@ export const router = createBrowserRouter([
       { path: "learning",    Component: StudentLearning },
       { path: "schedule",    Component: StudentSchedule },
       { path: "goals",       Component: StudentGoals    },
+      { path: "module/:chapterId/:moduleIndex", Component: ModuleWorkspace },
     ],
   },
 
