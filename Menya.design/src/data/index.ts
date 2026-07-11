@@ -1,4 +1,4 @@
-import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, SubjectDetail, SessionRecord, AIProject, HomeworkItem } from "../types";
+import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, SubjectDetail, SessionRecord, AIProject, HomeworkItem, AlumniRecord } from "../types";
 
 export const CURRENT_STUDENT_ID = 3;
 export const CURRENT_TUTOR_ID = 5;
@@ -474,3 +474,55 @@ export const tutorSubjects = tutors.filter((t) => t.id === CURRENT_TUTOR_ID).map
 }));
 
 export const sofia = students.find((s) => s.id === CURRENT_STUDENT_ID)!;
+
+// Alumni tracking — students who completed the program or left it, followed up on
+// whether they went on to a STEM major or STEM career after high-school graduation.
+// `checkIns` preserves each dated follow-up snapshot (rather than overwriting it) so
+// outcome changes can be tracked cohort-over-cohort and cross-checked against how the
+// student performed in the program (see `students` via `studentId`).
+export const alumni: AlumniRecord[] = [
+  { id: 1001, studentId: 4, name: "DeShawn Williams", lastGrade: 12, location: "Detroit, MI",   exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-college",     verification: "verified",      institution: "Wayne State University", fieldOfStudy: "Mechanical Engineering", lastContact: "Jun 10, 2026", followUpStatus: "up-to-date", assignedStaff: "Maria Rodriguez", notes: "Doing well in first year. Wants to shadow an engineer over winter break — connect with alumni network.",
+    checkIns: [
+      { timeframe: "6 months", date: "Dec 3, 2025",  outcome: "stem-college", verification: "self-reported", note: "Enrolled at Wayne State, declared Mechanical Engineering." },
+      { timeframe: "1 year",   date: "Jun 10, 2026",  outcome: "stem-college", verification: "verified",      note: "Enrollment confirmed via unofficial transcript, GPA 3.4." },
+    ] },
+  { id: 1002, studentId: 8, name: "Noah Fitzgerald",  lastGrade: 12, location: "Boston, MA",     exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-career",      verification: "verified",      institution: "MassDOT",                  fieldOfStudy: "Civil/Transit Technician", lastContact: "May 28, 2026", followUpStatus: "up-to-date", assignedStaff: "Francoise Umubyeyi", notes: "Started an apprenticeship instead of college. Interested in an associate degree later.",
+    checkIns: [
+      { timeframe: "6 months", date: "Dec 15, 2025", outcome: "gap-year",    verification: "self-reported", note: "Still deciding, working part-time." },
+      { timeframe: "1 year",   date: "May 28, 2026", outcome: "stem-career", verification: "verified",      note: "Employer confirmed apprenticeship start date." },
+    ] },
+  { id: 1003, name: "Camille Torres",   lastGrade: 12, location: "Atlanta, GA",    exitReason: "graduated",    exitYear: 2024, hsGraduated: true,  outcome: "non-stem-college", verification: "self-reported", institution: "Spelman College",          fieldOfStudy: "Political Science",       lastContact: "Apr 2, 2026",  followUpStatus: "due-soon",   assignedStaff: "Jennifer Chen", notes: "",
+    checkIns: [
+      { timeframe: "6 months", date: "Jan 20, 2025", outcome: "non-stem-college", verification: "self-reported", note: "Enrolled at Spelman, undecided major." },
+      { timeframe: "1 year",   date: "Apr 2, 2026",  outcome: "non-stem-college", verification: "self-reported", note: "Declared Political Science." },
+    ] },
+  { id: 1004, name: "Tyrell Banks",     lastGrade: 11, location: "Baltimore, MD",  exitReason: "left-program", exitYear: 2025, hsGraduated: false, outcome: "unknown",          verification: "self-reported", lastContact: "Jan 14, 2026",  followUpStatus: "overdue",    assignedStaff: "David Thompson", notes: "Family relocated mid-year. Two follow-up calls unanswered — try email next.",
+    checkIns: [] },
+  { id: 1005, name: "Priya Nair",       lastGrade: 12, location: "Oakland, CA",    exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-college",     verification: "verified",      institution: "UC Davis",                 fieldOfStudy: "Computer Science",        lastContact: "Jun 3, 2026",  followUpStatus: "up-to-date", assignedStaff: "Andrew Kim", notes: "Reports our Algebra II/Stats track prepared her well for intro CS math.",
+    checkIns: [
+      { timeframe: "6 months", date: "Dec 1, 2025", outcome: "stem-college", verification: "verified", note: "Enrollment verified directly with UC Davis registrar." },
+      { timeframe: "1 year",   date: "Jun 3, 2026",  outcome: "stem-college", verification: "verified", note: "Still enrolled, made Dean's List." },
+    ] },
+  { id: 1006, name: "Malik Jefferson",  lastGrade: 10, location: "Columbus, OH",   exitReason: "left-program", exitYear: 2024, hsGraduated: true,  outcome: "military",         verification: "self-reported", institution: "U.S. Army",                lastContact: "Mar 20, 2026",  followUpStatus: "due-soon",   assignedStaff: "Maria Rodriguez", notes: "Enlisted after leaving the program early; plans to use GI Bill for engineering later.",
+    checkIns: [
+      { timeframe: "6 months", date: "Mar 20, 2026", outcome: "military", verification: "self-reported", note: "Enlisted, currently in basic training." },
+    ] },
+  { id: 1007, name: "Grace Kim",        lastGrade: 12, location: "San Antonio, TX",exitReason: "graduated",    exitYear: 2024, hsGraduated: true,  outcome: "stem-career",      verification: "verified",      institution: "HEB Digital",              fieldOfStudy: "Data Analyst",            lastContact: "May 15, 2026", followUpStatus: "up-to-date", assignedStaff: "David Thompson", notes: "Skipped a 4-year degree, went straight into a data analytics role via bootcamp.",
+    checkIns: [
+      { timeframe: "6 months", date: "Dec 10, 2024", outcome: "gap-year",    verification: "self-reported", note: "Working retail while researching bootcamps." },
+      { timeframe: "1 year",   date: "May 20, 2025", outcome: "stem-career", verification: "verified",      note: "Completed data analytics bootcamp, hired by HEB Digital." },
+      { timeframe: "2 years",  date: "May 15, 2026", outcome: "stem-career", verification: "verified",      note: "Promoted to Analyst II." },
+    ] },
+  { id: 1008, name: "Omar Haddad",      lastGrade: 12, location: "Chicago, IL",    exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "gap-year",         verification: "self-reported", lastContact: "Feb 8, 2026",  followUpStatus: "overdue",    assignedStaff: "Jennifer Chen", notes: "Taking a gap year to work and save. Said he's still deciding between nursing and engineering.",
+    checkIns: [
+      { timeframe: "6 months", date: "Feb 8, 2026", outcome: "gap-year", verification: "self-reported", note: "Working full-time, saving for tuition." },
+    ] },
+  { id: 1009, name: "Leilani Akana",    lastGrade: 9,  location: "Detroit, MI",    exitReason: "left-program", exitYear: 2026, hsGraduated: false, outcome: "unknown",          verification: "self-reported", lastContact: "Jun 25, 2026", followUpStatus: "due-soon",   assignedStaff: "Andrew Kim", notes: "Left recently due to scheduling conflicts with a new job. Still in high school.",
+    checkIns: [] },
+  { id: 1010, name: "Ben Okafor",       lastGrade: 12, location: "Baltimore, MD",  exitReason: "graduated",    exitYear: 2023, hsGraduated: true,  outcome: "non-stem-career",  verification: "self-reported", institution: "Self-employed",            fieldOfStudy: "Graphic Design",          lastContact: "Nov 30, 2025", followUpStatus: "overdue",    assignedStaff: "Francoise Umubyeyi", notes: "",
+    checkIns: [
+      { timeframe: "6 months", date: "May 1, 2024",  outcome: "gap-year",        verification: "self-reported", note: "Freelancing design work, no school plans yet." },
+      { timeframe: "1 year",   date: "Nov 15, 2024",  outcome: "non-stem-career", verification: "self-reported", note: "Freelance graphic design became steady income." },
+      { timeframe: "2 years",  date: "Nov 30, 2025",  outcome: "non-stem-career", verification: "self-reported", note: "Still self-employed, building a client base." },
+    ] },
+];

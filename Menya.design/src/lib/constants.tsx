@@ -1,8 +1,9 @@
 import {
   Sigma, Variable, Divide, Compass, BarChart3, FunctionSquare, Infinity, BookOpen,
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
+  GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, ProjectStatus, CurriculumChapter, CurriculumModule } from "../types";
+import type { StudentStatus, Difficulty, ProjectStatus, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource } from "../types";
 import { curriculum } from "../data";
 
 // Math subjects only, matching the Program > Curriculum library. Each gets a distinct color/icon.
@@ -94,6 +95,32 @@ export const projectStatusLabel: Record<ProjectStatus, string> = {
   approved: "Approved",
   revision: "Needs Revision",
   rejected: "Rejected",
+};
+
+export const alumniOutcomeMeta: Record<AlumniOutcome, { label: string; cls: string; Icon: React.ElementType; isStem: boolean }> = {
+  "stem-college":     { label: "STEM Major",     cls: "text-emerald-700 bg-emerald-50", Icon: GraduationCap, isStem: true  },
+  "non-stem-college": { label: "Non-STEM Major", cls: "text-blue-700 bg-blue-50",       Icon: GraduationCap, isStem: false },
+  "stem-career":      { label: "STEM Career",    cls: "text-emerald-700 bg-emerald-50", Icon: Briefcase,     isStem: true  },
+  "non-stem-career":  { label: "Non-STEM Career",cls: "text-blue-700 bg-blue-50",       Icon: Briefcase,     isStem: false },
+  military:           { label: "Military",       cls: "text-purple-700 bg-purple-50",   Icon: Shield,        isStem: false },
+  "gap-year":         { label: "Gap Year",       cls: "text-amber-700 bg-amber-50",     Icon: Clock,         isStem: false },
+  unknown:            { label: "Unknown",        cls: "text-gray-600 bg-gray-100",      Icon: HelpCircle,    isStem: false },
+};
+
+export const followUpStatusMeta: Record<FollowUpStatus, { label: string; cls: string; Icon: React.ElementType }> = {
+  "up-to-date": { label: "Up to Date", cls: "text-emerald-700 bg-emerald-50", Icon: CheckCircle2  },
+  "due-soon":   { label: "Due Soon",   cls: "text-amber-700 bg-amber-50",     Icon: Clock         },
+  overdue:      { label: "Overdue",    cls: "text-red-700 bg-red-50",         Icon: AlertTriangle },
+};
+
+export const exitReasonMeta: Record<ExitReason, { label: string; cls: string }> = {
+  graduated:      { label: "Completed Program", cls: "text-emerald-700 bg-emerald-50" },
+  "left-program": { label: "Left Program",      cls: "text-amber-700 bg-amber-50"     },
+};
+
+export const verificationMeta: Record<VerificationSource, { label: string; cls: string; Icon: React.ElementType }> = {
+  verified:        { label: "Verified",       cls: "text-emerald-700 bg-emerald-50", Icon: BadgeCheck        },
+  "self-reported": { label: "Self-Reported",  cls: "text-gray-600 bg-gray-100",      Icon: MessageCircleMore },
 };
 
 export const achievements = [

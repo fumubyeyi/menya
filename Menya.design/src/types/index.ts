@@ -4,6 +4,13 @@ export type ProjectStatus = "pending" | "approved" | "revision" | "rejected";
 export type SessionStatus = "upcoming" | "in-progress" | "scheduled";
 export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
 export type TrendDirection = "up" | "flat" | "down";
+export type ExitReason = "graduated" | "left-program";
+export type AlumniOutcome =
+  | "stem-college" | "non-stem-college"
+  | "stem-career"  | "non-stem-career"
+  | "military" | "gap-year" | "unknown";
+export type FollowUpStatus = "up-to-date" | "due-soon" | "overdue";
+export type VerificationSource = "self-reported" | "verified";
 
 export interface Student {
   id: number;
@@ -117,6 +124,36 @@ export interface HomeworkItem {
   dueDate: string;
   status: "not-started" | "in-progress" | "submitted";
   completion: number;
+}
+
+// A single dated follow-up snapshot (e.g. the 6-month or 1-year check-in),
+// kept so outcome changes can be tracked over time rather than overwritten.
+export interface AlumniCheckIn {
+  timeframe: string;
+  date: string;
+  outcome: AlumniOutcome;
+  verification: VerificationSource;
+  note?: string;
+}
+
+export interface AlumniRecord {
+  id: number;
+  studentId?: number;
+  name: string;
+  lastGrade: number;
+  location: string;
+  exitReason: ExitReason;
+  exitYear: number;
+  hsGraduated: boolean;
+  outcome: AlumniOutcome;
+  verification: VerificationSource;
+  institution?: string;
+  fieldOfStudy?: string;
+  lastContact: string;
+  followUpStatus: FollowUpStatus;
+  assignedStaff: string;
+  notes?: string;
+  checkIns: AlumniCheckIn[];
 }
 
 export interface AuthUser {

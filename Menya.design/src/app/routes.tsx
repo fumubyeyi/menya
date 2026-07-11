@@ -9,6 +9,7 @@ import StudentDetail     from "../views/program/StudentDetail";
 import ProgramCurriculum from "../views/program/Curriculum";
 import ProgramSessions   from "../views/program/Sessions";
 import ProgramAnalytics  from "../views/program/Analytics";
+import ProgramAlumni     from "../views/program/AlumniTracking";
 
 // Tutor views
 import TutorHome        from "../views/tutor/Home";
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
       { path: "curriculum",     Component: ProgramCurriculum },
       { path: "sessions",       Component: ProgramSessions   },
       { path: "analytics",      Component: ProgramAnalytics  },
+      { path: "alumni",         Component: ProgramAlumni     },
     ],
   },
 

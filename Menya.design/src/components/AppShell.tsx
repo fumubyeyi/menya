@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
   Bell, Plus, Menu, X, Settings, Atom, Trophy,
   Briefcase, UserCheck, GraduationCap, ClipboardList, LogOut,
+  Award,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { aiProjects } from "../data";
@@ -16,6 +17,7 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
     { to: "/program/curriculum", label: "Curriculum", Icon: BookOpen        },
     { to: "/program/sessions",   label: "Sessions",   Icon: Calendar        },
     { to: "/program/analytics",  label: "Analytics",  Icon: BarChart3       },
+    { to: "/program/alumni",     label: "Alumni",     Icon: Award           },
   ],
   tutor: [
     { to: "/tutor/home",        label: "My Home",     Icon: LayoutDashboard },
@@ -68,6 +70,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/program/curriculum": "Curriculum",
     "/program/sessions":   "Sessions",
     "/program/analytics":  "Analytics",
+    "/program/alumni":     "Alumni Tracking",
     "/tutor/home":         "My Home",
     "/tutor/students":     "My Students",
     "/tutor/schedule":     "My Schedule",
