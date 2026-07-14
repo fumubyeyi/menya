@@ -2,14 +2,14 @@ import { useState } from "react";
 import { Clock, Plus } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
 import {
   sofia, sessions, studentSessionHistory, studentAssignments, CURRENT_STUDENT_ID, aiProjects, tutorNameById,
 } from "../../data";
-import { getSubjectIcon, subjectColor } from "../../lib/constants";
+import { getCourseIcon, courseColor } from "../../lib/constants";
 
 const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
 const sessionHistory = studentSessionHistory[sofia.id] ?? [];
@@ -44,14 +44,14 @@ export default function StudentSchedule() {
               <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${subjectColor[s.subject] ?? "#1B5E4F"}15` }}
+                  style={{ backgroundColor: `${courseColor[s.course] ?? "#1B5E4F"}15` }}
                 >
-                  <span style={{ color: subjectColor[s.subject] ?? "#1B5E4F" }}>
-                    {getSubjectIcon(s.subject)}
+                  <span style={{ color: courseColor[s.course] ?? "#1B5E4F" }}>
+                    {getCourseIcon(s.course)}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{s.subject}</p>
+                  <p className="text-sm font-medium text-foreground">{s.course}</p>
                   <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(s.tutorId)} · {s.time}</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
@@ -82,14 +82,14 @@ export default function StudentSchedule() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${subjectColor[h.subject] ?? "#1B5E4F"}15` }}
+                  style={{ backgroundColor: `${courseColor[h.course] ?? "#1B5E4F"}15` }}
                 >
-                  <span style={{ color: subjectColor[h.subject] ?? "#1B5E4F" }}>
-                    {getSubjectIcon(h.subject)}
+                  <span style={{ color: courseColor[h.course] ?? "#1B5E4F" }}>
+                    {getCourseIcon(h.course)}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{h.subject}</p>
+                  <p className="text-sm font-medium text-foreground">{h.course}</p>
                   <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(h.tutorId)} · {h.duration}m</p>
                 </div>
                 <div className="text-right">
@@ -121,7 +121,7 @@ export default function StudentSchedule() {
                   <div>
                     <p className="text-sm font-semibold text-foreground">{hw.title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <SubjectTag subject={hw.subject} />
+                      <CourseTag course={hw.course} />
                       <span className="text-[11px] font-mono text-muted-foreground">Due {hw.dueDate}</span>
                     </div>
                   </div>
@@ -163,7 +163,7 @@ export default function StudentSchedule() {
           meetingId={activeSession.meetingId}
           password={activeSession.password ?? ""}
           userName={sofia.name}
-          subject={activeSession.subject}
+          course={activeSession.course}
           onClose={() => setActiveSession(null)}
         />
       )}

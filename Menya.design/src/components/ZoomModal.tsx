@@ -14,7 +14,7 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]["key"];
 
-export default function ZoomModal({ sessionId, userName, subject, onClose }: ZoomModalProps) {
+export default function ZoomModal({ sessionId, userName, course, onClose }: ZoomModalProps) {
   const [tab, setTab] = useState<Tab>("whiteboard");
 
   return (
@@ -46,7 +46,7 @@ export default function ZoomModal({ sessionId, userName, subject, onClose }: Zoo
       <div className="relative flex-1 overflow-hidden">
         {tab === "whiteboard" && <SessionWhiteboard sessionId={sessionId} />}
         {tab === "notes" && <SessionNotes sessionId={sessionId} studentName={userName} />}
-        {tab === "screenshare" && <SessionScreenShare subject={subject} />}
+        {tab === "screenshare" && <SessionScreenShare course={course} />}
 
         <div className="absolute bottom-4 right-4 w-40 h-28 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg">
           <ZoomIFrame />

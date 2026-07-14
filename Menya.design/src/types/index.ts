@@ -16,7 +16,7 @@ export interface Student {
   id: number;
   name: string;
   grade: number;
-  subjects: string[];
+  courses: string[];
   progress: number;
   sessions: number;
   streak: number;
@@ -28,7 +28,7 @@ export interface Session {
   id: number;
   student: string;
   tutorId: number;
-  subject: string;
+  course: string;
   time: string;
   clock: string;
   duration: number;
@@ -39,13 +39,113 @@ export interface Session {
 
 export type ModuleStatus = "not-started" | "in-progress" | "completed";
 
+// A single practice question paired with its model answer, so the workspace can let
+// a student attempt it and self-check against something concrete rather than just
+// reading a prompt.
+export interface PracticeItem {
+  prompt: string;
+  answer: string;
+}
+
+// Lightweight, parameterized specs for the inline SVG diagrams rendered in the
+// module workspace — no external images, so every visual is generated from a
+// small set of numbers/labels a content author supplies per module.
+export type GraphFamily = "linear" | "linear-inequality" | "linear-system" | "quadratic" | "cubic" | "exponential" | "log" | "rational" | "piecewise" | "trig";
+
+export interface GraphPiece { m: number; b: number; from: number; to: number; fromOpen?: boolean; toOpen?: boolean }
+export interface GraphMark { x: number; y: number; label?: string }
+
+export interface GraphDiagram {
+  kind: "graph";
+  family: GraphFamily;
+  m?: number; b?: number;                 // linear / linear-inequality
+  op?: "<" | "<=" | ">" | ">=";           // linear-inequality shading direction
+  m2?: number; b2?: number;                // linear-system second line
+  a?: number; bq?: number; c?: number;     // quadratic y = a x^2 + bq x + c
+  roots?: number[];                        // cubic zeros
+  base?: number; base2?: number;           // exponential/log base(s)
+  asymptoteX?: number;                     // rational vertical asymptote
+  pieces?: GraphPiece[];                   // piecewise segments
+  amplitude?: number; period?: number;     // trig
+  domain?: [number, number];
+  markPoints?: GraphMark[];
+  caption?: string;
+}
+
+export interface NumberLineInterval { from: number; to: number; fromOpen?: boolean; toOpen?: boolean }
+export interface NumberLineDiagram {
+  kind: "number-line";
+  min: number; max: number; step?: number;
+  points?: { value: number; label?: string }[];
+  intervals?: NumberLineInterval[];
+  caption?: string;
+}
+
+export interface FactorTreeDiagram { kind: "factor-tree"; n: number; caption?: string }
+
+export interface BarChartDiagram {
+  kind: "bar-chart";
+  data: number[];
+  labels?: string[];
+  highlightIndices?: number[];
+  caption?: string;
+}
+
+export type ShapeKind = "triangle" | "right-triangle" | "similar-triangles" | "circle" | "rectangle" | "angle-pair" | "polygon";
+export interface ShapeDiagram {
+  kind: "shape";
+  shape: ShapeKind;
+  sides?: number[];
+  sides2?: number[];
+  labels?: string[];
+  angleDeg?: number;
+  sidesCount?: number;
+  caption?: string;
+}
+
+export interface RatioBarDiagram {
+  kind: "ratio-bar";
+  parts: { value: number; color: string; label: string }[];
+  caption?: string;
+}
+
+export interface BalanceScaleDiagram {
+  kind: "balance-scale";
+  leftLabel: string;
+  rightLabel: string;
+  caption?: string;
+}
+
+export interface StepSequenceDiagram {
+  kind: "step-sequence";
+  steps: string[];
+  caption?: string;
+}
+
+export interface UnitCircleDiagram {
+  kind: "unit-circle";
+  angleDeg: number;
+  caption?: string;
+}
+
+export type DiagramSpec =
+  | GraphDiagram
+  | NumberLineDiagram
+  | FactorTreeDiagram
+  | BarChartDiagram
+  | ShapeDiagram
+  | RatioBarDiagram
+  | BalanceScaleDiagram
+  | StepSequenceDiagram
+  | UnitCircleDiagram;
+
 export interface CurriculumModule {
   title: string;
   status: ModuleStatus;
   description?: string;
   content?: string[];
-  exercises?: string[];
-  test?: string[];
+  exercises?: PracticeItem[];
+  diagram?: DiagramSpec;
 }
 
 export interface CurriculumChapter {
@@ -53,13 +153,17 @@ export interface CurriculumChapter {
   title: string;
   difficulty: Difficulty;
   modules: CurriculumModule[];
+  // One test covering the whole chapter, taken after every module's exercises
+  // are complete — rather than a separate test per module.
+  test?: PracticeItem[];
 }
 
 export interface CurriculumCourse {
   id: number;
-  subject: string;
+  name: string;
   grade: string;
   students: number;
+  description?: string;
   chapters: CurriculumChapter[];
 }
 
@@ -67,14 +171,14 @@ export interface Tutor {
   id: number;
   firstName: string;
   lastName: string;
-  subjects: string[];
+  courses: string[];
   students: number;
   sessions: number;
   description: string;
 }
 
-export interface SubjectDetail {
-  subject: string;
+export interface CourseDetail {
+  course: string;
   score: number;
   sessions: number;
   lastSession: string;
@@ -89,7 +193,7 @@ export interface SessionArtifact {
 }
 
 export interface SessionRecord {
-  subject: string;
+  course: string;
   tutorId: number;
   date: string;
   score: number;
@@ -100,7 +204,7 @@ export interface SessionRecord {
 export interface AIProject {
   id: number;
   title: string;
-  subject: string;
+  course: string;
   module: string;
   student: string;
   difficulty: Difficulty;
@@ -118,7 +222,7 @@ export interface HomeworkItem {
   id: number;
   studentId: number;
   title: string;
-  subject: string;
+  course: string;
   assignedByTutorId: number;
   assignedAt: string;
   dueDate: string;
@@ -167,6 +271,6 @@ export interface ZoomModalProps {
   meetingId: string;
   password: string;
   userName?: string;
-  subject?: string;
+  course?: string;
   onClose: () => void;
 }

@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { X, Plus, BookOpen } from "lucide-react";
-import SubjectTag from "./SubjectTag";
+import CourseTag from "./CourseTag";
 import { diffCls } from "../lib/constants";
 import type { CurriculumChapter } from "../types";
 
 interface Props {
   onClose: () => void;
-  subject: string;
+  course: string;
   chapter: CurriculumChapter;
   onAddModule: (title: string) => void;
 }
 
-export default function ChapterModulesModal({ onClose, subject, chapter, onAddModule }: Props) {
+export default function ChapterModulesModal({ onClose, course, chapter, onAddModule }: Props) {
   const [title, setTitle] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,7 +29,7 @@ export default function ChapterModulesModal({ onClose, subject, chapter, onAddMo
           <div>
             <h2 className="font-display font-semibold text-foreground text-lg leading-none">{chapter.title}</h2>
             <div className="flex items-center gap-2 mt-2">
-              <SubjectTag subject={subject} />
+              <CourseTag course={course} />
               <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${diffCls[chapter.difficulty]}`}>{chapter.difficulty}</span>
               <span className="text-[11px] font-mono text-muted-foreground">{chapter.modules.length} modules</span>
             </div>

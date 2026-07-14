@@ -1,17 +1,17 @@
 import { Link } from "react-router";
 import { X } from "lucide-react";
-import SubjectTag from "./SubjectTag";
+import CourseTag from "./CourseTag";
 import ModuleStatusRow from "./ModuleStatusRow";
 import { diffCls, chapterAction } from "../lib/constants";
 import type { CurriculumChapter } from "../types";
 
 interface Props {
   onClose: () => void;
-  subject: string;
+  course: string;
   chapter: CurriculumChapter;
 }
 
-export default function ChapterModulesViewModal({ onClose, subject, chapter }: Props) {
+export default function ChapterModulesViewModal({ onClose, course, chapter }: Props) {
   const action = chapterAction(chapter);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -26,7 +26,7 @@ export default function ChapterModulesViewModal({ onClose, subject, chapter }: P
           </div>
           <div className="flex items-center justify-between gap-2 mt-2">
             <div className="flex items-center gap-2">
-              <SubjectTag subject={subject} />
+              <CourseTag course={course} />
               <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${diffCls[chapter.difficulty]}`}>{chapter.difficulty}</span>
               <span className="text-[11px] font-mono text-muted-foreground">{chapter.modules.length} modules</span>
             </div>

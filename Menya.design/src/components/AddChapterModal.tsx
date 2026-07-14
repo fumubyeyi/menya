@@ -27,7 +27,7 @@ export default function AddChapterModal({ onClose, course, onAdd }: Props) {
         <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <div>
             <h2 className="font-display font-semibold text-foreground text-lg leading-none">Add Chapter</h2>
-            <p className="text-[11px] font-mono text-muted-foreground mt-1">Add a new chapter to {course.subject}</p>
+            <p className="text-[11px] font-mono text-muted-foreground mt-1">Add a new chapter to {course.name}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />

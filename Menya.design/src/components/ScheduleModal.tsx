@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { X, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { students, tutors, tutorNameById } from "../data";
-import { subjectColor } from "../lib/constants";
+import { courseColor } from "../lib/constants";
 import Avatar from "./Avatar";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "../app/components/ui/carousel";
 
-const ALL_SUBJECTS = ["Algebra","Algebra II","Pre-Alg","Geometry","Statistics","Pre-Calculus","Calculus"];
+const ALL_COURSES = ["Algebra","Algebra II","Pre-Alg","Geometry","Statistics","Pre-Calculus","Calculus"];
 
 interface Props {
   onClose: () => void;
@@ -13,16 +13,16 @@ interface Props {
 }
 
 export default function ScheduleModal({ onClose, defaultStudent }: Props) {
-  const [form, setForm] = useState({ student: defaultStudent ?? "", tutor: "", subject: "", date: "", time: "", duration: "60", notes: "" });
+  const [form, setForm] = useState({ student: defaultStudent ?? "", tutor: "", course: "", date: "", time: "", duration: "60", notes: "" });
   const [submitted, setSubmitted] = useState(false);
 
   const studentRecord = students.find((s) => s.name === form.student);
-  const studentSubjects = studentRecord?.subjects ?? [];
+  const studentCourses = studentRecord?.courses ?? [];
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const matchScore = (t: typeof tutors[0]) => {
-    if (!form.subject) return t.subjects.some((s) => studentSubjects.includes(s)) ? 1 : 0;
-    return t.subjects.includes(form.subject) ? 2 : t.subjects.some((s) => studentSubjects.includes(s)) ? 1 : 0;
+    if (!form.course) return t.courses.some((s) => studentCourses.includes(s)) ? 1 : 0;
+    return t.courses.includes(form.course) ? 2 : t.courses.some((s) => studentCourses.includes(s)) ? 1 : 0;
   };
   const sortedTutors = [...tutors].sort((a, b) => matchScore(b) - matchScore(a));
   const selectedTutorName = form.tutor ? tutorNameById(Number(form.tutor)) : "";
@@ -50,7 +50,7 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
 
   useEffect(() => {
     api?.scrollTo(0);
-  }, [form.subject, api]);
+  }, [form.course, api]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -73,7 +73,7 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
             </div>
             <div>
               <h3 className="font-semibold text-foreground text-base">Session Scheduled</h3>
-              <p className="text-sm text-muted-foreground mt-1">{form.student} · {form.subject} · {form.date} at {form.time}</p>
+              <p className="text-sm text-muted-foreground mt-1">{form.student} · {form.course} · {form.date} at {form.time}</p>
               <p className="text-xs font-mono text-muted-foreground mt-0.5">{selectedTutorName} · {form.duration}m</p>
             </div>
             <div className="flex gap-3 mt-2">
@@ -105,28 +105,28 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
               )}
 
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Subject *</span>
-                {studentSubjects.length > 0 ? (
+                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Course *</span>
+                {studentCourses.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex flex-wrap gap-2">
-                      {studentSubjects.map((s) => (
-                        <button key={s} type="button" onClick={() => set("subject", s)}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${form.subject === s ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-muted"}`}>
+                      {studentCourses.map((s) => (
+                        <button key={s} type="button" onClick={() => set("course", s)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${form.course === s ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-muted"}`}>
                           {s}
                         </button>
                       ))}
                     </div>
-                    <select value={form.subject} onChange={(e) => set("subject", e.target.value)}
+                    <select value={form.course} onChange={(e) => set("course", e.target.value)}
                       className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer">
-                      <option value="">Or pick another subject…</option>
-                      {ALL_SUBJECTS.filter((s) => !studentSubjects.includes(s)).map((s) => <option key={s}>{s}</option>)}
+                      <option value="">Or pick another course…</option>
+                      {ALL_COURSES.filter((s) => !studentCourses.includes(s)).map((s) => <option key={s}>{s}</option>)}
                     </select>
                   </div>
                 ) : (
-                  <select required value={form.subject} onChange={(e) => set("subject", e.target.value)}
+                  <select required value={form.course} onChange={(e) => set("course", e.target.value)}
                     className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer">
-                    <option value="">Select subject</option>
-                    {ALL_SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+                    <option value="">Select course</option>
+                    {ALL_COURSES.map((s) => <option key={s}>{s}</option>)}
                   </select>
                 )}
               </div>
@@ -135,7 +135,7 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Select Tutor *</span>
                   <div className="flex items-center gap-2">
-                    {form.subject && <span className="text-[10px] font-mono text-primary">Sorted by subject match</span>}
+                    {form.course && <span className="text-[10px] font-mono text-primary">Sorted by course match</span>}
                     <span className="text-[10px] font-mono text-muted-foreground">{current + 1} / {sortedTutors.length}</span>
                   </div>
                 </div>
@@ -160,8 +160,8 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-semibold text-foreground">{t.firstName} {t.lastName}</p>
                                   <div className="flex flex-wrap gap-1 mt-0.5">
-                                    {t.subjects.map((s) => (
-                                      <span key={s} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${s === form.subject ? "bg-primary/15 text-primary font-semibold" : studentSubjects.includes(s) ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{s}</span>
+                                    {t.courses.map((s) => (
+                                      <span key={s} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${s === form.course ? "bg-primary/15 text-primary font-semibold" : studentCourses.includes(s) ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{s}</span>
                                     ))}
                                   </div>
                                 </div>
@@ -170,7 +170,7 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
                               <p className="text-xs text-muted-foreground leading-snug">{t.description}</p>
                               <div className="flex items-center gap-2">
                                 {score === 2 && <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">Best match</span>}
-                                {score === 1 && !form.subject && <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Good fit</span>}
+                                {score === 1 && !form.course && <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Good fit</span>}
                                 <span className="text-[10px] font-mono text-muted-foreground ml-auto">{t.students} students · {t.sessions} sessions</span>
                               </div>
                             </button>

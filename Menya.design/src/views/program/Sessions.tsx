@@ -3,7 +3,7 @@ import { CalendarPlus } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import { sessions, tutors, tutorNameById } from "../../data";
@@ -67,7 +67,7 @@ export default function Sessions() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                {["Student", "Subject", "Tutor", "Date", "Time", "Duration", "Status", ""].map((h) => (
+                {["Student", "Course", "Tutor", "Date", "Time", "Duration", "Status", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-mono text-muted-foreground uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -83,7 +83,7 @@ export default function Sessions() {
                       <span className="font-medium text-foreground whitespace-nowrap">{s.student}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3"><SubjectTag subject={s.subject} /></td>
+                  <td className="px-4 py-3"><CourseTag course={s.course} /></td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{tutorNameById(s.tutorId)}</td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.time}</td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.clock}</td>
@@ -120,7 +120,7 @@ export default function Sessions() {
                 <p className="text-sm font-semibold text-foreground leading-tight">{t.firstName} {t.lastName}</p>
               </div>
               <div className="flex flex-wrap gap-1 mb-3">
-                {t.subjects.map((s) => <SubjectTag key={s} subject={s} />)}
+                {t.courses.map((s) => <CourseTag key={s} course={s} />)}
               </div>
               <div className="flex gap-3 text-xs text-muted-foreground font-mono">
                 <span>{t.students} students</span>
@@ -139,7 +139,7 @@ export default function Sessions() {
           meetingId={activeSession.meetingId}
           password={activeSession.password ?? ""}
           userName="Program Admin"
-          subject={activeSession.subject}
+          course={activeSession.course}
           onClose={() => setActiveSession(null)}
         />
       )}

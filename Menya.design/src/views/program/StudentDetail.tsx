@@ -5,10 +5,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import Avatar from "../../components/Avatar";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import ScheduleModal from "../../components/ScheduleModal";
-import { students, studentSubjectDetail, studentSessionHistory, tutorNameById } from "../../data";
+import { students, studentCourseDetail, studentSessionHistory, tutorNameById } from "../../data";
 import { statusMeta, achievements } from "../../lib/constants";
+import { getEnrolledCourses } from "../../hooks/useEnrollment";
 import type { StudentStatus } from "../../types";
 
 const weekActivity = [
@@ -32,10 +33,11 @@ export default function StudentDetail() {
   );
 
   const meta        = statusMeta[student.status as StudentStatus];
-  const subjects    = studentSubjectDetail[student.id] ?? [];
+  const enrolled    = getEnrolledCourses(student.id, student.courses);
+  const courses    = (studentCourseDetail[student.id] ?? []).filter((sd) => enrolled.includes(sd.course));
   const history     = studentSessionHistory[student.id] ?? [];
   const earned      = achievements.filter((a) => a.condition({ streak: student.streak, progress: student.progress, sessions: student.sessions }));
-  const upcoming    = [{ subject: subjects[0]?.subject ?? "TBD", time: "Tomorrow 3:00 PM", tutorId: 1 }];
+  const upcoming    = [{ course: courses[0]?.course ?? "TBD", time: "Tomorrow 3:00 PM", tutorId: 1 }];
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
@@ -52,7 +54,7 @@ export default function StudentDetail() {
             <h1 className="text-2xl font-display font-bold text-white">{student.name}</h1>
             <p className="text-sm text-white/60 mt-0.5">Grade {student.grade}</p>
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {student.subjects.map((subj) => (
+              {enrolled.map((subj) => (
                 <span key={subj} className="text-[11px] px-2 py-0.5 rounded-md font-mono bg-white/15 text-white">{subj}</span>
               ))}
             </div>
@@ -85,14 +87,14 @@ export default function StudentDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Subject Progress */}
+        {/* Course Progress */}
         <div className="lg:col-span-2 space-y-3">
-          <h2 className="text-sm font-semibold text-foreground">Subject Progress</h2>
-          {subjects.map((sub) => (
-            <div key={sub.subject} className="bg-card border border-border rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-foreground">Course Progress</h2>
+          {courses.map((sub) => (
+            <div key={sub.course} className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <SubjectTag subject={sub.subject} />
+                  <CourseTag course={sub.course} />
                   <TrendIcon trend={sub.trend} />
                 </div>
                 <span className="text-lg font-display font-bold text-foreground">{sub.score}%</span>
@@ -109,7 +111,7 @@ export default function StudentDetail() {
           <div className="bg-card border border-border rounded-xl divide-y divide-border">
             {history.map((h, i) => (
               <div key={i} className="flex items-center gap-3 px-4 py-3">
-                <SubjectTag subject={h.subject} />
+                <CourseTag course={h.course} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-foreground">{tutorNameById(h.tutorId)}</p>
                   <p className="text-xs text-muted-foreground">{h.date} · {h.duration}min</p>
@@ -143,7 +145,7 @@ export default function StudentDetail() {
               <div key={i} className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                 <div>
-                  <p className="text-sm text-foreground">{u.subject} · {tutorNameById(u.tutorId)}</p>
+                  <p className="text-sm text-foreground">{u.course} · {tutorNameById(u.tutorId)}</p>
                   <p className="text-xs text-muted-foreground">{u.time}</p>
                 </div>
               </div>

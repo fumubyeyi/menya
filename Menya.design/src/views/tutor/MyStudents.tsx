@@ -3,9 +3,10 @@ import { Users, Flame, Calendar } from "lucide-react";
 import ProgressRing from "../../components/ProgressRing";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
-  tutorStudents, studentSubjectDetail, studentSessionHistory,
+  tutorStudents, studentCourseDetail, studentSessionHistory,
 } from "../../data";
-import { statusMeta, subjectColor } from "../../lib/constants";
+import { statusMeta, courseColor } from "../../lib/constants";
+import { getEnrolledCourses } from "../../hooks/useEnrollment";
 
 export default function MyStudents() {
   const [modalStudent, setModalStudent] = useState<string | null>(null);
@@ -26,7 +27,8 @@ export default function MyStudents() {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {tutorStudents.map((student) => {
           const meta = statusMeta[student.status];
-          const subjects = studentSubjectDetail[student.id] ?? [];
+          const enrolled = getEnrolledCourses(student.id, student.courses);
+          const courses = (studentCourseDetail[student.id] ?? []).filter((sd) => enrolled.includes(sd.course));
           const history = studentSessionHistory[student.id] ?? [];
           const lastSession = history[0];
 
@@ -51,18 +53,18 @@ export default function MyStudents() {
                 </div>
               </div>
 
-              {/* Subject progress bars */}
+              {/* Course progress bars */}
               <div className="space-y-2">
-                {subjects.map((sub) => (
-                  <div key={sub.subject}>
+                {courses.map((sub) => (
+                  <div key={sub.course}>
                     <div className="flex justify-between mb-1">
-                      <span className="text-[11px] font-mono text-foreground">{sub.subject}</span>
+                      <span className="text-[11px] font-mono text-foreground">{sub.course}</span>
                       <span className="text-[11px] font-mono text-muted-foreground">{sub.score}%</span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${sub.score}%`, backgroundColor: subjectColor[sub.subject] ?? "#1B5E4F" }}
+                        style={{ width: `${sub.score}%`, backgroundColor: courseColor[sub.course] ?? "#1B5E4F" }}
                       />
                     </div>
                   </div>
@@ -73,7 +75,7 @@ export default function MyStudents() {
               {lastSession && (
                 <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
                   <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>Last: {lastSession.subject} · {lastSession.date} · {lastSession.score}pts</span>
+                  <span>Last: {lastSession.course} · {lastSession.date} · {lastSession.score}pts</span>
                 </div>
               )}
 

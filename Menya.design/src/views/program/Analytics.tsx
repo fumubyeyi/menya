@@ -3,7 +3,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from "recharts";
-import { weeklyData, subjectBreakdown } from "../../data";
+import { weeklyData, courseBreakdown } from "../../data";
 
 const kpis = [
   { label: "Total Students",    value: "247", delta: "+12 this month", Icon: Users,        color: "#1B5E4F" },
@@ -19,7 +19,7 @@ const outcomes = [
   { label: "At Risk",       count: 1, color: "#EF4444", bg: "bg-red-50",     text: "text-red-700"     },
 ];
 
-const maxStudents = Math.max(...subjectBreakdown.map((s) => s.students));
+const maxStudents = Math.max(...courseBreakdown.map((s) => s.students));
 
 export default function Analytics() {
   return (
@@ -101,11 +101,11 @@ export default function Analytics() {
           </div>
         </div>
 
-        {/* Subject Enrollment */}
+        {/* Course Enrollment */}
         <div className="bg-card border border-border rounded-xl p-4">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Subject Enrollment</h2>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Course Enrollment</h2>
           <div className="space-y-3">
-            {subjectBreakdown.map(({ name, students, color }) => (
+            {courseBreakdown.map(({ name, students, color }) => (
               <div key={name} className="space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-mono text-foreground">{name}</span>

@@ -28,7 +28,7 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
   ],
   student: [
     { to: "/student/home",     label: "My Home",     Icon: LayoutDashboard },
-    { to: "/student/learning", label: "My Subjects", Icon: BookOpen        },
+    { to: "/student/learning", label: "My Courses", Icon: BookOpen        },
     { to: "/student/schedule", label: "My Schedule", Icon: Calendar        },
     { to: "/student/goals",    label: "Goals",       Icon: Trophy          },
   ],
@@ -77,7 +77,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/tutor/review":       "Review",
     "/tutor/performance":  "Performance",
     "/student/home":       "My Home",
-    "/student/learning":   "My Subjects",
+    "/student/learning":   "My Courses",
     "/student/schedule":   "My Schedule",
     "/student/goals":      "Goals",
     "/student/module":     "Module Workspace",

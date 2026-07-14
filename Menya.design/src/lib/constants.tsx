@@ -3,23 +3,23 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
   GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, ProjectStatus, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource } from "../types";
+import type { StudentStatus, Difficulty, ProjectStatus, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec } from "../types";
 import { curriculum } from "../data";
 
-// Math subjects only, matching the Program > Curriculum library. Each gets a distinct color/icon.
-export const subjectColor: Record<string, string> = {
+// Math courses only, matching the Program > Curriculum library. Each gets a distinct color/icon.
+export const courseColor: Record<string, string> = {
   Algebra: "#1B5E4F", "Algebra II": "#059669", "Pre-Alg": "#F59E0B",
   Geometry: "#3B82F6", Statistics: "#EC4899", "Pre-Calculus": "#8B5CF6", Calculus: "#6366F1",
 };
 
-export const subjectIcon: Record<string, React.ReactNode> = {
+export const courseIcon: Record<string, React.ReactNode> = {
   Algebra: <Sigma className="w-4 h-4" />, "Algebra II": <Variable className="w-4 h-4" />, "Pre-Alg": <Divide className="w-4 h-4" />,
   Geometry: <Compass className="w-4 h-4" />, Statistics: <BarChart3 className="w-4 h-4" />,
   "Pre-Calculus": <FunctionSquare className="w-4 h-4" />, Calculus: <Infinity className="w-4 h-4" />,
 };
 
-export function getSubjectIcon(subject: string) {
-  return subjectIcon[subject] ?? <BookOpen className="w-4 h-4" />;
+export function getCourseIcon(course: string) {
+  return courseIcon[course] ?? <BookOpen className="w-4 h-4" />;
 }
 
 // A chapter's single next action: resume the in-progress module, start the next
@@ -33,9 +33,9 @@ export function chapterAction(chapter: CurriculumChapter): { label: "Resume" | "
   return { label: "Completed" };
 }
 
-// Percentage of a subject's modules (across every chapter) marked completed.
-export function courseCompletion(subject: string): number {
-  const modules = curriculum.find((c) => c.subject === subject)?.chapters.flatMap((ch) => ch.modules) ?? [];
+// Percentage of a course's modules (across every chapter) marked completed.
+export function courseCompletion(course: string): number {
+  const modules = curriculum.find((c) => c.name === course)?.chapters.flatMap((ch) => ch.modules) ?? [];
   if (modules.length === 0) return 0;
   return Math.round((modules.filter((m) => m.status === "completed").length / modules.length) * 100);
 }
@@ -43,31 +43,36 @@ export function courseCompletion(subject: string): number {
 export interface ModuleWorkspaceContent {
   description: string;
   content: string[];
-  exercises: string[];
-  test: string[];
+  exercises: PracticeItem[];
+  diagram?: DiagramSpec;
 }
 
 // Returns a module's authored workspace content, or generates a reasonable
-// fallback from its title/chapter/subject when none has been written yet.
-export function getModuleContent(module: CurriculumModule, chapterTitle: string, subject: string): ModuleWorkspaceContent {
+// fallback from its title/chapter/course when none has been written yet.
+export function getModuleContent(module: CurriculumModule, chapterTitle: string, course: string): ModuleWorkspaceContent {
   const topic = module.title;
   return {
-    description: module.description ?? `Build a solid understanding of ${topic.toLowerCase()}, part of ${chapterTitle} in ${subject}.`,
+    diagram: module.diagram,
+    description: module.description ?? `Build a solid understanding of ${topic.toLowerCase()}, part of ${chapterTitle} in ${course}.`,
     content: module.content ?? [
       `${topic} is one of the key ideas in ${chapterTitle}. Review the explanation your tutor covered in session, and use the notes area below to jot down anything that isn't clicking yet.`,
-      `Once the idea feels clear, move on to the exercises to practice it, then check your understanding with the short test.`,
+      `Once the idea feels clear, move on to the exercises to practice it, then check your understanding with the chapter test once every module is done.`,
     ],
     exercises: module.exercises ?? [
-      `Restate ${topic.toLowerCase()} in your own words.`,
-      `Work through a few practice problems on ${topic.toLowerCase()}.`,
-      `Bring one question about ${topic.toLowerCase()} to your next session.`,
-    ],
-    test: module.test ?? [
-      `Explain or demonstrate ${topic.toLowerCase()}.`,
-      `Solve a problem that applies ${topic.toLowerCase()}.`,
-      `Describe a common mistake with ${topic.toLowerCase()} and how to avoid it.`,
+      { prompt: `Restate ${topic.toLowerCase()} in your own words.`, answer: `A clear explanation of ${topic.toLowerCase()} that captures the key idea from the Content section above — compare yours against it.` },
+      { prompt: `Work through a few practice problems on ${topic.toLowerCase()}.`, answer: `Check your steps against the approach described in the Content section for ${topic.toLowerCase()}.` },
+      { prompt: `Bring one question about ${topic.toLowerCase()} to your next session.`, answer: `Any genuine question works — the goal is naming what's still unclear about ${topic.toLowerCase()}.` },
     ],
   };
+}
+
+// Returns a chapter's single end-of-chapter test, or generates a reasonable
+// fallback (one question per module) when none has been authored yet.
+export function getChapterTest(chapter: CurriculumChapter): PracticeItem[] {
+  return chapter.test ?? chapter.modules.map((m) => ({
+    prompt: `Solve a problem that applies ${m.title.toLowerCase()}.`,
+    answer: `Check your solution against the approach described in ${m.title}'s Content section.`,
+  }));
 }
 
 export const statusMeta: Record<StudentStatus, { label: string; cls: string; Icon: React.ElementType }> = {

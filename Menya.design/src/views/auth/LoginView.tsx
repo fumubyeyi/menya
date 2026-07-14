@@ -65,13 +65,13 @@ function CreateAccountModal({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [grade, setGrade] = useState("6");
-  const [subjects, setSubjects] = useState<string[]>([]);
+  const [courses, setCourses] = useState<string[]>([]);
   const [generatedPwd] = useState(
     () =>
       `STEM-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
   );
 
-  const ALL_SUBJECTS = [
+  const ALL_COURSES = [
     "Algebra",
     "Algebra II",
     "Pre-Alg",
@@ -81,8 +81,8 @@ function CreateAccountModal({
     "Calculus",
   ];
 
-  const toggleSubject = (s: string) =>
-    setSubjects((prev) =>
+  const toggleCourse = (s: string) =>
+    setCourses((prev) =>
       prev.includes(s)
         ? prev.filter((x) => x !== s)
         : [...prev, s],
@@ -233,15 +233,15 @@ function CreateAccountModal({
 
               <div className="flex flex-col gap-2">
                 <span className="text-[11px] font-mono text-gray-400 uppercase tracking-wider">
-                  Subjects
+                  Courses
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {ALL_SUBJECTS.map((s) => (
+                  {ALL_COURSES.map((s) => (
                     <button
                       key={s}
                       type="button"
-                      onClick={() => toggleSubject(s)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${subjects.includes(s) ? "bg-[#1B5E4F]/10 border-[#1B5E4F]/40 text-[#1B5E4F]" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                      onClick={() => toggleCourse(s)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${courses.includes(s) ? "bg-[#1B5E4F]/10 border-[#1B5E4F]/40 text-[#1B5E4F]" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
                     >
                       {s}
                     </button>

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { PlusCircle, Plus, BookOpen, Users, ChevronRight } from "lucide-react";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import AddCourseModal from "../../components/AddCourseModal";
 import AddChapterModal from "../../components/AddChapterModal";
 import AddModuleModal from "../../components/AddModuleModal";
 import ChapterModulesModal from "../../components/ChapterModulesModal";
 import { curriculum } from "../../data";
-import { diffCls, subjectColor } from "../../lib/constants";
+import { diffCls, courseColor } from "../../lib/constants";
 import type { CurriculumCourse, CurriculumChapter, Difficulty } from "../../types";
 
 const VISIBLE_MODULES = 5;
@@ -19,8 +19,8 @@ export default function Curriculum() {
   const [addModuleFor, setAddModuleFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
   const [viewModulesFor, setViewModulesFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
 
-  const subjectTabs = ["All", ...courses.map((c) => c.subject)];
-  const filteredCourses = activeTab === "All" ? courses : courses.filter((c) => c.subject === activeTab);
+  const courseTabs = ["All", ...courses.map((c) => c.name)];
+  const filteredCourses = activeTab === "All" ? courses : courses.filter((c) => c.name === activeTab);
 
   const totalChapters = courses.reduce((sum, c) => sum + c.chapters.length, 0);
   const totalModules = courses.reduce((sum, c) => sum + c.chapters.reduce((s, ch) => s + ch.modules.length, 0), 0);
@@ -53,7 +53,7 @@ export default function Curriculum() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-display font-semibold text-foreground">Curriculum Library</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{totalChapters} chapters · {totalModules} modules across {courses.length} math subjects</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{totalChapters} chapters · {totalModules} modules across {courses.length} math courses</p>
         </div>
         <button onClick={() => setShowAddCourse(true)} className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
           <PlusCircle className="w-4 h-4" />
@@ -61,9 +61,9 @@ export default function Curriculum() {
         </button>
       </div>
 
-      {/* Subject Filter Tabs */}
+      {/* Course Filter Tabs */}
       <div className="flex gap-1 flex-wrap border-b border-border pb-0">
-        {subjectTabs.map((tab) => (
+        {courseTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -87,13 +87,13 @@ export default function Curriculum() {
       ) : (
         <div className="space-y-8">
           {filteredCourses.map((course) => {
-            const color = subjectColor[course.subject] ?? "#1B5E4F";
+            const color = courseColor[course.name] ?? "#1B5E4F";
             return (
               <div key={course.id} className="space-y-3">
                 {/* Course header */}
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
-                    <SubjectTag subject={course.subject} />
+                    <CourseTag course={course.name} />
                     <span className="text-[11px] px-2 py-0.5 rounded-md font-mono bg-muted text-muted-foreground">Grade {course.grade}</span>
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Users className="w-3.5 h-3.5" />{course.students} students
@@ -176,7 +176,7 @@ export default function Curriculum() {
           onAdd={(title) => addModule(addModuleFor.course.id, addModuleFor.chapter.id, title)} />
       )}
       {liveViewModulesFor && (
-        <ChapterModulesModal subject={liveViewModulesFor.course.subject} chapter={liveViewModulesFor.chapter}
+        <ChapterModulesModal course={liveViewModulesFor.course.name} chapter={liveViewModulesFor.chapter}
           onClose={() => setViewModulesFor(null)}
           onAddModule={(title) => addModule(liveViewModulesFor.course.id, liveViewModulesFor.chapter.id, title)} />
       )}

@@ -3,7 +3,7 @@ import { Clock, Plus } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
@@ -51,7 +51,7 @@ export default function TutorSchedule() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground">{s.student}</p>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <SubjectTag subject={s.subject} />
+                  <CourseTag course={s.course} />
                   <span className="text-[11px] text-muted-foreground font-mono">{s.time}</span>
                 </div>
               </div>
@@ -81,7 +81,7 @@ export default function TutorSchedule() {
             <thead>
               <tr className="text-[11px] font-mono text-muted-foreground uppercase tracking-wide">
                 <th className="text-left pb-3 pr-4">Student</th>
-                <th className="text-left pb-3 pr-4">Subject</th>
+                <th className="text-left pb-3 pr-4">Course</th>
                 <th className="text-left pb-3 pr-4">Score</th>
                 <th className="text-left pb-3 pr-4">Date</th>
                 <th className="text-left pb-3 pr-4">Duration</th>
@@ -98,7 +98,7 @@ export default function TutorSchedule() {
                     </div>
                   </td>
                   <td className="py-2.5 pr-4">
-                    <SubjectTag subject={h.subject} />
+                    <CourseTag course={h.course} />
                   </td>
                   <td className={`py-2.5 pr-4 font-mono font-semibold text-xs ${scoreCls(h.score)}`}>{h.score}</td>
                   <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.date}</td>
@@ -120,7 +120,7 @@ export default function TutorSchedule() {
           meetingId={activeSession.meetingId}
           password={activeSession.password ?? ""}
           userName={currentTutor ? `${currentTutor.firstName} ${currentTutor.lastName}` : undefined}
-          subject={activeSession.subject}
+          course={activeSession.course}
           onClose={() => setActiveSession(null)}
         />
       )}

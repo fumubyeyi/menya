@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import Avatar from "../../components/Avatar";
-import { sessions, weeklyData, subjectBreakdown, tutorNameById } from "../../data";
+import { sessions, weeklyData, courseBreakdown, tutorNameById } from "../../data";
 
 const kpis = [
   { label: "Students Enrolled", value: "247", delta: "+12 this month", Icon: Users,         color: "#1B5E4F" },
@@ -15,7 +15,7 @@ const kpis = [
   { label: "Active Tutors",      value: "18",  delta: "2 onboarding",   Icon: GraduationCap, color: "#059669" },
 ];
 
-const maxStudents = Math.max(...subjectBreakdown.map((s) => s.students));
+const maxStudents = Math.max(...courseBreakdown.map((s) => s.students));
 
 export default function Dashboard() {
   const [_tab] = useState("overview");
@@ -76,11 +76,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Subject Breakdown */}
+        {/* Course Breakdown */}
         <div className="bg-card border border-border rounded-xl p-4">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Subject Enrollment</h2>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Course Enrollment</h2>
           <div className="space-y-3">
-            {subjectBreakdown.map(({ name, students, color }) => (
+            {courseBreakdown.map(({ name, students, color }) => (
               <div key={name} className="space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-mono text-foreground">{name}</span>
@@ -104,7 +104,7 @@ export default function Dashboard() {
               <Avatar name={s.student} size={8} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{s.student}</p>
-                <p className="text-xs text-muted-foreground">{s.subject} · {tutorNameById(s.tutorId)}</p>
+                <p className="text-xs text-muted-foreground">{s.course} · {tutorNameById(s.tutorId)}</p>
               </div>
               <span className="text-xs text-muted-foreground font-mono">{s.clock}</span>
               <SessionStatusPill status={s.status} />

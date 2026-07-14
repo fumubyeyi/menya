@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import Avatar from "../../components/Avatar";
 import ProgressRing from "../../components/ProgressRing";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
@@ -85,7 +85,7 @@ export default function TutorHome() {
                     <Avatar name={s.student} size={9} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">{s.student}</p>
-                      <SubjectTag subject={s.subject} />
+                      <CourseTag course={s.course} />
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
                       <Clock className="w-3.5 h-3.5" /> {s.clock}
@@ -174,7 +174,7 @@ export default function TutorHome() {
           meetingId={activeSession.meetingId}
           password={activeSession.password ?? ""}
           userName={currentTutor ? `${currentTutor.firstName} ${currentTutor.lastName}` : undefined}
-          subject={activeSession.subject}
+          course={activeSession.course}
           onClose={() => setActiveSession(null)}
         />
       )}

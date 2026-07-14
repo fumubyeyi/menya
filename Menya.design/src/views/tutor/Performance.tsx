@@ -6,7 +6,7 @@ import {
 import {
   tutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
-import { statusMeta, subjectColor } from "../../lib/constants";
+import { statusMeta, courseColor } from "../../lib/constants";
 
 const avgProgress = Math.round(
   tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length

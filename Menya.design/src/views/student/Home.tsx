@@ -2,18 +2,19 @@ import { useState } from "react";
 import { Flame, Plus } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import ProgressRing from "../../components/ProgressRing";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
-  sofia, sessions, studentSubjectDetail, studentSessionHistory,
+  sofia, sessions, studentCourseDetail, studentSessionHistory,
   studentAssignments, CURRENT_STUDENT_ID, studentGoals, aiProjects, tutorNameById,
 } from "../../data";
-import { achievements, getSubjectIcon, subjectColor } from "../../lib/constants";
+import { achievements, getCourseIcon, courseColor } from "../../lib/constants";
+import { useEnrollment } from "../../hooks/useEnrollment";
 
 const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
 const todaySession = sofiaSessions.find((s) => s.time === "Today");
-const subjectDetails = studentSubjectDetail[sofia.id] ?? [];
+const courseDetails = studentCourseDetail[sofia.id] ?? [];
 const sessionHistory = studentSessionHistory[sofia.id] ?? [];
 const studyHours = Math.round(sessionHistory.reduce((sum, h) => sum + h.duration, 0) / 60);
 const earnedAchievements = achievements.filter((a) => a.condition(sofia));
@@ -22,6 +23,7 @@ const lockedAchievements = achievements.filter((a) => !a.condition(sofia));
 export default function StudentHome() {
   const [modal, setModal] = useState(false);
   const [zoomOpen, setZoomOpen] = useState(false);
+  const { courses: enrolledCourses } = useEnrollment();
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
@@ -35,7 +37,7 @@ export default function StudentHome() {
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-xl font-display font-semibold text-white">Good afternoon, Sofia 👋</h1>
           </div>
-          <p className="text-white/70 text-sm font-mono">Grade {sofia.grade} · {sofia.subjects.join(" · ")}</p>
+          <p className="text-white/70 text-sm font-mono">Grade {sofia.grade} · {enrolledCourses.length > 0 ? enrolledCourses.join(" · ") : "No courses yet"}</p>
         </div>
         <div className="flex flex-col items-center gap-1 bg-white/10 rounded-xl px-4 py-3">
           <Flame className="w-5 h-5 text-amber-400" />
@@ -67,13 +69,13 @@ export default function StudentHome() {
               <h2 className="text-sm font-semibold text-foreground mb-3">Today's Focus</h2>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${subjectColor[todaySession.subject] ?? "#1B5E4F"}18` }}>
-                  <span style={{ color: subjectColor[todaySession.subject] ?? "#1B5E4F" }}>
-                    {getSubjectIcon(todaySession.subject)}
+                  style={{ backgroundColor: `${courseColor[todaySession.course] ?? "#1B5E4F"}18` }}>
+                  <span style={{ color: courseColor[todaySession.course] ?? "#1B5E4F" }}>
+                    {getCourseIcon(todaySession.course)}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{todaySession.subject}</p>
+                  <p className="text-sm font-medium text-foreground">{todaySession.course}</p>
                   <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(todaySession.tutorId)} · {todaySession.clock}</p>
                 </div>
                 <SessionStatusPill status={todaySession.status} />
@@ -89,21 +91,21 @@ export default function StudentHome() {
             </div>
           )}
 
-          {/* Subject Progress */}
+          {/* Course Progress */}
           <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-foreground mb-3">Subject Progress</h2>
+            <h2 className="text-sm font-semibold text-foreground mb-3">Course Progress</h2>
             <div className="space-y-3">
-              {subjectDetails.map((sd) => (
-                <div key={sd.subject}>
+              {courseDetails.map((sd) => (
+                <div key={sd.course}>
                   <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center gap-2">
-                      <span style={{ color: subjectColor[sd.subject] ?? "#1B5E4F" }}>{getSubjectIcon(sd.subject)}</span>
-                      <span className="text-sm font-medium text-foreground">{sd.subject}</span>
+                      <span style={{ color: courseColor[sd.course] ?? "#1B5E4F" }}>{getCourseIcon(sd.course)}</span>
+                      <span className="text-sm font-medium text-foreground">{sd.course}</span>
                     </div>
                     <span className="text-xs font-mono text-muted-foreground">{sd.score}%</span>
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${sd.score}%`, backgroundColor: subjectColor[sd.subject] ?? "#1B5E4F" }} />
+                    <div className="h-full rounded-full transition-all" style={{ width: `${sd.score}%`, backgroundColor: courseColor[sd.course] ?? "#1B5E4F" }} />
                   </div>
                 </div>
               ))}
@@ -120,7 +122,7 @@ export default function StudentHome() {
                     <div>
                       <p className="text-sm font-medium text-foreground">{hw.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <SubjectTag subject={hw.subject} />
+                        <CourseTag course={hw.course} />
                         <span className="text-[11px] font-mono text-muted-foreground">Due {hw.dueDate}</span>
                       </div>
                     </div>
@@ -155,11 +157,11 @@ export default function StudentHome() {
               {sessionHistory.slice(0, 3).map((h, i) => (
                 <div key={i} className="flex items-center gap-2 py-1.5">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${subjectColor[h.subject] ?? "#1B5E4F"}15` }}>
-                    <span style={{ color: subjectColor[h.subject] ?? "#1B5E4F" }}>{getSubjectIcon(h.subject)}</span>
+                    style={{ backgroundColor: `${courseColor[h.course] ?? "#1B5E4F"}15` }}>
+                    <span style={{ color: courseColor[h.course] ?? "#1B5E4F" }}>{getCourseIcon(h.course)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground">{h.subject}</p>
+                    <p className="text-xs font-medium text-foreground">{h.course}</p>
                     <p className="text-[10px] font-mono text-muted-foreground">{h.date}</p>
                   </div>
                   <span className={`text-xs font-mono font-semibold ${h.score >= 80 ? "text-emerald-600" : h.score >= 65 ? "text-amber-600" : "text-red-600"}`}>{h.score}</span>
@@ -216,7 +218,7 @@ export default function StudentHome() {
           meetingId={todaySession.meetingId}
           password={todaySession.password ?? ""}
           userName={sofia.name}
-          subject={todaySession.subject}
+          course={todaySession.course}
           onClose={() => setZoomOpen(false)}
         />
       )}

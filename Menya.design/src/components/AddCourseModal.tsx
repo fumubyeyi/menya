@@ -8,12 +8,12 @@ interface Props {
 }
 
 export default function AddCourseModal({ onClose, onAdd }: Props) {
-  const [subject, setSubject] = useState("");
+  const [course, setCourse] = useState("");
   const [grade, setGrade] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({ id: Date.now(), subject: subject.trim(), grade: grade.trim(), students: 0, chapters: [] });
+    onAdd({ id: Date.now(), name: course.trim(), grade: grade.trim(), students: 0, chapters: [] });
     onClose();
   };
 
@@ -24,7 +24,7 @@ export default function AddCourseModal({ onClose, onAdd }: Props) {
         <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <div>
             <h2 className="font-display font-semibold text-foreground text-lg leading-none">Add Course</h2>
-            <p className="text-[11px] font-mono text-muted-foreground mt-1">Add a new math subject to the curriculum library</p>
+            <p className="text-[11px] font-mono text-muted-foreground mt-1">Add a new math course to the curriculum library</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
@@ -34,8 +34,8 @@ export default function AddCourseModal({ onClose, onAdd }: Props) {
         <form onSubmit={handleSubmit} className="flex flex-col">
           <div className="px-6 py-5 space-y-4">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Subject *</span>
-              <input required value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Trigonometry"
+              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Course Name *</span>
+              <input required value={course} onChange={(e) => setCourse(e.target.value)} placeholder="e.g. Trigonometry"
                 className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
             </label>
             <label className="flex flex-col gap-1.5">

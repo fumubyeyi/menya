@@ -73,7 +73,7 @@ export default function EditAlumniModal({ alumnus, onClose, onSave }: Props) {
                     <Flame className="w-3.5 h-3.5 text-muted-foreground" />{linkedStudent.streak}d streak
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1.5">{linkedStudent.subjects.join(", ")}</p>
+                <p className="text-xs text-muted-foreground mt-1.5">{linkedStudent.courses.join(", ")}</p>
               </div>
             )}
 

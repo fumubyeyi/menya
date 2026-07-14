@@ -3,12 +3,12 @@ import {
   Sparkles, ThumbsUp, ThumbsDown, RotateCcw, SendHorizonal,
   FileText, ClipboardList, CheckCircle2,
 } from "lucide-react";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import ProgressRing from "../../components/ProgressRing";
 import {
-  aiProjects, studentSubjectDetail, tutorStudents,
+  aiProjects, studentCourseDetail, tutorStudents,
 } from "../../data";
-import { diffCls, projectStatusCls, projectStatusLabel, subjectColor } from "../../lib/constants";
+import { diffCls, projectStatusCls, projectStatusLabel, courseColor } from "../../lib/constants";
 import type { AIProject } from "../../types";
 
 type Filter = "all" | "pending" | "approved" | "revision" | "rejected";
@@ -59,7 +59,7 @@ export default function Review() {
   }
 
   const studentObj = selected ? tutorStudents.find((s) => s.name === selected.student) : undefined;
-  const subjectDetails = studentObj ? (studentSubjectDetail[studentObj.id] ?? []) : [];
+  const courseDetails = studentObj ? (studentCourseDetail[studentObj.id] ?? []) : [];
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
@@ -103,7 +103,7 @@ export default function Review() {
                 className={`text-left p-3 rounded-xl border transition-all ${selectedId === p.id ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/30"}`}
               >
                 <div className="flex items-center justify-between mb-1.5 gap-1">
-                  <SubjectTag subject={p.subject} />
+                  <CourseTag course={p.course} />
                   <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${projectStatusCls[p.status]}`}>
                     {projectStatusLabel[p.status]}
                   </span>
@@ -121,7 +121,7 @@ export default function Review() {
             {/* Header */}
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
-                <SubjectTag subject={selected.subject} />
+                <CourseTag course={selected.course} />
                 <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${projectStatusCls[selected.status]}`}>
                   {projectStatusLabel[selected.status]}
                 </span>
@@ -191,14 +191,14 @@ export default function Review() {
                     <p className="text-[11px] font-mono text-muted-foreground">Grade {studentObj.grade}</p>
                   </div>
                 </div>
-                {subjectDetails.map((sd) => (
-                  <div key={sd.subject} className="mb-2">
+                {courseDetails.map((sd) => (
+                  <div key={sd.course} className="mb-2">
                     <div className="flex justify-between mb-1">
-                      <span className="text-[11px] font-mono text-foreground">{sd.subject}</span>
+                      <span className="text-[11px] font-mono text-foreground">{sd.course}</span>
                       <span className="text-[11px] font-mono text-muted-foreground">{sd.score}%</span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${sd.score}%`, backgroundColor: subjectColor[sd.subject] ?? "#1B5E4F" }} />
+                      <div className="h-full rounded-full" style={{ width: `${sd.score}%`, backgroundColor: courseColor[sd.course] ?? "#1B5E4F" }} />
                     </div>
                   </div>
                 ))}

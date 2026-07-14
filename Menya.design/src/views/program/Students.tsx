@@ -3,9 +3,10 @@ import { useNavigate } from "react-router";
 import { Search, UserPlus, ChevronRight } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import ProgressRing from "../../components/ProgressRing";
-import SubjectTag from "../../components/SubjectTag";
+import CourseTag from "../../components/CourseTag";
 import { students } from "../../data";
 import { statusMeta } from "../../lib/constants";
+import { getEnrolledCourses } from "../../hooks/useEnrollment";
 import type { StudentStatus } from "../../types";
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -100,7 +101,7 @@ export default function Students() {
                 </div>
 
                 <div className="flex flex-wrap gap-1">
-                  {s.subjects.map((subj) => <SubjectTag key={subj} subject={subj} />)}
+                  {getEnrolledCourses(s.id, s.courses).map((subj) => <CourseTag key={subj} course={subj} />)}
                 </div>
               </div>
             );
