@@ -39,12 +39,26 @@ export interface Session {
 
 export type ModuleStatus = "not-started" | "in-progress" | "completed";
 
+// Absent `type` means "free-response" — today's behavior (type attempt, reveal
+// model answer, self-mark). The other types are graded automatically as soon as
+// the student answers, no self-report needed.
+export type QuestionType = "free-response" | "true-false" | "multiple-choice" | "numeric";
+
+export interface PracticeChoice {
+  label: string;
+  diagram?: DiagramSpec; // optional graph/shape shown as the choice itself
+}
+
 // A single practice question paired with its model answer, so the workspace can let
 // a student attempt it and self-check against something concrete rather than just
 // reading a prompt.
 export interface PracticeItem {
   prompt: string;
-  answer: string;
+  answer: string;             // model answer (free-response) or explanation shown after grading
+  type?: QuestionType;
+  choices?: PracticeChoice[]; // multiple-choice only
+  correctIndex?: number;      // multiple-choice & true-false (0 = True, 1 = False)
+  numericAnswer?: string;     // numeric only — the expected value
 }
 
 // Lightweight, parameterized specs for the inline SVG diagrams rendered in the
@@ -144,6 +158,8 @@ export interface CurriculumModule {
   status: ModuleStatus;
   description?: string;
   content?: string[];
+  // Shown to the student as a worked walkthrough, not graded — distinct from `exercises`.
+  workedExample?: PracticeItem;
   exercises?: PracticeItem[];
   diagram?: DiagramSpec;
 }

@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import confetti from "canvas-confetti";
 import {
-  ArrowLeft, CheckCircle2, NotebookPen, Dumbbell, ClipboardCheck,
-  Lightbulb, RotateCcw, Flame, Trophy, Sparkles, PartyPopper, ChevronRight, Lock,
+  ArrowLeft, CheckCircle2, XCircle, NotebookPen, Dumbbell, ClipboardCheck,
+  Lightbulb, RotateCcw, Flame, Trophy, Sparkles, PartyPopper, ChevronRight, ChevronLeft, Lock,
+  AlertTriangle, GraduationCap,
 } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
 import Diagram from "../../components/diagrams";
 import { findChapterById } from "../../data";
-import { getCourseIcon, courseColor, diffCls, getModuleContent, getChapterTest } from "../../lib/constants";
+import { getCourseIcon, courseColor, diffCls, getModuleContent, getChapterTest, isNumericAnswerCorrect } from "../../lib/constants";
+import type { PracticeItem } from "../../types";
 
 const statusMeta = {
   completed:    { label: "Completed",   cls: "text-emerald-700 bg-emerald-50" },
@@ -35,24 +37,121 @@ function isModuleExercisesDone(chapterId: string | undefined, moduleIndex: numbe
   }
 }
 
-// One question, attempt box, and self-check reveal — shared by both the exercise
-// list and the chapter test stepper so they behave identically.
-function PracticeCard({ prompt, answer, item, onAttemptChange, onReveal, onMark, onRetry }: {
-  prompt: string;
-  answer: string;
+// One question and self-check — shared by both the exercise list and the chapter
+// test stepper so they behave identically. Free-response (the default when
+// `question.type` is unset) keeps today's flow: type an attempt, reveal the model
+// answer, self-mark honestly. True/false, multiple-choice, and numeric questions
+// grade themselves the instant the student answers — no self-report needed.
+function PracticeCard({ question, item, onAttemptChange, onReveal, onMark, onAnswer, onRetry }: {
+  question: PracticeItem;
   item: ItemState;
   onAttemptChange: (value: string) => void;
   onReveal: () => void;
   onMark: (mark: "correct" | "practice") => void;
+  onAnswer: (attempt: string, correct: boolean) => void;
   onRetry: () => void;
 }) {
+  const type = question.type ?? "free-response";
+  const selectedIndex = item.attempt ? Number(item.attempt) : null;
+
+  const cardCls = `rounded-lg border px-4 py-3.5 space-y-3 transition-colors ${
+    item.mark === "correct" ? "border-emerald-200 bg-emerald-50/40" :
+    item.mark === "practice" ? "border-amber-200 bg-amber-50/40" :
+    "border-border"
+  }`;
+
+  const explanationBox = question.answer.trim() ? (
+    <div className="rounded-lg bg-muted/50 border border-border px-3 py-2.5">
+      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">
+        {type === "free-response" ? "Model Answer" : "Explanation"}
+      </p>
+      <p className="text-sm text-foreground leading-relaxed">{question.answer}</p>
+    </div>
+  ) : null;
+
+  const statusRow = item.mark !== null && (
+    <div className="flex items-center justify-between flex-wrap gap-2">
+      <span className={`text-xs font-semibold flex items-center gap-1.5 ${item.mark === "correct" ? "text-emerald-700" : "text-amber-700"}`}>
+        {item.mark === "correct"
+          ? <><CheckCircle2 className="w-4 h-4" /> Marked correct · +20 XP</>
+          : <><RotateCcw className="w-4 h-4" /> Marked for practice · +10 XP</>}
+      </span>
+      <button type="button" onClick={onRetry} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">Try again</button>
+    </div>
+  );
+
+  if (type === "true-false" || type === "multiple-choice") {
+    const choices = type === "true-false" ? [{ label: "True" }, { label: "False" }] : question.choices ?? [];
+    const hasDiagrams = choices.some((c) => c.diagram);
+
+    return (
+      <div className={cardCls}>
+        <p className="text-sm text-foreground leading-relaxed">{question.prompt}</p>
+        <div className={hasDiagrams ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2"}>
+          {choices.map((choice, i) => {
+            const isCorrect = i === question.correctIndex;
+            const isSelected = i === selectedIndex;
+            const state = !item.revealed ? "idle" : isCorrect ? "correct" : isSelected ? "wrong" : "muted";
+            const stateCls =
+              state === "correct" ? "border-emerald-300 bg-emerald-50" :
+              state === "wrong" ? "border-red-300 bg-red-50" :
+              state === "muted" ? "border-border opacity-50" :
+              "border-border hover:border-primary/40 hover:bg-muted/40";
+            return (
+              <button key={i} type="button" disabled={item.revealed} onClick={() => onAnswer(String(i), isCorrect)}
+                className={`rounded-lg border px-3 py-2.5 text-sm text-foreground transition-colors ${stateCls} ${hasDiagrams ? "flex flex-col items-center gap-1.5" : "flex items-center justify-between gap-2"}`}>
+                <span className={hasDiagrams ? "contents" : "flex items-center gap-2"}>
+                  {choice.diagram && <Diagram spec={choice.diagram} />}
+                  {choice.label && <span className={hasDiagrams ? "text-xs text-center" : ""}>{choice.label}</span>}
+                </span>
+                {state === "correct" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
+                {state === "wrong" && <XCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+        {item.revealed && explanationBox}
+        {statusRow}
+      </div>
+    );
+  }
+
+  if (type === "numeric") {
+    return (
+      <div className={cardCls}>
+        <p className="text-sm text-foreground leading-relaxed">{question.prompt}</p>
+        {!item.revealed ? (
+          <>
+            <input
+              value={item.attempt}
+              onChange={(e) => onAttemptChange(e.target.value)}
+              placeholder="Enter your answer…"
+              inputMode="decimal"
+              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25"
+            />
+            <button type="button" onClick={() => onAnswer(item.attempt, isNumericAnswerCorrect(item.attempt, question.numericAnswer ?? ""))} disabled={!item.attempt.trim()}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              <Lightbulb className="w-3.5 h-3.5" /> Check Answer
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="rounded-lg bg-muted/50 border border-border px-3 py-2.5 flex items-center justify-between gap-2 flex-wrap text-sm">
+              <span className="text-foreground">Your answer: <strong>{item.attempt}</strong></span>
+              {item.mark !== "correct" && <span className="text-muted-foreground">Correct answer: <strong className="text-foreground">{question.numericAnswer}</strong></span>}
+            </div>
+            {explanationBox}
+            {statusRow}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // free-response — today's original attempt/reveal/self-mark flow, unchanged.
   return (
-    <div className={`rounded-lg border px-4 py-3.5 space-y-3 transition-colors ${
-      item.mark === "correct" ? "border-emerald-200 bg-emerald-50/40" :
-      item.mark === "practice" ? "border-amber-200 bg-amber-50/40" :
-      "border-border"
-    }`}>
-      <p className="text-sm text-foreground leading-relaxed">{prompt}</p>
+    <div className={cardCls}>
+      <p className="text-sm text-foreground leading-relaxed">{question.prompt}</p>
 
       {!item.revealed ? (
         <>
@@ -70,10 +169,7 @@ function PracticeCard({ prompt, answer, item, onAttemptChange, onReveal, onMark,
         </>
       ) : (
         <>
-          <div className="rounded-lg bg-muted/50 border border-border px-3 py-2.5">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">Model Answer</p>
-            <p className="text-sm text-foreground leading-relaxed">{answer}</p>
-          </div>
+          {explanationBox}
           {item.mark === null ? (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-muted-foreground mr-1">Did you get it right?</span>
@@ -86,16 +182,7 @@ function PracticeCard({ prompt, answer, item, onAttemptChange, onReveal, onMark,
                 <RotateCcw className="w-3.5 h-3.5" /> Need Practice
               </button>
             </div>
-          ) : (
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className={`text-xs font-semibold flex items-center gap-1.5 ${item.mark === "correct" ? "text-emerald-700" : "text-amber-700"}`}>
-                {item.mark === "correct"
-                  ? <><CheckCircle2 className="w-4 h-4" /> Marked correct · +20 XP</>
-                  : <><RotateCcw className="w-4 h-4" /> Marked for practice · +10 XP</>}
-              </span>
-              <button type="button" onClick={onRetry} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">Try again</button>
-            </div>
-          )}
+          ) : statusRow}
         </>
       )}
     </div>
@@ -114,7 +201,9 @@ export default function ModuleWorkspace() {
 
   const [notes, setNotes] = useState(() => localStorage.getItem(notesKey) ?? "");
   const workspace = courseModule && found ? getModuleContent(courseModule, found.chapter.title, found.course.name) : null;
-  const chapterTestQuestions = found ? getChapterTest(found.chapter) : [];
+  const chapterTest_ = found ? getChapterTest(found.chapter) : { questions: [], isAuthored: false };
+  const chapterTestQuestions = chapterTest_.questions;
+  const chapterTestAuthored = chapterTest_.isAuthored;
   const isLastModule = !!found && index === found.chapter.modules.length - 1;
 
   const [practice, setPractice] = useState<PracticeState>(() => {
@@ -140,6 +229,7 @@ export default function ModuleWorkspace() {
   });
 
   const [combo, setCombo] = useState(0);
+  const [exerciseStep, setExerciseStep] = useState(0);
 
   const handleNotesChange = (value: string) => {
     setNotes(value);
@@ -156,6 +246,10 @@ export default function ModuleWorkspace() {
     updateItem(i, { mark });
     setCombo((c) => (mark === "correct" ? c + 1 : 0));
   };
+  const answerItem = (i: number, attempt: string, correct: boolean) => {
+    updateItem(i, { attempt, revealed: true, mark: correct ? "correct" : "practice" });
+    setCombo((c) => (correct ? c + 1 : 0));
+  };
   const retryItem = (i: number) => updateItem(i, emptyItem());
 
   const persistChapterTest = (next: ChapterTestState) => {
@@ -168,6 +262,10 @@ export default function ModuleWorkspace() {
   const markChapterTestItem = (i: number, mark: "correct" | "practice") => {
     updateChapterTestItem(i, { mark });
     setCombo((c) => (mark === "correct" ? c + 1 : 0));
+  };
+  const answerChapterTestItem = (i: number, attempt: string, correct: boolean) => {
+    updateChapterTestItem(i, { attempt, revealed: true, mark: correct ? "correct" : "practice" });
+    setCombo((c) => (correct ? c + 1 : 0));
   };
   const retryChapterTestItem = (i: number) => updateChapterTestItem(i, emptyItem());
 
@@ -226,6 +324,11 @@ export default function ModuleWorkspace() {
   const currentChapterTestQuestion = chapterTestQuestions[chapterTest.step];
   const isLastChapterTestQuestion = chapterTest.step === chapterTestTotal - 1;
   const chapterTestCorrectCount = chapterTest.items.filter((it) => it.mark === "correct").length;
+
+  const currentExerciseIndex = Math.min(exerciseStep, Math.max(workspace.exercises.length - 1, 0));
+  const currentExercise = workspace.exercises[currentExerciseIndex];
+  const isFirstExercise = currentExerciseIndex === 0;
+  const isLastExercise = currentExerciseIndex === workspace.exercises.length - 1;
 
   const startChapterTest = () => patchChapterTest({ started: true });
   const advanceChapterTest = () => {
@@ -292,11 +395,32 @@ export default function ModuleWorkspace() {
       {/* Content */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Content</h2>
+        {!workspace.isAuthored && (
+          <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-amber-50 border border-amber-100">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="text-sm text-amber-700">Content not yet available for this module.</p>
+          </div>
+        )}
         {workspace.content.map((p, i) => (
           <p key={i} className="text-sm text-foreground leading-relaxed">{p}</p>
         ))}
         {workspace.diagram && <Diagram spec={workspace.diagram} />}
       </div>
+
+      {/* Worked Example */}
+      {workspace.workedExample && (
+        <div className="bg-card border border-border rounded-xl p-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Worked Example</h2>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">{workspace.workedExample.prompt}</p>
+          <div className="rounded-lg bg-muted/50 border border-border px-3 py-2.5">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">Full Solution</p>
+            <p className="text-sm text-foreground leading-relaxed">{workspace.workedExample.answer}</p>
+          </div>
+        </div>
+      )}
 
       {/* Notes */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-3">
@@ -319,25 +443,45 @@ export default function ModuleWorkspace() {
         <div className="flex items-center gap-2">
           <Dumbbell className="w-4 h-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold text-foreground">Exercises</h2>
-          <span className="text-[10px] font-mono text-muted-foreground ml-auto">{exercisesDone}/{workspace.exercises.length} done</span>
+          {workspace.exercises.length > 0 && (
+            <span className="text-[10px] font-mono text-muted-foreground ml-auto">Exercise {currentExerciseIndex + 1} of {workspace.exercises.length} · {exercisesDone} done</span>
+          )}
         </div>
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${workspace.exercises.length ? (exercisesDone / workspace.exercises.length) * 100 : 0}%` }} />
-        </div>
-        <div className="space-y-2.5">
-          {workspace.exercises.map((ex, i) => (
+        {workspace.exercises.length === 0 ? (
+          <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-muted/40 border border-border">
+            <AlertTriangle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <p className="text-sm text-muted-foreground">Exercises haven't been added for this module yet.</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {workspace.exercises.map((_, i) => {
+                const it = practice.exercises[i];
+                const done = it?.mark === "correct" ? "bg-emerald-500" : it?.mark === "practice" ? "bg-amber-400" : "bg-border";
+                return <div key={i} className={`h-1.5 rounded-full transition-all ${i === currentExerciseIndex ? "w-6 bg-primary" : `w-3 ${done}`}`} />;
+              })}
+            </div>
             <PracticeCard
-              key={i}
-              prompt={ex.prompt}
-              answer={ex.answer}
-              item={practice.exercises[i]}
-              onAttemptChange={(v) => updateItem(i, { attempt: v })}
-              onReveal={() => updateItem(i, { revealed: true })}
-              onMark={(m) => markItem(i, m)}
-              onRetry={() => retryItem(i)}
+              question={currentExercise}
+              item={practice.exercises[currentExerciseIndex]}
+              onAttemptChange={(v) => updateItem(currentExerciseIndex, { attempt: v })}
+              onReveal={() => updateItem(currentExerciseIndex, { revealed: true })}
+              onMark={(m) => markItem(currentExerciseIndex, m)}
+              onAnswer={(attempt, correct) => answerItem(currentExerciseIndex, attempt, correct)}
+              onRetry={() => retryItem(currentExerciseIndex)}
             />
-          ))}
-        </div>
+            <div className="flex items-center justify-between gap-2">
+              <button type="button" onClick={() => setExerciseStep((s) => Math.max(0, s - 1))} disabled={isFirstExercise}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors">
+                <ChevronLeft className="w-3.5 h-3.5" /> Back
+              </button>
+              <button type="button" onClick={() => setExerciseStep((s) => Math.min(workspace.exercises.length - 1, s + 1))} disabled={isLastExercise}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors">
+                Next <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </>
+        )}
         {allExercisesDone && (
           <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
             <PartyPopper className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -359,7 +503,12 @@ export default function ModuleWorkspace() {
             )}
           </div>
 
-          {!chapterExercisesComplete ? (
+          {!chapterTestAuthored ? (
+            <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-amber-50 border border-amber-100">
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <p className="text-sm text-amber-700">Chapter test not yet available.</p>
+            </div>
+          ) : !chapterExercisesComplete ? (
             <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-muted/40 border border-border">
               <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <p className="text-sm text-muted-foreground">
@@ -384,12 +533,12 @@ export default function ModuleWorkspace() {
                 })}
               </div>
               <PracticeCard
-                prompt={currentChapterTestQuestion.prompt}
-                answer={currentChapterTestQuestion.answer}
+                question={currentChapterTestQuestion}
                 item={currentChapterTestItem}
                 onAttemptChange={(v) => updateChapterTestItem(chapterTest.step, { attempt: v })}
                 onReveal={() => updateChapterTestItem(chapterTest.step, { revealed: true })}
                 onMark={(m) => markChapterTestItem(chapterTest.step, m)}
+                onAnswer={(attempt, correct) => answerChapterTestItem(chapterTest.step, attempt, correct)}
                 onRetry={() => retryChapterTestItem(chapterTest.step)}
               />
               {currentChapterTestItem.mark && (
@@ -407,7 +556,6 @@ export default function ModuleWorkspace() {
                   <p className="text-sm text-emerald-700 font-medium">
                     Chapter test complete — you self-marked {chapterTestCorrectCount}/{chapterTestTotal} correct{chapterTestPerfect ? " · perfect score!" : ""}
                   </p>
-                  <p className="text-xs text-emerald-700/80 mt-0.5">Your tutor will still review your reasoning and follow up next session.</p>
                 </div>
               </div>
               <div className="space-y-2.5">

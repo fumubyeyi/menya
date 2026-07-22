@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { PlusCircle, Plus, BookOpen, Users, ChevronRight } from "lucide-react";
+import { PlusCircle, Plus, BookOpen, Users, ChevronRight, AlertTriangle } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
 import AddCourseModal from "../../components/AddCourseModal";
 import AddChapterModal from "../../components/AddChapterModal";
 import AddModuleModal from "../../components/AddModuleModal";
 import ChapterModulesModal from "../../components/ChapterModulesModal";
+import EditModuleModal from "../../components/EditModuleModal";
+import EditChapterTestModal from "../../components/EditChapterTestModal";
 import { curriculum } from "../../data";
-import { diffCls, courseColor } from "../../lib/constants";
-import type { CurriculumCourse, CurriculumChapter, Difficulty } from "../../types";
+import { diffCls, courseColor, chapterContentGaps, courseContentGaps } from "../../lib/constants";
+import type { CurriculumCourse, CurriculumChapter, CurriculumModule, Difficulty, PracticeItem } from "../../types";
 
 const VISIBLE_MODULES = 5;
 
@@ -18,12 +20,15 @@ export default function Curriculum() {
   const [addChapterFor, setAddChapterFor] = useState<CurriculumCourse | null>(null);
   const [addModuleFor, setAddModuleFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
   const [viewModulesFor, setViewModulesFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
+  const [editModuleFor, setEditModuleFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter; moduleIndex: number } | null>(null);
+  const [editTestFor, setEditTestFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
 
   const courseTabs = ["All", ...courses.map((c) => c.name)];
   const filteredCourses = activeTab === "All" ? courses : courses.filter((c) => c.name === activeTab);
 
   const totalChapters = courses.reduce((sum, c) => sum + c.chapters.length, 0);
   const totalModules = courses.reduce((sum, c) => sum + c.chapters.reduce((s, ch) => s + ch.modules.length, 0), 0);
+  const totalContentGaps = courses.reduce((sum, c) => sum + courseContentGaps(c), 0);
 
   const addCourse = (course: CurriculumCourse) => setCourses((prev) => [...prev, course]);
 
@@ -42,9 +47,38 @@ export default function Curriculum() {
     }));
   };
 
-  // Keep the "see all" modal's chapter data in sync as modules get added.
+  const updateModule = (courseId: number, chapterId: number, moduleIndex: number, patch: Partial<CurriculumModule>) => {
+    setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
+      ...c,
+      chapters: c.chapters.map((ch) => ch.id !== chapterId ? ch : {
+        ...ch,
+        modules: ch.modules.map((m, i) => i !== moduleIndex ? m : { ...m, ...patch }),
+      }),
+    }));
+  };
+
+  const updateChapterTest = (courseId: number, chapterId: number, test: PracticeItem[]) => {
+    setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
+      ...c,
+      chapters: c.chapters.map((ch) => ch.id !== chapterId ? ch : { ...ch, test }),
+    }));
+  };
+
+  // Keep the "see all" modal's chapter data in sync as modules get added/edited.
   const liveViewModulesFor = viewModulesFor
     ? { course: viewModulesFor.course, chapter: courses.find((c) => c.id === viewModulesFor.course.id)?.chapters.find((ch) => ch.id === viewModulesFor.chapter.id) ?? viewModulesFor.chapter }
+    : null;
+
+  const liveEditModuleFor = editModuleFor
+    ? {
+        course: editModuleFor.course,
+        chapter: courses.find((c) => c.id === editModuleFor.course.id)?.chapters.find((ch) => ch.id === editModuleFor.chapter.id) ?? editModuleFor.chapter,
+        moduleIndex: editModuleFor.moduleIndex,
+      }
+    : null;
+
+  const liveEditTestFor = editTestFor
+    ? { course: editTestFor.course, chapter: courses.find((c) => c.id === editTestFor.course.id)?.chapters.find((ch) => ch.id === editTestFor.chapter.id) ?? editTestFor.chapter }
     : null;
 
   return (
@@ -53,7 +87,10 @@ export default function Curriculum() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-display font-semibold text-foreground">Curriculum Library</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{totalChapters} chapters · {totalModules} modules across {courses.length} math courses</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {totalChapters} chapters · {totalModules} modules across {courses.length} math courses
+            {totalContentGaps > 0 && ` · ${totalContentGaps} modules need content`}
+          </p>
         </div>
         <button onClick={() => setShowAddCourse(true)} className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
           <PlusCircle className="w-4 h-4" />
@@ -88,6 +125,7 @@ export default function Curriculum() {
         <div className="space-y-8">
           {filteredCourses.map((course) => {
             const color = courseColor[course.name] ?? "#1B5E4F";
+            const courseGaps = courseContentGaps(course);
             return (
               <div key={course.id} className="space-y-3">
                 {/* Course header */}
@@ -98,6 +136,11 @@ export default function Curriculum() {
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Users className="w-3.5 h-3.5" />{course.students} students
                     </span>
+                    {courseGaps > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-mono text-amber-700 bg-amber-50">
+                        <AlertTriangle className="w-3 h-3" />{courseGaps} incomplete
+                      </span>
+                    )}
                   </div>
                   <button onClick={() => setAddChapterFor(course)} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
                     <PlusCircle className="w-3.5 h-3.5" />
@@ -115,6 +158,7 @@ export default function Curriculum() {
                     {course.chapters.map((chapter) => {
                       const visibleModules = chapter.modules.slice(0, VISIBLE_MODULES);
                       const remaining = chapter.modules.length - visibleModules.length;
+                      const gaps = chapterContentGaps(chapter);
                       return (
                         <div key={chapter.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-sm hover:border-primary/30 transition-all">
                           {/* Colored top bar */}
@@ -124,9 +168,16 @@ export default function Curriculum() {
                             {/* Title & Difficulty */}
                             <div className="flex items-start justify-between gap-2">
                               <h3 className="text-sm font-semibold text-foreground leading-snug flex-1">{chapter.title}</h3>
-                              <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono flex-shrink-0 ${diffCls[chapter.difficulty]}`}>
-                                {chapter.difficulty}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                {gaps > 0 && (
+                                  <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-mono text-amber-700 bg-amber-50">
+                                    <AlertTriangle className="w-3 h-3" />{gaps} incomplete
+                                  </span>
+                                )}
+                                <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${diffCls[chapter.difficulty]}`}>
+                                  {chapter.difficulty}
+                                </span>
+                              </div>
                             </div>
 
                             {/* Module list */}
@@ -137,10 +188,10 @@ export default function Curriculum() {
                                 ))}
                               </ul>
                             )}
-                            {remaining > 0 && (
+                            {chapter.modules.length > 0 && (
                               <button onClick={() => setViewModulesFor({ course, chapter })}
                                 className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-                                See all {chapter.modules.length} <ChevronRight className="w-3 h-3" />
+                                {remaining > 0 ? <>See all {chapter.modules.length} <ChevronRight className="w-3 h-3" /></> : "Manage modules"}
                               </button>
                             )}
 
@@ -178,7 +229,26 @@ export default function Curriculum() {
       {liveViewModulesFor && (
         <ChapterModulesModal course={liveViewModulesFor.course.name} chapter={liveViewModulesFor.chapter}
           onClose={() => setViewModulesFor(null)}
-          onAddModule={(title) => addModule(liveViewModulesFor.course.id, liveViewModulesFor.chapter.id, title)} />
+          onAddModule={(title) => addModule(liveViewModulesFor.course.id, liveViewModulesFor.chapter.id, title)}
+          onEditModule={(moduleIndex) => setEditModuleFor({ course: liveViewModulesFor.course, chapter: liveViewModulesFor.chapter, moduleIndex })}
+          onEditTest={() => setEditTestFor({ course: liveViewModulesFor.course, chapter: liveViewModulesFor.chapter })} />
+      )}
+      {liveEditModuleFor && liveEditModuleFor.chapter.modules[liveEditModuleFor.moduleIndex] && (
+        <EditModuleModal
+          course={liveEditModuleFor.course.name}
+          chapter={liveEditModuleFor.chapter}
+          module={liveEditModuleFor.chapter.modules[liveEditModuleFor.moduleIndex]}
+          onClose={() => setEditModuleFor(null)}
+          onSave={(patch) => updateModule(liveEditModuleFor.course.id, liveEditModuleFor.chapter.id, liveEditModuleFor.moduleIndex, patch)}
+        />
+      )}
+      {liveEditTestFor && (
+        <EditChapterTestModal
+          course={liveEditTestFor.course.name}
+          chapter={liveEditTestFor.chapter}
+          onClose={() => setEditTestFor(null)}
+          onSave={(test) => updateChapterTest(liveEditTestFor.course.id, liveEditTestFor.chapter.id, test)}
+        />
       )}
     </div>
   );

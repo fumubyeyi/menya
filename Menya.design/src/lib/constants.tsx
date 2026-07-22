@@ -3,7 +3,7 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
   GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, ProjectStatus, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec } from "../types";
+import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec } from "../types";
 import { curriculum } from "../data";
 
 // Math courses only, matching the Program > Curriculum library. Each gets a distinct color/icon.
@@ -43,36 +43,66 @@ export function courseCompletion(course: string): number {
 export interface ModuleWorkspaceContent {
   description: string;
   content: string[];
+  workedExample?: PracticeItem;
   exercises: PracticeItem[];
   diagram?: DiagramSpec;
+  // False when the module hasn't been authored yet — the workspace should
+  // flag this to the student rather than presenting fallback text as if it
+  // were real content.
+  isAuthored: boolean;
 }
 
-// Returns a module's authored workspace content, or generates a reasonable
-// fallback from its title/chapter/course when none has been written yet.
+// A module counts as authored once it has real content and at least one
+// exercise — anything less falls back to the "not yet available" state.
+// Shared by the student-facing workspace and the staff-facing completeness
+// badges so both agree on what "done" means.
+export function isModuleAuthored(module: CurriculumModule): boolean {
+  return !!module.content?.length && !!module.exercises?.length;
+}
+
+export function isChapterTestAuthored(chapter: CurriculumChapter): boolean {
+  return !!chapter.test?.length;
+}
+
+// Returns a module's authored workspace content. Curriculum is meant to
+// support fully self-directed learning, so when a module hasn't been
+// authored yet this does NOT fabricate placeholder content — it reports
+// `isAuthored: false` and lets the workspace show an honest "not available"
+// state instead of text that assumes a tutor will fill the gap live.
 export function getModuleContent(module: CurriculumModule, chapterTitle: string, course: string): ModuleWorkspaceContent {
-  const topic = module.title;
   return {
     diagram: module.diagram,
-    description: module.description ?? `Build a solid understanding of ${topic.toLowerCase()}, part of ${chapterTitle} in ${course}.`,
-    content: module.content ?? [
-      `${topic} is one of the key ideas in ${chapterTitle}. Review the explanation your tutor covered in session, and use the notes area below to jot down anything that isn't clicking yet.`,
-      `Once the idea feels clear, move on to the exercises to practice it, then check your understanding with the chapter test once every module is done.`,
-    ],
-    exercises: module.exercises ?? [
-      { prompt: `Restate ${topic.toLowerCase()} in your own words.`, answer: `A clear explanation of ${topic.toLowerCase()} that captures the key idea from the Content section above — compare yours against it.` },
-      { prompt: `Work through a few practice problems on ${topic.toLowerCase()}.`, answer: `Check your steps against the approach described in the Content section for ${topic.toLowerCase()}.` },
-      { prompt: `Bring one question about ${topic.toLowerCase()} to your next session.`, answer: `Any genuine question works — the goal is naming what's still unclear about ${topic.toLowerCase()}.` },
-    ],
+    description: module.description ?? `Build a solid understanding of ${module.title.toLowerCase()}, part of ${chapterTitle} in ${course}.`,
+    content: module.content ?? ["Content not yet available for this module."],
+    workedExample: module.workedExample,
+    exercises: module.exercises ?? [],
+    isAuthored: isModuleAuthored(module),
   };
 }
 
-// Returns a chapter's single end-of-chapter test, or generates a reasonable
-// fallback (one question per module) when none has been authored yet.
-export function getChapterTest(chapter: CurriculumChapter): PracticeItem[] {
-  return chapter.test ?? chapter.modules.map((m) => ({
-    prompt: `Solve a problem that applies ${m.title.toLowerCase()}.`,
-    answer: `Check your solution against the approach described in ${m.title}'s Content section.`,
-  }));
+// Returns a chapter's single end-of-chapter test. When none has been
+// authored yet, returns an empty question list rather than fabricating one.
+export function getChapterTest(chapter: CurriculumChapter): { questions: PracticeItem[]; isAuthored: boolean } {
+  return { questions: chapter.test ?? [], isAuthored: isChapterTestAuthored(chapter) };
+}
+
+// Total count of unauthored modules + unauthored chapter test (0 or 1) in a chapter.
+export function chapterContentGaps(chapter: CurriculumChapter): number {
+  return chapter.modules.filter((m) => !isModuleAuthored(m)).length + (isChapterTestAuthored(chapter) ? 0 : 1);
+}
+
+export function courseContentGaps(course: CurriculumCourse): number {
+  return course.chapters.reduce((sum, ch) => sum + chapterContentGaps(ch), 0);
+}
+
+// Grades a numeric-entry answer: compares as numbers when both sides parse
+// (so "5" matches "5.0"), otherwise falls back to a case-insensitive string
+// match (so answers like "1/2" or "x = 5" still work).
+export function isNumericAnswerCorrect(input: string, expected: string): boolean {
+  const a = input.trim(), b = expected.trim();
+  const na = parseFloat(a), nb = parseFloat(b);
+  if (!isNaN(na) && !isNaN(nb)) return Math.abs(na - nb) < 1e-9;
+  return a.toLowerCase() === b.toLowerCase();
 }
 
 export const statusMeta: Record<StudentStatus, { label: string; cls: string; Icon: React.ElementType }> = {

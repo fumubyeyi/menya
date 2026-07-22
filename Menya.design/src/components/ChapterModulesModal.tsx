@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { X, Plus, BookOpen } from "lucide-react";
+import { X, Plus, BookOpen, Pencil, AlertTriangle } from "lucide-react";
 import CourseTag from "./CourseTag";
-import { diffCls } from "../lib/constants";
+import { diffCls, isModuleAuthored, isChapterTestAuthored } from "../lib/constants";
 import type { CurriculumChapter } from "../types";
 
 interface Props {
@@ -9,9 +9,11 @@ interface Props {
   course: string;
   chapter: CurriculumChapter;
   onAddModule: (title: string) => void;
+  onEditModule: (moduleIndex: number) => void;
+  onEditTest: () => void;
 }
 
-export default function ChapterModulesModal({ onClose, course, chapter, onAddModule }: Props) {
+export default function ChapterModulesModal({ onClose, course, chapter, onAddModule, onEditModule, onEditTest }: Props) {
   const [title, setTitle] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,9 +36,15 @@ export default function ChapterModulesModal({ onClose, course, chapter, onAddMod
               <span className="text-[11px] font-mono text-muted-foreground">{chapter.modules.length} modules</span>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button onClick={onEditTest} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+              {!isChapterTestAuthored(chapter) && <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
+              Edit Test
+            </button>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 scrollbar-hide">
@@ -50,7 +58,11 @@ export default function ChapterModulesModal({ onClose, course, chapter, onAddMod
               {chapter.modules.map((m, i) => (
                 <li key={i} className="flex items-center gap-3 py-2.5">
                   <span className="w-6 h-6 rounded-md bg-muted text-muted-foreground text-[11px] font-mono flex items-center justify-center flex-shrink-0">{i + 1}</span>
-                  <span className="text-sm text-foreground">{m.title}</span>
+                  <span className="text-sm text-foreground flex-1">{m.title}</span>
+                  {!isModuleAuthored(m) && <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+                  <button onClick={() => onEditModule(i)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                 </li>
               ))}
             </ul>
