@@ -6,7 +6,8 @@ import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
-import { sessions, tutors, tutorNameById } from "../../data";
+import { useSessions } from "../../context/SessionsContext";
+import { tutors, tutorNameById } from "../../data";
 
 const FILTER_TABS = [
   { key: "all",       label: "All"       },
@@ -16,6 +17,7 @@ const FILTER_TABS = [
 ];
 
 export default function Sessions() {
+  const { sessions } = useSessions();
   const [tab,   setTab]   = useState("all");
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);

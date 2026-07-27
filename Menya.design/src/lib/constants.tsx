@@ -4,7 +4,6 @@ import {
   GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
 import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec } from "../types";
-import { curriculum } from "../data";
 
 // Math courses only, matching the Program > Curriculum library. Each gets a distinct color/icon.
 export const courseColor: Record<string, string> = {
@@ -34,8 +33,8 @@ export function chapterAction(chapter: CurriculumChapter): { label: "Resume" | "
 }
 
 // Percentage of a course's modules (across every chapter) marked completed.
-export function courseCompletion(course: string): number {
-  const modules = curriculum.find((c) => c.name === course)?.chapters.flatMap((ch) => ch.modules) ?? [];
+export function courseCompletion(courses: CurriculumCourse[], course: string): number {
+  const modules = courses.find((c) => c.name === course)?.chapters.flatMap((ch) => ch.modules) ?? [];
   if (modules.length === 0) return 0;
   return Math.round((modules.filter((m) => m.status === "completed").length / modules.length) * 100);
 }
@@ -103,6 +102,28 @@ export function isNumericAnswerCorrect(input: string, expected: string): boolean
   const na = parseFloat(a), nb = parseFloat(b);
   if (!isNaN(na) && !isNaN(nb)) return Math.abs(na - nb) < 1e-9;
   return a.toLowerCase() === b.toLowerCase();
+}
+
+// Converts a <input type="date">/<input type="time"> pair into the display
+// strings the rest of the app already uses for sessions ("Today"/"Tomorrow"/
+// "Jun 22" and "3:30 PM"), so a newly-scheduled session renders identically
+// to the seeded mock ones.
+export function formatSessionTime(dateStr: string, timeStr: string): { time: string; clock: string } {
+  const target = new Date(`${dateStr}T${timeStr}`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const targetDay = new Date(target);
+  targetDay.setHours(0, 0, 0, 0);
+
+  const time =
+    targetDay.getTime() === today.getTime() ? "Today" :
+    targetDay.getTime() === tomorrow.getTime() ? "Tomorrow" :
+    target.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const clock = target.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+  return { time, clock };
 }
 
 export const statusMeta: Record<StudentStatus, { label: string; cls: string; Icon: React.ElementType }> = {

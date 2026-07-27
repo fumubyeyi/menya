@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Check, GraduationCap, Users } from "lucide-react";
-import { curriculum } from "../data";
+import { useCurriculum } from "../context/CurriculumContext";
 import { getCourseIcon, courseColor, diffCls } from "../lib/constants";
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export default function EnrollmentModal({ enrolled, onSave, onClose }: Props) {
+  const { courses: curriculum } = useCurriculum();
   const [selected, setSelected] = useState<string[]>(enrolled);
 
   const toggle = (course: string) => {

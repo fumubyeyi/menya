@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { CalendarDays, Clock, Plus, TrendingUp, Users, ChevronRight } from "lucide-react";
+import { AlertTriangle, CalendarDays, Clock, Plus, TrendingUp, Users, ChevronRight } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import {
@@ -11,19 +11,25 @@ import ProgressRing from "../../components/ProgressRing";
 import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
+import StatTile from "../../components/StatTile";
+import { useSessions } from "../../context/SessionsContext";
 import {
-  tutorStudents, tutorSessions, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById, tutorNameById,
+  tutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById, tutorNameById,
 } from "../../data";
 import { statusMeta } from "../../lib/constants";
 
 const avgProgress = Math.round(
   tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length
 );
-const todayQueue = tutorSessions.filter((s) => s.time === "Today");
+const attentionStudents = tutorStudents.filter((s) => s.status === "at-risk" || s.status === "needs-support");
 
 export default function TutorHome() {
   const navigate = useNavigate();
+  const { sessions } = useSessions();
+  const tutorSessions = sessions.filter((s) => s.tutorId === CURRENT_TUTOR_ID);
+  const todayQueue = tutorSessions.filter((s) => s.time === "Today");
   const [modal, setModal] = useState(false);
+  const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const currentTutor = getTutorById(CURRENT_TUTOR_ID);
 
@@ -46,22 +52,43 @@ export default function TutorHome() {
 
       {/* Stat Pillars */}
       <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Assigned Students", value: 20, Icon: Users, color: "#1B5E4F" },
-          { label: "Sessions This Week", value: tutorWeeklyData[5].sessions, Icon: CalendarDays, color: "#3B82F6" },
-          { label: "Avg Student Score", value: `${avgProgress}%`, Icon: TrendingUp, color: "#F0981E" },
-        ].map(({ label, value, Icon, color }) => (
-          <div key={label} className="bg-card border border-border rounded-xl p-4 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wide">{label}</span>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}18` }}>
-                <Icon className="w-4 h-4" style={{ color }} />
-              </div>
-            </div>
-            <p className="text-3xl font-display font-bold text-foreground leading-none">{value}</p>
-          </div>
-        ))}
+        <StatTile label="Assigned Students" value={20} Icon={Users} color="#1B5E4F" />
+        <StatTile label="Sessions This Week" value={tutorWeeklyData[5].sessions} Icon={CalendarDays} color="#3B82F6" />
+        <StatTile label="Avg Student Score" value={`${avgProgress}%`} Icon={TrendingUp} color="#F0981E" />
       </div>
+
+      {/* Needs Attention */}
+      {attentionStudents.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <h2 className="text-sm font-semibold text-foreground">Needs Attention</h2>
+            <span className="text-[11px] font-mono text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">
+              {attentionStudents.length} student{attentionStudents.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {attentionStudents.map((s) => {
+              const meta = statusMeta[s.status];
+              return (
+                <div key={s.id} className="flex items-center gap-3 bg-card border border-border rounded-lg p-3">
+                  <Avatar name={s.name} size={9} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${meta.cls}`}>{meta.label}</span>
+                  </div>
+                  <button
+                    onClick={() => setCheckInStudent(s.name)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 border border-amber-300 hover:bg-amber-100 transition-colors flex-shrink-0"
+                  >
+                    Schedule Check-in
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Today's Queue */}
@@ -169,6 +196,9 @@ export default function TutorHome() {
       </div>
 
       {modal && <ScheduleModal onClose={() => setModal(false)} />}
+      {checkInStudent && (
+        <ScheduleModal defaultStudent={checkInStudent} defaultType="check-in" onClose={() => setCheckInStudent(null)} />
+      )}
       {activeSession?.meetingId && (
         <ZoomModal
           meetingId={activeSession.meetingId}

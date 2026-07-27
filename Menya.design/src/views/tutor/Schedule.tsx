@@ -7,8 +7,9 @@ import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
+import { useSessions } from "../../context/SessionsContext";
 import {
-  tutorSessions, tutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID,
+  tutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID,
 } from "../../data";
 
 function scoreCls(score: number) {
@@ -18,6 +19,8 @@ function scoreCls(score: number) {
 }
 
 export default function TutorSchedule() {
+  const { sessions } = useSessions();
+  const tutorSessions = sessions.filter((s) => s.tutorId === CURRENT_TUTOR_ID);
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const currentTutor = getTutorById(CURRENT_TUTOR_ID);

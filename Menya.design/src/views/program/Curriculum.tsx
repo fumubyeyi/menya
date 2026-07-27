@@ -7,14 +7,14 @@ import AddModuleModal from "../../components/AddModuleModal";
 import ChapterModulesModal from "../../components/ChapterModulesModal";
 import EditModuleModal from "../../components/EditModuleModal";
 import EditChapterTestModal from "../../components/EditChapterTestModal";
-import { curriculum } from "../../data";
+import { useCurriculum } from "../../context/CurriculumContext";
 import { diffCls, courseColor, chapterContentGaps, courseContentGaps } from "../../lib/constants";
-import type { CurriculumCourse, CurriculumChapter, CurriculumModule, Difficulty, PracticeItem } from "../../types";
+import type { CurriculumCourse, CurriculumChapter } from "../../types";
 
 const VISIBLE_MODULES = 5;
 
 export default function Curriculum() {
-  const [courses, setCourses] = useState<CurriculumCourse[]>(curriculum);
+  const { courses, addCourse, addChapter, addModule, updateModule, updateChapterTest } = useCurriculum();
   const [activeTab, setActiveTab] = useState("All");
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [addChapterFor, setAddChapterFor] = useState<CurriculumCourse | null>(null);
@@ -29,40 +29,6 @@ export default function Curriculum() {
   const totalChapters = courses.reduce((sum, c) => sum + c.chapters.length, 0);
   const totalModules = courses.reduce((sum, c) => sum + c.chapters.reduce((s, ch) => s + ch.modules.length, 0), 0);
   const totalContentGaps = courses.reduce((sum, c) => sum + courseContentGaps(c), 0);
-
-  const addCourse = (course: CurriculumCourse) => setCourses((prev) => [...prev, course]);
-
-  const addChapter = (courseId: number, title: string, difficulty: Difficulty) => {
-    setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
-      ...c,
-      chapters: [...c.chapters, { id: Date.now(), title, difficulty, modules: [] }],
-    }));
-  };
-
-  const addModule = (courseId: number, chapterId: number, title: string) => {
-    if (!title) return;
-    setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
-      ...c,
-      chapters: c.chapters.map((ch) => ch.id !== chapterId ? ch : { ...ch, modules: [...ch.modules, { title, status: "not-started" as const }] }),
-    }));
-  };
-
-  const updateModule = (courseId: number, chapterId: number, moduleIndex: number, patch: Partial<CurriculumModule>) => {
-    setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
-      ...c,
-      chapters: c.chapters.map((ch) => ch.id !== chapterId ? ch : {
-        ...ch,
-        modules: ch.modules.map((m, i) => i !== moduleIndex ? m : { ...m, ...patch }),
-      }),
-    }));
-  };
-
-  const updateChapterTest = (courseId: number, chapterId: number, test: PracticeItem[]) => {
-    setCourses((prev) => prev.map((c) => c.id !== courseId ? c : {
-      ...c,
-      chapters: c.chapters.map((ch) => ch.id !== chapterId ? ch : { ...ch, test }),
-    }));
-  };
 
   // Keep the "see all" modal's chapter data in sync as modules get added/edited.
   const liveViewModulesFor = viewModulesFor

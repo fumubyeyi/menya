@@ -6,23 +6,24 @@ import ModuleStatusRow from "../../components/ModuleStatusRow";
 import ChapterModulesViewModal from "../../components/ChapterModulesViewModal";
 import EnrollmentModal from "../../components/EnrollmentModal";
 import {
-  sofia, studentCourseDetail, studentModules, curriculum,
+  sofia, studentCourseDetail, studentModules,
 } from "../../data";
 import { getCourseIcon, courseColor, chapterAction, courseCompletion } from "../../lib/constants";
 import { useEnrollment } from "../../hooks/useEnrollment";
-import type { CurriculumChapter, CourseDetail } from "../../types";
+import { useCurriculum } from "../../context/CurriculumContext";
+import type { CurriculumCourse, CurriculumChapter, CourseDetail } from "../../types";
 
 const VISIBLE_MODULES = 5;
 
-function findChapter(courseName: string, chapterTitle: string): CurriculumChapter | undefined {
+function findChapter(courses: CurriculumCourse[], courseName: string, chapterTitle: string): CurriculumChapter | undefined {
   const title = chapterTitle.replace(/\s*\(next\)$/, "");
-  return curriculum.find((c) => c.name === courseName)?.chapters.find((ch) => ch.title === title);
+  return courses.find((c) => c.name === courseName)?.chapters.find((ch) => ch.title === title);
 }
 
 // A course counts as "started" once any module in any of its chapters has
 // moved off not-started — otherwise it belongs in the Not Started list below.
-function isCourseStarted(courseName: string): boolean {
-  const course = curriculum.find((c) => c.name === courseName);
+function isCourseStarted(courses: CurriculumCourse[], courseName: string): boolean {
+  const course = courses.find((c) => c.name === courseName);
   return !!course && course.chapters.some((ch) => ch.modules.some((m) => m.status !== "not-started"));
 }
 
@@ -30,16 +31,17 @@ export default function Learning() {
   const [viewModulesFor, setViewModulesFor] = useState<{ course: string; chapter: CurriculumChapter } | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const { courses: enrolledCourses, updateEnrollment } = useEnrollment();
+  const { courses } = useCurriculum();
 
   const knownDetails = studentCourseDetail[sofia.id] ?? [];
   const activeCourseDetails: CourseDetail[] = enrolledCourses
-    .filter((course) => isCourseStarted(course))
+    .filter((course) => isCourseStarted(courses, course))
     .map((course) =>
       knownDetails.find((sd) => sd.course === course) ??
       { course, score: 0, sessions: 0, lastSession: "Not started", trend: "flat" }
     );
 
-  const notStartedCourses = enrolledCourses.filter((course) => !isCourseStarted(course));
+  const notStartedCourses = enrolledCourses.filter((course) => !isCourseStarted(courses, course));
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -76,7 +78,7 @@ export default function Learning() {
         {activeCourseDetails.map((sd) => {
           const color = courseColor[sd.course] ?? "#1B5E4F";
           const relatedModules = studentModules.filter((m) => m.course === sd.course);
-          const completion = courseCompletion(sd.course);
+          const completion = courseCompletion(courses, sd.course);
 
           return (
             <div key={sd.course} className="bg-card border border-border rounded-xl overflow-hidden">
@@ -109,7 +111,7 @@ export default function Learning() {
                   <div className="space-y-2">
                     <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-wide">Active Modules</p>
                     {relatedModules.map((mod, i) => {
-                      const chapter = findChapter(sd.course, mod.title);
+                      const chapter = findChapter(courses, sd.course, mod.title);
                       const visibleModules = chapter?.modules.slice(0, VISIBLE_MODULES) ?? [];
                       const remaining = chapter ? chapter.modules.length - visibleModules.length : 0;
                       const action = chapter ? chapterAction(chapter) : null;
@@ -180,7 +182,7 @@ export default function Learning() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {notStartedCourses.map((courseName) => {
-              const course = curriculum.find((c) => c.name === courseName);
+              const course = courses.find((c) => c.name === courseName);
               if (!course) return null;
               const color = courseColor[courseName] ?? "#1B5E4F";
               const firstChapter = course.chapters[0];

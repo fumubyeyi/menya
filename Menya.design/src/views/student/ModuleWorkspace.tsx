@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
 import Diagram from "../../components/diagrams";
-import { findChapterById } from "../../data";
+import { useCurriculum } from "../../context/CurriculumContext";
 import { getCourseIcon, courseColor, diffCls, getModuleContent, getChapterTest, isNumericAnswerCorrect } from "../../lib/constants";
 import type { PracticeItem } from "../../types";
 
@@ -191,6 +191,7 @@ function PracticeCard({ question, item, onAttemptChange, onReveal, onMark, onAns
 
 export default function ModuleWorkspace() {
   const { chapterId, moduleIndex } = useParams();
+  const { findChapterById } = useCurriculum();
   const found = findChapterById(Number(chapterId));
   const index = Number(moduleIndex);
   const courseModule = found?.chapter.modules[index];

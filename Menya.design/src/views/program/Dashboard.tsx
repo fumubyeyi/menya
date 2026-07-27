@@ -1,25 +1,34 @@
 import { useState } from "react";
-import { Users, CalendarDays, TrendingUp, GraduationCap, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router";
+import { Users, CalendarDays, TrendingUp, GraduationCap, AlertTriangle, ChevronRight } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from "recharts";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import Avatar from "../../components/Avatar";
-import { sessions, weeklyData, courseBreakdown, tutorNameById } from "../../data";
-
-const kpis = [
-  { label: "Students Enrolled", value: "247", delta: "+12 this month", Icon: Users,         color: "#1B5E4F" },
-  { label: "Sessions This Week", value: "84",  delta: "+7 from last",   Icon: CalendarDays,  color: "#3B82F6" },
-  { label: "Avg Progress Score", value: "73%", delta: "+3 pts",         Icon: TrendingUp,    color: "#F0981E" },
-  { label: "Active Tutors",      value: "18",  delta: "2 onboarding",   Icon: GraduationCap, color: "#059669" },
-];
+import StatTile from "../../components/StatTile";
+import { useSessions } from "../../context/SessionsContext";
+import { useCurriculum } from "../../context/CurriculumContext";
+import { courseCompletion } from "../../lib/constants";
+import { students, weeklyData, courseBreakdown, tutorNameById } from "../../data";
 
 const maxStudents = Math.max(...courseBreakdown.map((s) => s.students));
+const attentionCount = students.filter((s) => s.status === "at-risk" || s.status === "needs-support").length;
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [_tab] = useState("overview");
+  const { sessions } = useSessions();
+  const { courses } = useCurriculum();
   const todaySessions = sessions.slice(0, 5);
+
+  const kpis = [
+    { label: "Students Enrolled", value: "247", delta: "+12 this month", Icon: Users,         color: "#1B5E4F" },
+    { label: "Sessions This Week", value: "84",  delta: "+7 from last",   Icon: CalendarDays,  color: "#3B82F6" },
+    { label: "Avg Progress Score", value: "73%", delta: "+3 pts",         Icon: TrendingUp,    color: "#F0981E" },
+    { label: "Active Tutors",      value: "18",  delta: "2 onboarding",   Icon: GraduationCap, color: "#059669" },
+  ];
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -30,19 +39,18 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {kpis.map(({ label, value, delta, Icon, color }) => (
-          <div key={label} className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-mono uppercase tracking-wide">{label}</span>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}18` }}>
-                <Icon className="w-4 h-4" style={{ color }} />
-              </div>
-            </div>
-            <p className="text-3xl font-display font-bold text-foreground leading-none">{value}</p>
-            <p className="text-xs text-muted-foreground">{delta}</p>
-          </div>
+          <StatTile key={label} label={label} value={value} delta={delta} Icon={Icon} color={color} />
         ))}
+        <StatTile
+          label="Needing Attention"
+          value={attentionCount}
+          delta="At-risk or needs support"
+          Icon={AlertTriangle}
+          color="#DC2626"
+          onClick={() => navigate("/program/students")}
+        />
       </div>
 
       {/* Charts Row */}
@@ -92,6 +100,29 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Curriculum Completion by Course */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <h2 className="text-sm font-semibold text-foreground mb-1">Curriculum Completion by Course</h2>
+        <p className="text-xs text-muted-foreground mb-4">Share of each course's modules marked complete in the curriculum library.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          {courses.map((course) => {
+            const pct = courseCompletion(courses, course.name);
+            const color = courseBreakdown.find((c) => c.name === course.name)?.color ?? "#1B5E4F";
+            return (
+              <div key={course.id} className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-mono text-foreground">{course.name}</span>
+                  <span className="text-xs text-muted-foreground">{pct}%</span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

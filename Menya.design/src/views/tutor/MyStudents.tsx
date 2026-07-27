@@ -9,7 +9,7 @@ import { statusMeta, courseColor } from "../../lib/constants";
 import { getEnrolledCourses } from "../../hooks/useEnrollment";
 
 export default function MyStudents() {
-  const [modalStudent, setModalStudent] = useState<string | null>(null);
+  const [modalStudent, setModalStudent] = useState<{ name: string; needsAttention: boolean } | null>(null);
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -27,6 +27,7 @@ export default function MyStudents() {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {tutorStudents.map((student) => {
           const meta = statusMeta[student.status];
+          const needsAttention = student.status === "at-risk" || student.status === "needs-support";
           const enrolled = getEnrolledCourses(student.id, student.courses);
           const courses = (studentCourseDetail[student.id] ?? []).filter((sd) => enrolled.includes(sd.course));
           const history = studentSessionHistory[student.id] ?? [];
@@ -80,19 +81,32 @@ export default function MyStudents() {
               )}
 
               {/* Schedule button */}
-              <button
-                onClick={() => setModalStudent(student.name)}
-                className="w-full py-2 border border-primary/40 text-primary rounded-lg text-xs font-semibold hover:bg-primary/5 transition-colors"
-              >
-                Schedule Session
-              </button>
+              {needsAttention ? (
+                <button
+                  onClick={() => setModalStudent({ name: student.name, needsAttention: true })}
+                  className="w-full py-2 border border-amber-300 text-amber-700 rounded-lg text-xs font-semibold hover:bg-amber-50 transition-colors"
+                >
+                  Schedule Check-in
+                </button>
+              ) : (
+                <button
+                  onClick={() => setModalStudent({ name: student.name, needsAttention: false })}
+                  className="w-full py-2 border border-primary/40 text-primary rounded-lg text-xs font-semibold hover:bg-primary/5 transition-colors"
+                >
+                  Schedule Session
+                </button>
+              )}
             </div>
           );
         })}
       </div>
 
       {modalStudent && (
-        <ScheduleModal defaultStudent={modalStudent} onClose={() => setModalStudent(null)} />
+        <ScheduleModal
+          defaultStudent={modalStudent.name}
+          defaultType={modalStudent.needsAttention ? "check-in" : undefined}
+          onClose={() => setModalStudent(null)}
+        />
       )}
     </div>
   );

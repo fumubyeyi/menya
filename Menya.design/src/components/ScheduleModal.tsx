@@ -1,18 +1,23 @@
 import { useState, useEffect } from "react";
 import { X, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { students, tutors, tutorNameById } from "../data";
-import { courseColor } from "../lib/constants";
+import { courseColor, formatSessionTime } from "../lib/constants";
+import { useSessions } from "../context/SessionsContext";
 import Avatar from "./Avatar";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "../app/components/ui/carousel";
+import type { SessionType } from "../types";
 
 const ALL_COURSES = ["Algebra","Algebra II","Pre-Alg","Geometry","Statistics","Pre-Calculus","Calculus"];
 
 interface Props {
   onClose: () => void;
   defaultStudent?: string;
+  defaultType?: SessionType;
 }
 
-export default function ScheduleModal({ onClose, defaultStudent }: Props) {
+export default function ScheduleModal({ onClose, defaultStudent, defaultType }: Props) {
+  const { addSession } = useSessions();
+  const isCheckIn = defaultType === "check-in";
   const [form, setForm] = useState({ student: defaultStudent ?? "", tutor: "", course: "", date: "", time: "", duration: "60", notes: "" });
   const [submitted, setSubmitted] = useState(false);
 
@@ -52,14 +57,36 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
     api?.scrollTo(0);
   }, [form.course, api]);
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const { time, clock } = formatSessionTime(form.date, form.time);
+    addSession({
+      student: form.student,
+      tutorId: Number(form.tutor),
+      course: form.course,
+      time,
+      clock,
+      duration: Number(form.duration),
+      status: "scheduled",
+      type: defaultType ?? "tutoring",
+      meetingId: "add_real_meeting_id",
+      password: "add_real_passcode",
+    });
+    setSubmitted(true);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       <div className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-lg flex flex-col max-h-[92vh]">
         <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
           <div>
-            <h2 className="font-display font-semibold text-foreground text-lg leading-none">Schedule Session</h2>
-            <p className="text-[11px] font-mono text-muted-foreground mt-1">{defaultStudent ? `Booking for ${defaultStudent}` : "Book a new tutoring session"}</p>
+            <h2 className="font-display font-semibold text-foreground text-lg leading-none">{isCheckIn ? "Schedule Check-in" : "Schedule Session"}</h2>
+            <p className="text-[11px] font-mono text-muted-foreground mt-1">
+              {defaultStudent
+                ? isCheckIn ? `Check-in for ${defaultStudent}` : `Booking for ${defaultStudent}`
+                : "Book a new tutoring session"}
+            </p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
@@ -82,7 +109,7 @@ export default function ScheduleModal({ onClose, defaultStudent }: Props) {
             </div>
           </div>
         ) : (
-          <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="flex flex-col flex-1 overflow-hidden">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 scrollbar-hide">
               {defaultStudent ? (
                 <div className="flex flex-col gap-1.5">

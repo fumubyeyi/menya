@@ -1322,8 +1322,8 @@ export function getTutorById(id: number): Tutor | undefined {
   return tutors.find((t) => t.id === id);
 }
 
-export function findChapterById(chapterId: number): { course: CurriculumCourse; chapter: CurriculumChapter } | undefined {
-  for (const course of curriculum) {
+export function findChapterById(courses: CurriculumCourse[], chapterId: number): { course: CurriculumCourse; chapter: CurriculumChapter } | undefined {
+  for (const course of courses) {
     const chapter = course.chapters.find((ch) => ch.id === chapterId);
     if (chapter) return { course, chapter };
   }

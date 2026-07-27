@@ -4,7 +4,8 @@ import { Search, GraduationCap, TrendingUp, AlertTriangle, Pencil, ExternalLink,
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Avatar from "../../components/Avatar";
 import EditAlumniModal from "../../components/EditAlumniModal";
-import { alumni as initialAlumni, students } from "../../data";
+import { students } from "../../data";
+import { useAlumni } from "../../context/AlumniContext";
 import { alumniOutcomeMeta, followUpStatusMeta, exitReasonMeta, verificationMeta } from "../../lib/constants";
 import type { AlumniRecord, ExitReason, AlumniOutcome, FollowUpStatus } from "../../types";
 
@@ -31,7 +32,7 @@ function csvEscape(value: string | number): string {
 
 export default function AlumniTracking() {
   const navigate = useNavigate();
-  const [alumni, setAlumni] = useState<AlumniRecord[]>(initialAlumni);
+  const { alumni, updateAlumnus } = useAlumni();
   const [query, setQuery]     = useState("");
   const [exit, setExit]       = useState("all");
   const [outcome, setOutcome] = useState("all");
@@ -77,7 +78,7 @@ export default function AlumniTracking() {
   const otherAvgProgress = avgProgress(programLinked.filter((r) => !alumniOutcomeMeta[r.alumnus.outcome].isStem));
 
   const handleSave = (updated: AlumniRecord) => {
-    setAlumni((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    updateAlumnus(updated);
     setEditing(null);
   };
 

@@ -6,15 +6,17 @@ import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
+import { useSessions } from "../../context/SessionsContext";
 import {
-  sofia, sessions, studentSessionHistory, studentAssignments, CURRENT_STUDENT_ID, aiProjects, tutorNameById,
+  sofia, studentSessionHistory, studentAssignments, CURRENT_STUDENT_ID, aiProjects, tutorNameById,
 } from "../../data";
 import { getCourseIcon, courseColor } from "../../lib/constants";
 
-const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
 const sessionHistory = studentSessionHistory[sofia.id] ?? [];
 
 export default function StudentSchedule() {
+  const { sessions } = useSessions();
+  const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
 

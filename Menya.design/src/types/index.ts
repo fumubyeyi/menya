@@ -2,6 +2,7 @@ export type Role = "program" | "tutor" | "student";
 export type StudentStatus = "exceeding" | "on-track" | "needs-support" | "at-risk";
 export type ProjectStatus = "pending" | "approved" | "revision" | "rejected";
 export type SessionStatus = "upcoming" | "in-progress" | "scheduled";
+export type SessionType = "tutoring" | "check-in";
 export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
 export type TrendDirection = "up" | "flat" | "down";
 export type ExitReason = "graduated" | "left-program";
@@ -33,6 +34,9 @@ export interface Session {
   clock: string;
   duration: number;
   status: SessionStatus;
+  // Absent means "tutoring" — the ordinary self- or tutor-scheduled session.
+  // "check-in" marks a tutor-initiated session prompted by a student's at-risk status.
+  type?: SessionType;
   meetingId?: string;
   password?: string;
 }

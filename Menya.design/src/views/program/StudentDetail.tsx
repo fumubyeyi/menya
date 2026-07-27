@@ -33,6 +33,7 @@ export default function StudentDetail() {
   );
 
   const meta        = statusMeta[student.status as StudentStatus];
+  const needsAttention = student.status === "at-risk" || student.status === "needs-support";
   const enrolled    = getEnrolledCourses(student.id, student.courses);
   const courses    = (studentCourseDetail[student.id] ?? []).filter((sd) => enrolled.includes(sd.course));
   const history     = studentSessionHistory[student.id] ?? [];
@@ -63,8 +64,8 @@ export default function StudentDetail() {
             <span className={`text-xs px-2.5 py-1 rounded-full font-mono flex items-center gap-1 ${meta.cls}`}>
               <meta.Icon className="w-3 h-3" />{meta.label}
             </span>
-            <button onClick={() => setModal(true)} className="flex items-center gap-1.5 bg-[#F0981E] text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-              <CalendarPlus className="w-4 h-4" /> Schedule Session
+            <button onClick={() => setModal(true)} className={`flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity ${needsAttention ? "bg-amber-600" : "bg-[#F0981E]"}`}>
+              <CalendarPlus className="w-4 h-4" /> {needsAttention ? "Schedule Check-in" : "Schedule Session"}
             </button>
           </div>
         </div>
@@ -170,7 +171,9 @@ export default function StudentDetail() {
         </div>
       </div>
 
-      {modal && <ScheduleModal onClose={() => setModal(false)} defaultStudent={student.name} />}
+      {modal && (
+        <ScheduleModal onClose={() => setModal(false)} defaultStudent={student.name} defaultType={needsAttention ? "check-in" : undefined} />
+      )}
     </div>
   );
 }
