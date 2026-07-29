@@ -4,6 +4,7 @@ import { SessionContentProvider } from "../context/SessionContentContext";
 import { CurriculumProvider } from "../context/CurriculumContext";
 import { AlumniProvider } from "../context/AlumniContext";
 import { SessionsProvider } from "../context/SessionsContext";
+import { HelpRequestsProvider } from "../context/HelpRequestsContext";
 import { router } from "./routes";
 
 export default function App() {
@@ -13,7 +14,9 @@ export default function App() {
         <CurriculumProvider>
           <AlumniProvider>
             <SessionsProvider>
-              <RouterProvider router={router} />
+              <HelpRequestsProvider>
+                <RouterProvider router={router} />
+              </HelpRequestsProvider>
             </SessionsProvider>
           </AlumniProvider>
         </CurriculumProvider>

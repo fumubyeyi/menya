@@ -63,6 +63,8 @@ export interface PracticeItem {
   choices?: PracticeChoice[]; // multiple-choice only
   correctIndex?: number;      // multiple-choice & true-false (0 = True, 1 = False)
   numericAnswer?: string;     // numeric only — the expected value
+  // Optional nudge auto-revealed after a couple of wrong tries. Absent means no hint UI.
+  hint?: string;
 }
 
 // Lightweight, parameterized specs for the inline SVG diagrams rendered in the
@@ -278,6 +280,25 @@ export interface AlumniRecord {
   assignedStaff: string;
   notes?: string;
   checkIns: AlumniCheckIn[];
+}
+
+export type HelpRequestStatus = "open" | "resolved";
+
+// A student-initiated "I'm stuck" flag from inside a module, auto-tagged with
+// where they were — not a chat thread, a one-shot request a tutor can resolve.
+export interface HelpRequest {
+  id: number;
+  studentId: number;
+  studentName: string;
+  course: string;
+  chapterId: number;
+  chapterTitle: string;
+  moduleIndex: number;
+  moduleTitle: string;
+  note?: string;
+  createdAt: string;
+  status: HelpRequestStatus;
+  resolvedAt?: string;
 }
 
 export interface AuthUser {

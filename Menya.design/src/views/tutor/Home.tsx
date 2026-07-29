@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { AlertTriangle, CalendarDays, Clock, Plus, TrendingUp, Users, ChevronRight } from "lucide-react";
+import { AlertTriangle, CalendarDays, Clock, HelpCircle, Plus, TrendingUp, Users, ChevronRight } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import {
@@ -13,6 +13,7 @@ import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import StatTile from "../../components/StatTile";
 import { useSessions } from "../../context/SessionsContext";
+import { useHelpRequests } from "../../context/HelpRequestsContext";
 import {
   tutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById, tutorNameById,
 } from "../../data";
@@ -23,15 +24,47 @@ const avgProgress = Math.round(
 );
 const attentionStudents = tutorStudents.filter((s) => s.status === "at-risk" || s.status === "needs-support");
 
+function timeAgo(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
 export default function TutorHome() {
   const navigate = useNavigate();
   const { sessions } = useSessions();
+  const { requests: helpRequests, resolveRequest } = useHelpRequests();
   const tutorSessions = sessions.filter((s) => s.tutorId === CURRENT_TUTOR_ID);
   const todayQueue = tutorSessions.filter((s) => s.time === "Today");
   const [modal, setModal] = useState(false);
   const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const currentTutor = getTutorById(CURRENT_TUTOR_ID);
+
+  // Open help requests from this tutor's own students — merged into the same
+  // "Needs Attention" list as at-risk/needs-support status, since both are
+  // "look at this student" signals a tutor shouldn't have to cross-reference.
+  const openHelpRequests = helpRequests.filter(
+    (r) => r.status === "open" && tutorStudents.some((s) => s.id === r.studentId)
+  );
+  const attentionRows = attentionStudents.map((s) => ({
+    student: s,
+    request: openHelpRequests.find((r) => r.studentId === s.id),
+  }));
+  openHelpRequests
+    .filter((r) => !attentionStudents.some((s) => s.id === r.studentId))
+    .forEach((r) => {
+      const student = tutorStudents.find((s) => s.id === r.studentId);
+      if (student) attentionRows.push({ student, request: r });
+    });
+
+  const scheduleCheckIn = (studentName: string, requestId?: number) => {
+    setCheckInStudent(studentName);
+    if (requestId) resolveRequest(requestId);
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -58,31 +91,57 @@ export default function TutorHome() {
       </div>
 
       {/* Needs Attention */}
-      {attentionStudents.length > 0 && (
+      {attentionRows.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="w-4 h-4 text-amber-600" />
             <h2 className="text-sm font-semibold text-foreground">Needs Attention</h2>
             <span className="text-[11px] font-mono text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">
-              {attentionStudents.length} student{attentionStudents.length === 1 ? "" : "s"}
+              {attentionRows.length} student{attentionRows.length === 1 ? "" : "s"}
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {attentionStudents.map((s) => {
+            {attentionRows.map(({ student: s, request }) => {
               const meta = statusMeta[s.status];
+              const isAttentionStatus = s.status === "at-risk" || s.status === "needs-support";
               return (
-                <div key={s.id} className="flex items-center gap-3 bg-card border border-border rounded-lg p-3">
-                  <Avatar name={s.name} size={9} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${meta.cls}`}>{meta.label}</span>
+                <div key={s.id} className="flex flex-col gap-2.5 bg-card border border-border rounded-lg p-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={s.name} size={9} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        {isAttentionStatus && <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${meta.cls}`}>{meta.label}</span>}
+                        {request && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-mono text-blue-700 bg-blue-50 flex items-center gap-1">
+                            <HelpCircle className="w-2.5 h-2.5" /> Asked for help · {timeAgo(request.createdAt)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setCheckInStudent(s.name)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 border border-amber-300 hover:bg-amber-100 transition-colors flex-shrink-0"
-                  >
-                    Schedule Check-in
-                  </button>
+                  {request && (
+                    <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-2.5 py-2">
+                      {request.course} · {request.moduleTitle}
+                      {request.note && <span className="block mt-0.5 text-foreground">"{request.note}"</span>}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => scheduleCheckIn(s.name, request?.id)}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 border border-amber-300 hover:bg-amber-100 transition-colors"
+                    >
+                      Schedule Check-in
+                    </button>
+                    {request && (
+                      <button
+                        onClick={() => resolveRequest(request.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground border border-border hover:bg-muted transition-colors"
+                      >
+                        Resolve
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
