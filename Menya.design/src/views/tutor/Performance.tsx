@@ -3,23 +3,11 @@ import { CalendarDays, TrendingUp, Users } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
+import { useAuth } from "../../context/AuthContext";
 import {
-  tutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
+  getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
 import { statusMeta, courseColor } from "../../lib/constants";
-
-const avgProgress = Math.round(
-  tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length
-);
-
-const tutorRecord = getTutorById(CURRENT_TUTOR_ID);
-
-const outcomeCounts = {
-  exceeding: tutorStudents.filter((s) => s.status === "exceeding").length,
-  "on-track": tutorStudents.filter((s) => s.status === "on-track").length,
-  "needs-support": tutorStudents.filter((s) => s.status === "needs-support").length,
-  "at-risk": tutorStudents.filter((s) => s.status === "at-risk").length,
-};
 
 const outcomeGrid = [
   { key: "exceeding",      label: "Exceeding",      cls: "bg-emerald-50 text-emerald-700 border-emerald-100" },
@@ -29,6 +17,20 @@ const outcomeGrid = [
 ] as const;
 
 export default function Performance() {
+  const { user } = useAuth();
+  const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
+  const tutorStudents = getTutorStudents(tutorId);
+  const avgProgress = tutorStudents.length
+    ? Math.round(tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length)
+    : 0;
+  const tutorRecord = getTutorById(tutorId);
+  const outcomeCounts = {
+    exceeding: tutorStudents.filter((s) => s.status === "exceeding").length,
+    "on-track": tutorStudents.filter((s) => s.status === "on-track").length,
+    "needs-support": tutorStudents.filter((s) => s.status === "needs-support").length,
+    "at-risk": tutorStudents.filter((s) => s.status === "at-risk").length,
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
       <div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import {
   Atom,
   GraduationCap,
@@ -308,7 +308,7 @@ export default function LoginView() {
         setError("Tutor not found.");
         return;
       }
-      login({ role: "tutor", name: `${t.firstName} ${t.lastName}` });
+      login({ role: "tutor", name: `${t.firstName} ${t.lastName}`, tutorId: t.id });
     } else {
       if (!email) {
         setError("Please enter your email.");
@@ -559,6 +559,11 @@ export default function LoginView() {
 
           <p className="text-center text-xs text-muted-foreground mt-6">
             Demo app — any password accepted for sign-in
+          </p>
+          <p className="text-center text-xs mt-2">
+            <Link to="/success-stories" className="text-primary hover:underline font-medium">
+              See our alumni success stories →
+            </Link>
           </p>
         </div>
       </div>

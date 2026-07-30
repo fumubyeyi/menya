@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Search, GraduationCap, TrendingUp, AlertTriangle, Pencil, ExternalLink, Download, BadgeCheck } from "lucide-react";
+import { Search, GraduationCap, TrendingUp, AlertTriangle, Pencil, ExternalLink, Download, BadgeCheck, Sparkles, HeartHandshake, Building2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Avatar from "../../components/Avatar";
 import EditAlumniModal from "../../components/EditAlumniModal";
@@ -77,20 +77,47 @@ export default function AlumniTracking() {
   const stemAvgProgress = avgProgress(programLinked.filter((r) => alumniOutcomeMeta[r.alumnus.outcome].isStem));
   const otherAvgProgress = avgProgress(programLinked.filter((r) => !alumniOutcomeMeta[r.alumnus.outcome].isStem));
 
+  const successStoryCount = alumni.filter((a) => a.isSuccessStory).length;
+  const mentorCount = alumni.filter((a) => a.openToMentoring).length;
+
+  // Full outcome distribution — the cohort chart above only shows the binary STEM
+  // split, this shows where every alumnus actually landed, category by category.
+  const outcomeBreakdown = useMemo(() => {
+    return (Object.keys(alumniOutcomeMeta) as AlumniOutcome[]).map((o) => ({
+      outcome: alumniOutcomeMeta[o].label,
+      count: alumni.filter((a) => a.outcome === o).length,
+    })).filter((row) => row.count > 0);
+  }, [alumni]);
+
+  // Where alumni actually end up — useful for spotting partner institutions/employers worth deepening ties with.
+  const topInstitutions = useMemo(() => {
+    const counts = new Map<string, number>();
+    alumni.forEach((a) => {
+      if (!a.institution) return;
+      counts.set(a.institution, (counts.get(a.institution) ?? 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([institution, count]) => ({ institution, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [alumni]);
+
   const handleSave = (updated: AlumniRecord) => {
     updateAlumnus(updated);
     setEditing(null);
   };
 
   const exportCsv = () => {
-    const headers = ["Name", "Exit Reason", "Exit Year", "HS Graduated", "Outcome", "Verification", "Institution", "Field", "Last Contact", "Follow-up", "Staff", "Final Progress", "Notes"];
+    const headers = ["Name", "Exit Reason", "Exit Year", "HS Graduated", "Outcome", "Verification", "Institution", "Field", "Last Contact", "Follow-up", "Staff", "Final Progress", "Email", "Phone", "LinkedIn", "Success Story", "Open to Mentor", "Notes"];
     const rows = filtered.map((a) => {
       const student = a.studentId ? students.find((s) => s.id === a.studentId) : undefined;
       return [
         a.name, exitReasonMeta[a.exitReason].label, a.exitYear, a.hsGraduated ? "Yes" : "No",
         alumniOutcomeMeta[a.outcome].label, verificationMeta[a.verification].label,
         a.institution ?? "", a.fieldOfStudy ?? "", a.lastContact, followUpStatusMeta[a.followUpStatus].label,
-        a.assignedStaff, student ? `${student.progress}%` : "", a.notes ?? "",
+        a.assignedStaff, student ? `${student.progress}%` : "",
+        a.email ?? "", a.phone ?? "", a.linkedIn ?? "", a.isSuccessStory ? "Yes" : "No", a.openToMentoring ? "Yes" : "No",
+        a.notes ?? "",
       ];
     });
     const csv = [headers, ...rows].map((r) => r.map(csvEscape).join(",")).join("\n");
@@ -113,10 +140,17 @@ export default function AlumniTracking() {
             {alumni.length} alumni tracked · students who completed or left the program, followed up on their path after high school
           </p>
         </div>
-        <button onClick={exportCsv} className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <a href="/success-stories" target="_blank" rel="noreferrer"
+            className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
+            <Sparkles className="w-4 h-4" />
+            View Public Page
+          </a>
+          <button onClick={exportCsv} className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -157,6 +191,26 @@ export default function AlumniTracking() {
         </div>
       </div>
 
+      {/* Success stories & mentorship stats */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1.5">
+            <Sparkles className="w-4 h-4" />
+            <span className="text-xs font-mono">Success Stories</span>
+          </div>
+          <p className="text-2xl font-display font-bold text-foreground">{successStoryCount}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">flagged for spotlighting to funders & prospective families</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1.5">
+            <HeartHandshake className="w-4 h-4" />
+            <span className="text-xs font-mono">Open to Mentor</span>
+          </div>
+          <p className="text-2xl font-display font-bold text-foreground">{mentorCount}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">alumni willing to mentor current students</p>
+        </div>
+      </div>
+
       {/* Cohort trend chart */}
       <div className="bg-card border border-border rounded-xl p-4">
         <h2 className="text-sm font-semibold text-foreground mb-1">STEM Outcome Rate by Exit Cohort</h2>
@@ -173,6 +227,42 @@ export default function AlumniTracking() {
             <Bar dataKey="stemRate" fill="#1B5E4F" radius={[4, 4, 0, 0]} name="STEM Rate" />
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Full outcome breakdown */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-foreground mb-1">Outcome Breakdown</h2>
+          <p className="text-xs text-muted-foreground mb-4">Where every alumnus landed, not just the STEM/non-STEM split above.</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={outcomeBreakdown} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+              <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <YAxis type="category" dataKey="outcome" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={110} />
+              <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e5e7eb" }} />
+              <Bar dataKey="count" fill="#1B5E4F" radius={[0, 4, 4, 0]} name="Alumni" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Top institutions & employers */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1.5"><Building2 className="w-4 h-4" />Top Institutions & Employers</h2>
+          <p className="text-xs text-muted-foreground mb-4">Where alumni most often land — worth deepening ties with.</p>
+          {topInstitutions.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">No institutions or employers on record yet.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {topInstitutions.map((row, i) => (
+                <div key={row.institution} className="flex items-center gap-3">
+                  <span className="text-xs font-mono text-muted-foreground w-4">{i + 1}</span>
+                  <span className="text-sm text-foreground flex-1 truncate">{row.institution}</span>
+                  <span className="text-xs font-mono text-muted-foreground">{row.count} alum{row.count > 1 ? "ni" : "nus"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -232,10 +322,16 @@ export default function AlumniTracking() {
                   return (
                     <tr key={a.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
+                        <div
+                          onClick={() => navigate(`/program/alumni/${a.id}`)}
+                          className="flex items-center gap-2.5 cursor-pointer group/name w-fit"
+                        >
                           <Avatar name={a.name} size={8} />
                           <div>
-                            <p className="text-sm font-semibold text-foreground leading-tight">{a.name}</p>
+                            <p className="text-sm font-semibold text-foreground leading-tight group-hover/name:text-primary transition-colors">
+                              {a.name}
+                              {a.isSuccessStory && <Sparkles className="inline w-3 h-3 ml-1 mb-0.5 text-amber-500" />}
+                            </p>
                             <p className="text-xs text-muted-foreground">Grade {a.lastGrade} · {a.location}</p>
                             {student && <p className="text-[10px] font-mono text-primary mt-0.5">Final: {student.progress}% · {student.sessions} sessions</p>}
                           </div>

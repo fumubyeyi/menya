@@ -2,13 +2,16 @@ import { useState } from "react";
 import { Users, Flame, Calendar } from "lucide-react";
 import ProgressRing from "../../components/ProgressRing";
 import ScheduleModal from "../../components/ScheduleModal";
+import { useAuth } from "../../context/AuthContext";
 import {
-  tutorStudents, studentCourseDetail, studentSessionHistory,
+  getTutorStudents, studentCourseDetail, studentSessionHistory, CURRENT_TUTOR_ID,
 } from "../../data";
 import { statusMeta, courseColor } from "../../lib/constants";
 import { getEnrolledCourses } from "../../hooks/useEnrollment";
 
 export default function MyStudents() {
+  const { user } = useAuth();
+  const tutorStudents = getTutorStudents(user?.tutorId ?? CURRENT_TUTOR_ID);
   const [modalStudent, setModalStudent] = useState<{ name: string; needsAttention: boolean } | null>(null);
 
   return (

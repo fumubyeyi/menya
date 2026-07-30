@@ -194,6 +194,7 @@ export interface Tutor {
   firstName: string;
   lastName: string;
   courses: string[];
+  grades: number[];
   students: number;
   sessions: number;
   description: string;
@@ -280,6 +281,12 @@ export interface AlumniRecord {
   assignedStaff: string;
   notes?: string;
   checkIns: AlumniCheckIn[];
+  email?: string;
+  phone?: string;
+  linkedIn?: string;
+  isSuccessStory?: boolean;
+  testimonial?: string;
+  openToMentoring?: boolean;
 }
 
 export type HelpRequestStatus = "open" | "resolved";
@@ -305,6 +312,7 @@ export interface AuthUser {
   role: Role;
   name: string;
   studentId?: number;
+  tutorId?: number;
 }
 
 export interface ZoomModalProps {

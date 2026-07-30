@@ -1,6 +1,8 @@
 import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, CourseDetail, SessionRecord, AIProject, HomeworkItem, AlumniRecord } from "../types";
 
 export const CURRENT_STUDENT_ID = 3;
+// Fallback used only if a logged-in tutor's AuthUser.tutorId is somehow missing —
+// the real tutor identity comes from useAuth().user.tutorId, set at sign-in.
 export const CURRENT_TUTOR_ID = 5;
 
 export const students: Student[] = [
@@ -1311,15 +1313,31 @@ export const curriculum: CurriculumCourse[] = [
 ];
 
 export const tutors: Tutor[] = [
-  { id: 1, firstName: "Jennifer", lastName: "Chen",      courses: ["Algebra", "Geometry"],        students: 14, sessions: 38, description: "Breaks down algebra and geometry into visual, step-by-step problems so abstract rules finally click. Patient with students who need concepts repeated a few different ways." },
-  { id: 2, firstName: "David",    lastName: "Thompson",  courses: ["Algebra II", "Calculus"],     students: 11, sessions: 29, description: "Makes algebra II and calculus click by tying abstract rules to real-world modeling and hands-on problem-solving instead of rote memorization." },
-  { id: 3, firstName: "Maria",    lastName: "Rodriguez", courses: ["Pre-Alg", "Statistics"],      students: 16, sessions: 44, description: "Builds strong number-sense foundations in pre-algebra and statistics, with a calm, encouraging style that's great for students still building math confidence." },
-  { id: 4, firstName: "Andrew",   lastName: "Kim",       courses: ["Geometry", "Pre-Calculus"],   students: 13, sessions: 35, description: "Turns geometry and pre-calculus into everyday phenomena students can see and test themselves, focusing on visual intuition before formulas." },
-  { id: 5, firstName: "Francoise",lastName: "Umubyeyi",  courses: ["Pre-Calculus", "Calculus"],   students: 20, sessions: 25, description: "Guides students through pre-calculus and calculus with a focus on problem-solving strategy, helping them recognize patterns across problem types rather than memorizing steps." },
+  { id: 1, firstName: "Jennifer", lastName: "Chen",      courses: ["Algebra", "Geometry"],        grades: [6, 7, 8, 9],       students: 14, sessions: 38, description: "Breaks down algebra and geometry into visual, step-by-step problems so abstract rules finally click. Patient with students who need concepts repeated a few different ways." },
+  { id: 2, firstName: "David",    lastName: "Thompson",  courses: ["Algebra II", "Calculus"],     grades: [9, 10, 11, 12],    students: 11, sessions: 29, description: "Makes algebra II and calculus click by tying abstract rules to real-world modeling and hands-on problem-solving instead of rote memorization." },
+  { id: 3, firstName: "Maria",    lastName: "Rodriguez", courses: ["Pre-Alg", "Statistics"],      grades: [6, 7, 8, 9, 10],   students: 16, sessions: 44, description: "Builds strong number-sense foundations in pre-algebra and statistics, with a calm, encouraging style that's great for students still building math confidence." },
+  { id: 4, firstName: "Andrew",   lastName: "Kim",       courses: ["Geometry", "Pre-Calculus"],   grades: [8, 9, 10, 11],     students: 13, sessions: 35, description: "Turns geometry and pre-calculus into everyday phenomena students can see and test themselves, focusing on visual intuition before formulas." },
+  { id: 5, firstName: "Francoise",lastName: "Umubyeyi",  courses: ["Pre-Calculus", "Calculus"],   grades: [9, 10, 11, 12],    students: 20, sessions: 25, description: "Guides students through pre-calculus and calculus with a focus on problem-solving strategy, helping them recognize patterns across problem types rather than memorizing steps." },
 ];
 
 export function getTutorById(id: number): Tutor | undefined {
   return tutors.find((t) => t.id === id);
+}
+
+// Tutors who cover both the grade and the course of a currently at-risk student —
+// broader than `tutorStudents` below, which only reflects tutors who've already
+// had a session with that specific student.
+export interface AtRiskAlert {
+  student: Student;
+  course: string;
+}
+
+export function getAtRiskAlertsForTutor(tutorId: number): AtRiskAlert[] {
+  const tutor = getTutorById(tutorId);
+  if (!tutor) return [];
+  return students
+    .filter((s) => s.status === "at-risk" && tutor.grades.includes(s.grade))
+    .flatMap((s) => s.courses.filter((c) => tutor.courses.includes(c)).map((course) => ({ student: s, course })));
 }
 
 export function findChapterById(courses: CurriculumCourse[], chapterId: number): { course: CurriculumCourse; chapter: CurriculumChapter } | undefined {
@@ -1428,18 +1446,14 @@ export const studentAssignments: Record<number, HomeworkItem[]> = {
   ],
 };
 
-// Computed helpers
-export const tutorStudents = students.filter((s) =>
-  studentSessionHistory[s.id]?.some((h) => h.tutorId === CURRENT_TUTOR_ID)
-);
-
-export const tutorSessions = sessions.filter((s) => s.tutorId === CURRENT_TUTOR_ID);
-
-export const tutorCourses = tutors.filter((t) => t.id === CURRENT_TUTOR_ID).map((t) => ({
-  id: t.id,
-  fullname: `${t.firstName} ${t.lastName}`,
-  courses: t.courses,
-}));
+// A tutor's roster — students they've had at least one session with. Takes
+// tutorId as a parameter (rather than a fixed export) so it reflects whichever
+// tutor is actually logged in, not just the CURRENT_TUTOR_ID demo default.
+export function getTutorStudents(tutorId: number) {
+  return students.filter((s) =>
+    studentSessionHistory[s.id]?.some((h) => h.tutorId === tutorId)
+  );
+}
 
 export const sofia = students.find((s) => s.id === CURRENT_STUDENT_ID)!;
 
@@ -1449,45 +1463,64 @@ export const sofia = students.find((s) => s.id === CURRENT_STUDENT_ID)!;
 // outcome changes can be tracked cohort-over-cohort and cross-checked against how the
 // student performed in the program (see `students` via `studentId`).
 export const alumni: AlumniRecord[] = [
-  { id: 1001, studentId: 4, name: "DeShawn Williams", lastGrade: 12, location: "Detroit, MI",   exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-college",     verification: "verified",      institution: "Wayne State University", fieldOfStudy: "Mechanical Engineering", lastContact: "Jun 10, 2026", followUpStatus: "up-to-date", assignedStaff: "Maria Rodriguez", notes: "Doing well in first year. Wants to shadow an engineer over winter break — connect with alumni network.",
+  { id: 1001, studentId: 4, name: "DeShawn Williams", lastGrade: 12, location: "Detroit, MI",   exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-college",     verification: "verified",      institution: "Wayne State University", fieldOfStudy: "Mechanical Engineering", lastContact: "Jun 10, 2026", followUpStatus: "up-to-date", assignedStaff: "Maria Rodriguez",
+    email: "deshawn.williams@wayne.edu", phone: "(313) 555-0142", linkedIn: "linkedin.com/in/deshawnwilliams",
+    isSuccessStory: true, testimonial: "This program is the reason I believed engineering was even an option for me. I went from being unsure I'd graduate to declaring a Mechanical Engineering major.", openToMentoring: true,
+    notes: "Doing well in first year. Wants to shadow an engineer over winter break — connect with alumni network.",
     checkIns: [
       { timeframe: "6 months", date: "Dec 3, 2025",  outcome: "stem-college", verification: "self-reported", note: "Enrolled at Wayne State, declared Mechanical Engineering." },
       { timeframe: "1 year",   date: "Jun 10, 2026",  outcome: "stem-college", verification: "verified",      note: "Enrollment confirmed via unofficial transcript, GPA 3.4." },
     ] },
-  { id: 1002, studentId: 8, name: "Noah Fitzgerald",  lastGrade: 12, location: "Boston, MA",     exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-career",      verification: "verified",      institution: "MassDOT",                  fieldOfStudy: "Civil/Transit Technician", lastContact: "May 28, 2026", followUpStatus: "up-to-date", assignedStaff: "Francoise Umubyeyi", notes: "Started an apprenticeship instead of college. Interested in an associate degree later.",
+  { id: 1002, studentId: 8, name: "Noah Fitzgerald",  lastGrade: 12, location: "Boston, MA",     exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-career",      verification: "verified",      institution: "MassDOT",                  fieldOfStudy: "Civil/Transit Technician", lastContact: "May 28, 2026", followUpStatus: "up-to-date", assignedStaff: "Francoise Umubyeyi",
+    email: "noah.fitzgerald@massdot.gov", phone: "(617) 555-0198", openToMentoring: true,
+    notes: "Started an apprenticeship instead of college. Interested in an associate degree later.",
     checkIns: [
       { timeframe: "6 months", date: "Dec 15, 2025", outcome: "gap-year",    verification: "self-reported", note: "Still deciding, working part-time." },
       { timeframe: "1 year",   date: "May 28, 2026", outcome: "stem-career", verification: "verified",      note: "Employer confirmed apprenticeship start date." },
     ] },
-  { id: 1003, name: "Camille Torres",   lastGrade: 12, location: "Atlanta, GA",    exitReason: "graduated",    exitYear: 2024, hsGraduated: true,  outcome: "non-stem-college", verification: "self-reported", institution: "Spelman College",          fieldOfStudy: "Political Science",       lastContact: "Apr 2, 2026",  followUpStatus: "due-soon",   assignedStaff: "Jennifer Chen", notes: "",
+  { id: 1003, name: "Camille Torres",   lastGrade: 12, location: "Atlanta, GA",    exitReason: "graduated",    exitYear: 2024, hsGraduated: true,  outcome: "non-stem-college", verification: "self-reported", institution: "Spelman College",          fieldOfStudy: "Political Science",       lastContact: "Apr 2, 2026",  followUpStatus: "due-soon",   assignedStaff: "Jennifer Chen",
+    email: "camille.torres@spelman.edu",
+    notes: "",
     checkIns: [
       { timeframe: "6 months", date: "Jan 20, 2025", outcome: "non-stem-college", verification: "self-reported", note: "Enrolled at Spelman, undecided major." },
       { timeframe: "1 year",   date: "Apr 2, 2026",  outcome: "non-stem-college", verification: "self-reported", note: "Declared Political Science." },
     ] },
   { id: 1004, name: "Tyrell Banks",     lastGrade: 11, location: "Baltimore, MD",  exitReason: "left-program", exitYear: 2025, hsGraduated: false, outcome: "unknown",          verification: "self-reported", lastContact: "Jan 14, 2026",  followUpStatus: "overdue",    assignedStaff: "David Thompson", notes: "Family relocated mid-year. Two follow-up calls unanswered — try email next.",
     checkIns: [] },
-  { id: 1005, name: "Priya Nair",       lastGrade: 12, location: "Oakland, CA",    exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-college",     verification: "verified",      institution: "UC Davis",                 fieldOfStudy: "Computer Science",        lastContact: "Jun 3, 2026",  followUpStatus: "up-to-date", assignedStaff: "Andrew Kim", notes: "Reports our Algebra II/Stats track prepared her well for intro CS math.",
+  { id: 1005, name: "Priya Nair",       lastGrade: 12, location: "Oakland, CA",    exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "stem-college",     verification: "verified",      institution: "UC Davis",                 fieldOfStudy: "Computer Science",        lastContact: "Jun 3, 2026",  followUpStatus: "up-to-date", assignedStaff: "Andrew Kim",
+    email: "priya.nair@ucdavis.edu", linkedIn: "linkedin.com/in/priyanair",
+    isSuccessStory: true, testimonial: "Made Dean's List studying Computer Science — something I never thought I'd say two years ago. Happy to talk to any student thinking about CS.", openToMentoring: true,
+    notes: "Reports our Algebra II/Stats track prepared her well for intro CS math.",
     checkIns: [
       { timeframe: "6 months", date: "Dec 1, 2025", outcome: "stem-college", verification: "verified", note: "Enrollment verified directly with UC Davis registrar." },
       { timeframe: "1 year",   date: "Jun 3, 2026",  outcome: "stem-college", verification: "verified", note: "Still enrolled, made Dean's List." },
     ] },
-  { id: 1006, name: "Malik Jefferson",  lastGrade: 10, location: "Columbus, OH",   exitReason: "left-program", exitYear: 2024, hsGraduated: true,  outcome: "military",         verification: "self-reported", institution: "U.S. Army",                lastContact: "Mar 20, 2026",  followUpStatus: "due-soon",   assignedStaff: "Maria Rodriguez", notes: "Enlisted after leaving the program early; plans to use GI Bill for engineering later.",
+  { id: 1006, name: "Malik Jefferson",  lastGrade: 10, location: "Columbus, OH",   exitReason: "left-program", exitYear: 2024, hsGraduated: true,  outcome: "military",         verification: "self-reported", institution: "U.S. Army",                lastContact: "Mar 20, 2026",  followUpStatus: "due-soon",   assignedStaff: "Maria Rodriguez",
+    phone: "(614) 555-0176",
+    notes: "Enlisted after leaving the program early; plans to use GI Bill for engineering later.",
     checkIns: [
       { timeframe: "6 months", date: "Mar 20, 2026", outcome: "military", verification: "self-reported", note: "Enlisted, currently in basic training." },
     ] },
-  { id: 1007, name: "Grace Kim",        lastGrade: 12, location: "San Antonio, TX",exitReason: "graduated",    exitYear: 2024, hsGraduated: true,  outcome: "stem-career",      verification: "verified",      institution: "HEB Digital",              fieldOfStudy: "Data Analyst",            lastContact: "May 15, 2026", followUpStatus: "up-to-date", assignedStaff: "David Thompson", notes: "Skipped a 4-year degree, went straight into a data analytics role via bootcamp.",
+  { id: 1007, name: "Grace Kim",        lastGrade: 12, location: "San Antonio, TX",exitReason: "graduated",    exitYear: 2024, hsGraduated: true,  outcome: "stem-career",      verification: "verified",      institution: "HEB Digital",              fieldOfStudy: "Data Analyst",            lastContact: "May 15, 2026", followUpStatus: "up-to-date", assignedStaff: "David Thompson",
+    email: "grace.kim@hebdigital.com", phone: "(210) 555-0163", linkedIn: "linkedin.com/in/gracekim",
+    isSuccessStory: true, testimonial: "I didn't think a 4-year degree was for me, and this program helped me find a bootcamp path into data analytics instead. Now I'm mentoring the next round of students the same way I was mentored.", openToMentoring: true,
+    notes: "Skipped a 4-year degree, went straight into a data analytics role via bootcamp.",
     checkIns: [
       { timeframe: "6 months", date: "Dec 10, 2024", outcome: "gap-year",    verification: "self-reported", note: "Working retail while researching bootcamps." },
       { timeframe: "1 year",   date: "May 20, 2025", outcome: "stem-career", verification: "verified",      note: "Completed data analytics bootcamp, hired by HEB Digital." },
       { timeframe: "2 years",  date: "May 15, 2026", outcome: "stem-career", verification: "verified",      note: "Promoted to Analyst II." },
     ] },
-  { id: 1008, name: "Omar Haddad",      lastGrade: 12, location: "Chicago, IL",    exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "gap-year",         verification: "self-reported", lastContact: "Feb 8, 2026",  followUpStatus: "overdue",    assignedStaff: "Jennifer Chen", notes: "Taking a gap year to work and save. Said he's still deciding between nursing and engineering.",
+  { id: 1008, name: "Omar Haddad",      lastGrade: 12, location: "Chicago, IL",    exitReason: "graduated",    exitYear: 2025, hsGraduated: true,  outcome: "gap-year",         verification: "self-reported", lastContact: "Feb 8, 2026",  followUpStatus: "overdue",    assignedStaff: "Jennifer Chen",
+    email: "omar.haddad91@gmail.com",
+    notes: "Taking a gap year to work and save. Said he's still deciding between nursing and engineering.",
     checkIns: [
       { timeframe: "6 months", date: "Feb 8, 2026", outcome: "gap-year", verification: "self-reported", note: "Working full-time, saving for tuition." },
     ] },
   { id: 1009, name: "Leilani Akana",    lastGrade: 9,  location: "Detroit, MI",    exitReason: "left-program", exitYear: 2026, hsGraduated: false, outcome: "unknown",          verification: "self-reported", lastContact: "Jun 25, 2026", followUpStatus: "due-soon",   assignedStaff: "Andrew Kim", notes: "Left recently due to scheduling conflicts with a new job. Still in high school.",
     checkIns: [] },
-  { id: 1010, name: "Ben Okafor",       lastGrade: 12, location: "Baltimore, MD",  exitReason: "graduated",    exitYear: 2023, hsGraduated: true,  outcome: "non-stem-career",  verification: "self-reported", institution: "Self-employed",            fieldOfStudy: "Graphic Design",          lastContact: "Nov 30, 2025", followUpStatus: "overdue",    assignedStaff: "Francoise Umubyeyi", notes: "",
+  { id: 1010, name: "Ben Okafor",       lastGrade: 12, location: "Baltimore, MD",  exitReason: "graduated",    exitYear: 2023, hsGraduated: true,  outcome: "non-stem-career",  verification: "self-reported", institution: "Self-employed",            fieldOfStudy: "Graphic Design",          lastContact: "Nov 30, 2025", followUpStatus: "overdue",    assignedStaff: "Francoise Umubyeyi",
+    email: "ben.okafor.design@gmail.com", linkedIn: "linkedin.com/in/benokafor",
+    notes: "",
     checkIns: [
       { timeframe: "6 months", date: "May 1, 2024",  outcome: "gap-year",        verification: "self-reported", note: "Freelancing design work, no school plans yet." },
       { timeframe: "1 year",   date: "Nov 15, 2024",  outcome: "non-stem-career", verification: "self-reported", note: "Freelance graphic design became steady income." },

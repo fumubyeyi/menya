@@ -5,8 +5,9 @@ import {
 } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
 import ProgressRing from "../../components/ProgressRing";
+import { useAuth } from "../../context/AuthContext";
 import {
-  aiProjects, studentCourseDetail, tutorStudents,
+  aiProjects, studentCourseDetail, getTutorStudents, CURRENT_TUTOR_ID,
 } from "../../data";
 import { diffCls, projectStatusCls, projectStatusLabel, courseColor } from "../../lib/constants";
 import type { AIProject } from "../../types";
@@ -15,6 +16,8 @@ type Filter = "all" | "pending" | "approved" | "revision" | "rejected";
 type Action = "idle" | "approving" | "revising";
 
 export default function Review() {
+  const { user } = useAuth();
+  const tutorStudents = getTutorStudents(user?.tutorId ?? CURRENT_TUTOR_ID);
   const [projects, setProjects] = useState<AIProject[]>(aiProjects);
   const [selectedId, setSelectedId] = useState<number>(aiProjects[0]?.id);
   const [filter, setFilter] = useState<Filter>("all");

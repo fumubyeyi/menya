@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import AppShell from "../components/AppShell";
 import LoginView from "../views/auth/LoginView";
+import SuccessStories from "../views/public/SuccessStories";
 
 // Program views
 import ProgramDashboard  from "../views/program/Dashboard";
@@ -10,6 +11,7 @@ import ProgramCurriculum from "../views/program/Curriculum";
 import ProgramSessions   from "../views/program/Sessions";
 import ProgramAnalytics  from "../views/program/Analytics";
 import ProgramAlumni     from "../views/program/AlumniTracking";
+import AlumniDetail      from "../views/program/AlumniDetail";
 
 // Tutor views
 import TutorHome        from "../views/tutor/Home";
@@ -26,8 +28,9 @@ import StudentGoals      from "../views/student/Goals";
 import ModuleWorkspace   from "../views/student/ModuleWorkspace";
 
 export const router = createBrowserRouter([
-  { path: "/login", Component: LoginView },
-  { path: "/",      element: <Navigate to="/login" replace /> },
+  { path: "/login",            Component: LoginView },
+  { path: "/success-stories",  Component: SuccessStories },
+  { path: "/",                 element: <Navigate to="/login" replace /> },
 
   // Program Director routes
   {
@@ -42,6 +45,7 @@ export const router = createBrowserRouter([
       { path: "sessions",       Component: ProgramSessions   },
       { path: "analytics",      Component: ProgramAnalytics  },
       { path: "alumni",         Component: ProgramAlumni     },
+      { path: "alumni/:id",     Component: AlumniDetail      },
     ],
   },
 

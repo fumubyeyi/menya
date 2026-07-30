@@ -4,10 +4,13 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
   Bell, Plus, Menu, X, Settings, Atom, Trophy,
   Briefcase, UserCheck, GraduationCap, ClipboardList, LogOut,
-  Award,
+  Award, AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { aiProjects } from "../data";
+import { aiProjects, getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID } from "../data";
+import { statusMeta } from "../lib/constants";
+import Avatar from "./Avatar";
+import ScheduleModal from "./ScheduleModal";
 import type { Role } from "../types";
 
 const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; badge?: number }[]> = {
@@ -51,13 +54,29 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
 
   if (!user) return <Navigate to="/login" replace />;
 
   const role = user.role;
   const nav = NAV[role];
   const meta = ROLE_META[role];
-  const stats = STATS[role];
+
+  // At-risk students whose grade + course this tutor covers — broader than a tutor's
+  // own roster, which only reflects students they've already had a session with.
+  const tutorId = user.tutorId ?? CURRENT_TUTOR_ID;
+  const atRiskAlerts = role === "tutor" ? getAtRiskAlertsForTutor(tutorId) : [];
+  const tutorRecord = role === "tutor" ? getTutorById(tutorId) : undefined;
+  const stats: [string, string][] = tutorRecord
+    ? [[String(tutorRecord.students), "students"], [String(tutorRecord.sessions), "sessions"]]
+    : STATS[role];
+  const alertRows: { student: (typeof atRiskAlerts)[number]["student"]; courses: string[] }[] = [];
+  atRiskAlerts.forEach(({ student, course }) => {
+    const row = alertRows.find((r) => r.student.id === student.id);
+    if (row) row.courses.push(course);
+    else alertRows.push({ student, courses: [course] });
+  });
 
   const handleLogout = () => {
     logout();
@@ -180,11 +199,59 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
             </button>
             <h1 className="font-display font-semibold text-foreground text-lg leading-none">{pageTitle}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          <div className="flex items-center gap-2 relative">
+            <button
+              onClick={() => setNotifOpen((o) => !o)}
+              className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
+              {alertRows.length > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent text-white text-[10px] font-mono font-bold flex items-center justify-center">
+                  {alertRows.length}
+                </span>
+              )}
             </button>
+
+            {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border">
+                    <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+                  </div>
+                  {alertRows.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8 px-4">No new notifications.</p>
+                  ) : (
+                    <div className="max-h-96 overflow-y-auto divide-y divide-border">
+                      {alertRows.map(({ student, courses }) => {
+                        const atRiskMeta = statusMeta["at-risk"];
+                        return (
+                          <div key={student.id} className="p-3.5 flex flex-col gap-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <Avatar name={student.name} size={8} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{student.name}</p>
+                                <p className="text-[11px] font-mono text-muted-foreground">Grade {student.grade} · {courses.join(", ")}</p>
+                              </div>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono inline-flex items-center gap-1 flex-shrink-0 ${atRiskMeta.cls}`}>
+                                <AlertTriangle className="w-2.5 h-2.5" />{atRiskMeta.label}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => { setCheckInStudent(student.name); setNotifOpen(false); }}
+                              className="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 border border-amber-300 hover:bg-amber-100 transition-colors"
+                            >
+                              Schedule Check-in
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
             {role !== "student" && onSchedule && (
               <button onClick={() => onSchedule()}
                 className="hidden sm:flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
@@ -200,6 +267,10 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
           <Outlet />
         </main>
       </div>
+
+      {checkInStudent && (
+        <ScheduleModal defaultStudent={checkInStudent} defaultType="check-in" onClose={() => setCheckInStudent(null)} />
+      )}
     </div>
   );
 }

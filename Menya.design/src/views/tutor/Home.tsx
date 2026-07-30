@@ -14,15 +14,11 @@ import ScheduleModal from "../../components/ScheduleModal";
 import StatTile from "../../components/StatTile";
 import { useSessions } from "../../context/SessionsContext";
 import { useHelpRequests } from "../../context/HelpRequestsContext";
+import { useAuth } from "../../context/AuthContext";
 import {
-  tutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById, tutorNameById,
+  getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById, tutorNameById,
 } from "../../data";
 import { statusMeta } from "../../lib/constants";
-
-const avgProgress = Math.round(
-  tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length
-);
-const attentionStudents = tutorStudents.filter((s) => s.status === "at-risk" || s.status === "needs-support");
 
 function timeAgo(iso: string): string {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -35,14 +31,21 @@ function timeAgo(iso: string): string {
 
 export default function TutorHome() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const { sessions } = useSessions();
   const { requests: helpRequests, resolveRequest } = useHelpRequests();
-  const tutorSessions = sessions.filter((s) => s.tutorId === CURRENT_TUTOR_ID);
+  const tutorSessions = sessions.filter((s) => s.tutorId === tutorId);
   const todayQueue = tutorSessions.filter((s) => s.time === "Today");
   const [modal, setModal] = useState(false);
   const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
-  const currentTutor = getTutorById(CURRENT_TUTOR_ID);
+  const currentTutor = getTutorById(tutorId);
+  const tutorStudents = getTutorStudents(tutorId);
+  const avgProgress = tutorStudents.length
+    ? Math.round(tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length)
+    : 0;
+  const attentionStudents = tutorStudents.filter((s) => s.status === "at-risk" || s.status === "needs-support");
 
   // Open help requests from this tutor's own students — merged into the same
   // "Needs Attention" list as at-risk/needs-support status, since both are
@@ -74,18 +77,18 @@ export default function TutorHome() {
         style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0f3d32 100%)" }}
       >
         <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold font-display flex-shrink-0">
-          {(() => { const t = getTutorById(CURRENT_TUTOR_ID); return t ? t.firstName[0] + t.lastName[0] : ""; })()}
+          {currentTutor ? currentTutor.firstName[0] + currentTutor.lastName[0] : ""}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-display font-semibold text-white leading-none">{tutorNameById(CURRENT_TUTOR_ID)}</h1>
-          <p className="text-sm text-white/70 mt-1 font-mono">Pre-Calculus · Calculus · {tutorStudents.length} students</p>
+          <h1 className="text-xl font-display font-semibold text-white leading-none">{tutorNameById(tutorId)}</h1>
+          <p className="text-sm text-white/70 mt-1 font-mono">{currentTutor?.courses.join(" · ")} · {tutorStudents.length} students</p>
         </div>
         <span className="text-xs font-mono text-white/60 hidden sm:block">Summer 2026 · Week 6</span>
       </div>
 
       {/* Stat Pillars */}
       <div className="grid grid-cols-3 gap-4">
-        <StatTile label="Assigned Students" value={20} Icon={Users} color="#1B5E4F" />
+        <StatTile label="Assigned Students" value={currentTutor?.students ?? tutorStudents.length} Icon={Users} color="#1B5E4F" />
         <StatTile label="Sessions This Week" value={tutorWeeklyData[5].sessions} Icon={CalendarDays} color="#3B82F6" />
         <StatTile label="Avg Student Score" value={`${avgProgress}%`} Icon={TrendingUp} color="#F0981E" />
       </div>
