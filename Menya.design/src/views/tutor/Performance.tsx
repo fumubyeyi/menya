@@ -4,6 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useAuth } from "../../context/AuthContext";
+import { useTutors } from "../../context/TutorsContext";
 import {
   getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
@@ -18,12 +19,13 @@ const outcomeGrid = [
 
 export default function Performance() {
   const { user } = useAuth();
+  const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const tutorStudents = getTutorStudents(tutorId);
   const avgProgress = tutorStudents.length
     ? Math.round(tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length)
     : 0;
-  const tutorRecord = getTutorById(tutorId);
+  const tutorRecord = getTutorById(tutors, tutorId);
   const outcomeCounts = {
     exceeding: tutorStudents.filter((s) => s.status === "exceeding").length,
     "on-track": tutorStudents.filter((s) => s.status === "on-track").length,

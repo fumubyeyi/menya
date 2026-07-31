@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import { X, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
-import { students, tutors, tutorNameById } from "../data";
-import { courseColor, formatSessionTime } from "../lib/constants";
+import { X, Calendar, CheckCircle2, ChevronLeft, ChevronRight, MapPin, Video } from "lucide-react";
+import { students } from "../data";
+import { ALL_COURSES, courseColor, formatSessionTime, scoreTutorMatch } from "../lib/constants";
 import { useSessions } from "../context/SessionsContext";
+import { useTutors } from "../context/TutorsContext";
 import Avatar from "./Avatar";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "../app/components/ui/carousel";
 import type { SessionType } from "../types";
-
-const ALL_COURSES = ["Algebra","Algebra II","Pre-Alg","Geometry","Statistics","Pre-Calculus","Calculus"];
 
 interface Props {
   onClose: () => void;
@@ -17,20 +16,19 @@ interface Props {
 
 export default function ScheduleModal({ onClose, defaultStudent, defaultType }: Props) {
   const { addSession } = useSessions();
+  const { tutors } = useTutors();
   const isCheckIn = defaultType === "check-in";
-  const [form, setForm] = useState({ student: defaultStudent ?? "", tutor: "", course: "", date: "", time: "", duration: "60", notes: "" });
+  const [form, setForm] = useState({ student: defaultStudent ?? "", tutor: "", course: "", date: "", time: "", duration: "60", notes: "", location: "virtual" as "virtual" | "in-person" });
   const [submitted, setSubmitted] = useState(false);
 
   const studentRecord = students.find((s) => s.name === form.student);
   const studentCourses = studentRecord?.courses ?? [];
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const matchScore = (t: typeof tutors[0]) => {
-    if (!form.course) return t.courses.some((s) => studentCourses.includes(s)) ? 1 : 0;
-    return t.courses.includes(form.course) ? 2 : t.courses.some((s) => studentCourses.includes(s)) ? 1 : 0;
-  };
+  const matchScore = (t: typeof tutors[0]) => scoreTutorMatch(t, form.course, studentRecord?.grade);
   const sortedTutors = [...tutors].sort((a, b) => matchScore(b) - matchScore(a));
-  const selectedTutorName = form.tutor ? tutorNameById(Number(form.tutor)) : "";
+  const selectedTutor = form.tutor ? tutors.find((t) => t.id === Number(form.tutor)) : undefined;
+  const selectedTutorName = selectedTutor ? `${selectedTutor.firstName} ${selectedTutor.lastName}` : "";
 
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
@@ -69,8 +67,8 @@ export default function ScheduleModal({ onClose, defaultStudent, defaultType }: 
       duration: Number(form.duration),
       status: "scheduled",
       type: defaultType ?? "tutoring",
-      meetingId: "add_real_meeting_id",
-      password: "add_real_passcode",
+      location: form.location,
+      ...(form.location === "virtual" ? { meetingId: "add_real_meeting_id", password: "add_real_passcode" } : {}),
     });
     setSubmitted(true);
   };
@@ -162,7 +160,7 @@ export default function ScheduleModal({ onClose, defaultStudent, defaultType }: 
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Select Tutor *</span>
                   <div className="flex items-center gap-2">
-                    {form.course && <span className="text-[10px] font-mono text-primary">Sorted by course match</span>}
+                    {form.course && <span className="text-[10px] font-mono text-primary">Sorted by best match</span>}
                     <span className="text-[10px] font-mono text-muted-foreground">{current + 1} / {sortedTutors.length}</span>
                   </div>
                 </div>
@@ -195,9 +193,10 @@ export default function ScheduleModal({ onClose, defaultStudent, defaultType }: 
                                 {sel && <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />}
                               </div>
                               <p className="text-xs text-muted-foreground leading-snug">{t.description}</p>
-                              <div className="flex items-center gap-2">
-                                {score === 2 && <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">Best match</span>}
-                                {score === 1 && !form.course && <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Good fit</span>}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {score === 3 && <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">Best match · course + grade</span>}
+                                {score === 2 && <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Course match</span>}
+                                {score === 1 && <span className="text-[10px] font-mono text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">Grade match</span>}
                                 <span className="text-[10px] font-mono text-muted-foreground ml-auto">{t.students} students · {t.sessions} sessions</span>
                               </div>
                             </button>
@@ -234,6 +233,18 @@ export default function ScheduleModal({ onClose, defaultStudent, defaultType }: 
                   <input required type="time" value={form.time} onChange={(e) => set("time", e.target.value)}
                     className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
                 </label>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Location</span>
+                <div className="flex gap-2">
+                  {([["virtual", "Virtual", Video], ["in-person", "In-Person", MapPin]] as const).map(([value, label, Icon]) => (
+                    <button key={value} type="button" onClick={() => set("location", value)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-mono font-medium border transition-colors ${form.location === value ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border text-foreground hover:bg-muted"}`}>
+                      <Icon className="w-3.5 h-3.5" />{label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">

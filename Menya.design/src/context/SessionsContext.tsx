@@ -20,6 +20,7 @@ function readSessions(): Session[] {
 interface SessionsContextValue {
   sessions: Session[];
   addSession: (session: Omit<Session, "id">) => void;
+  updateSession: (session: Session) => void;
 }
 
 const SessionsContext = createContext<SessionsContextValue | null>(null);
@@ -34,8 +35,14 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
     setRecords(next);
   };
 
+  const updateSession = (updated: Session) => {
+    const next = records.map((s) => (s.id === updated.id ? updated : s));
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
+    setRecords(next);
+  };
+
   return (
-    <SessionsContext.Provider value={{ sessions: records, addSession }}>
+    <SessionsContext.Provider value={{ sessions: records, addSession, updateSession }}>
       {children}
     </SessionsContext.Provider>
   );

@@ -9,6 +9,7 @@ import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
 import { useSessions } from "../../context/SessionsContext";
 import { useAuth } from "../../context/AuthContext";
+import { useTutors } from "../../context/TutorsContext";
 import {
   getTutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID,
 } from "../../data";
@@ -21,12 +22,13 @@ function scoreCls(score: number) {
 
 export default function TutorSchedule() {
   const { user } = useAuth();
+  const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const { sessions } = useSessions();
   const tutorSessions = sessions.filter((s) => s.tutorId === tutorId);
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
-  const currentTutor = getTutorById(tutorId);
+  const currentTutor = getTutorById(tutors, tutorId);
   const tutorStudents = getTutorStudents(tutorId);
 
   const history = tutorStudents.flatMap((s) =>

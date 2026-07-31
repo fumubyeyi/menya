@@ -39,6 +39,8 @@ export interface Session {
   type?: SessionType;
   meetingId?: string;
   password?: string;
+  // Absent means "virtual" — in-person sessions carry no Zoom meetingId/password.
+  location?: "in-person" | "virtual";
 }
 
 export type ModuleStatus = "not-started" | "in-progress" | "completed";

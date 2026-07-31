@@ -1320,8 +1320,11 @@ export const tutors: Tutor[] = [
   { id: 5, firstName: "Francoise",lastName: "Umubyeyi",  courses: ["Pre-Calculus", "Calculus"],   grades: [9, 10, 11, 12],    students: 20, sessions: 25, description: "Guides students through pre-calculus and calculus with a focus on problem-solving strategy, helping them recognize patterns across problem types rather than memorizing steps." },
 ];
 
-export function getTutorById(id: number): Tutor | undefined {
-  return tutors.find((t) => t.id === id);
+// Takes the tutor list as a parameter (rather than closing over the static seed
+// `tutors` array) so callers can pass the live, staff-editable list from
+// useTutors() and correctly resolve tutors added after the app loaded.
+export function getTutorById(tutorList: Tutor[], id: number): Tutor | undefined {
+  return tutorList.find((t) => t.id === id);
 }
 
 // Tutors who cover both the grade and the course of a currently at-risk student —
@@ -1332,8 +1335,8 @@ export interface AtRiskAlert {
   course: string;
 }
 
-export function getAtRiskAlertsForTutor(tutorId: number): AtRiskAlert[] {
-  const tutor = getTutorById(tutorId);
+export function getAtRiskAlertsForTutor(tutorList: Tutor[], tutorId: number): AtRiskAlert[] {
+  const tutor = getTutorById(tutorList, tutorId);
   if (!tutor) return [];
   return students
     .filter((s) => s.status === "at-risk" && tutor.grades.includes(s.grade))
@@ -1348,8 +1351,11 @@ export function findChapterById(courses: CurriculumCourse[], chapterId: number):
   return undefined;
 }
 
+// Resolves against the static seed roster — used only for historical/display
+// lookups (past session records), which can never reference a tutor added
+// after load, so this doesn't need the live tutor list.
 export function tutorNameById(id: number): string {
-  const t = getTutorById(id);
+  const t = getTutorById(tutors, id);
   return t ? `${t.firstName} ${t.lastName}` : "";
 }
 

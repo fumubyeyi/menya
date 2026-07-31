@@ -15,8 +15,9 @@ import StatTile from "../../components/StatTile";
 import { useSessions } from "../../context/SessionsContext";
 import { useHelpRequests } from "../../context/HelpRequestsContext";
 import { useAuth } from "../../context/AuthContext";
+import { useTutors } from "../../context/TutorsContext";
 import {
-  getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById, tutorNameById,
+  getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
 import { statusMeta } from "../../lib/constants";
 
@@ -32,6 +33,7 @@ function timeAgo(iso: string): string {
 export default function TutorHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const { sessions } = useSessions();
   const { requests: helpRequests, resolveRequest } = useHelpRequests();
@@ -40,7 +42,7 @@ export default function TutorHome() {
   const [modal, setModal] = useState(false);
   const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
-  const currentTutor = getTutorById(tutorId);
+  const currentTutor = getTutorById(tutors, tutorId);
   const tutorStudents = getTutorStudents(tutorId);
   const avgProgress = tutorStudents.length
     ? Math.round(tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length)
@@ -80,7 +82,7 @@ export default function TutorHome() {
           {currentTutor ? currentTutor.firstName[0] + currentTutor.lastName[0] : ""}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-display font-semibold text-white leading-none">{tutorNameById(tutorId)}</h1>
+          <h1 className="text-xl font-display font-semibold text-white leading-none">{currentTutor ? `${currentTutor.firstName} ${currentTutor.lastName}` : ""}</h1>
           <p className="text-sm text-white/70 mt-1 font-mono">{currentTutor?.courses.join(" · ")} · {tutorStudents.length} students</p>
         </div>
         <span className="text-xs font-mono text-white/60 hidden sm:block">Summer 2026 · Week 6</span>

@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, MapPin, Video, Pencil } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
+import ReassignTutorModal from "../../components/ReassignTutorModal";
 import { useSessions } from "../../context/SessionsContext";
-import { tutors, tutorNameById } from "../../data";
+import { useTutors } from "../../context/TutorsContext";
 
 const FILTER_TABS = [
   { key: "all",       label: "All"       },
@@ -18,9 +19,11 @@ const FILTER_TABS = [
 
 export default function Sessions() {
   const { sessions } = useSessions();
+  const { tutors } = useTutors();
   const [tab,   setTab]   = useState("all");
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const [reassigning, setReassigning] = useState<Session | null>(null);
 
   const filtered = sessions.filter((s) => {
     if (tab === "all")       return true;
@@ -69,7 +72,7 @@ export default function Sessions() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                {["Student", "Course", "Tutor", "Date", "Time", "Duration", "Status", ""].map((h) => (
+                {["Student", "Course", "Tutor", "Mode", "Date", "Time", "Duration", "Status", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-mono text-muted-foreground uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -86,20 +89,34 @@ export default function Sessions() {
                     </div>
                   </td>
                   <td className="px-4 py-3"><CourseTag course={s.course} /></td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{tutorNameById(s.tutorId)}</td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                    {(() => { const t = tutors.find((tu) => tu.id === s.tutorId); return t ? `${t.firstName} ${t.lastName}` : "—"; })()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono inline-flex items-center gap-1 ${s.location === "in-person" ? "text-purple-700 bg-purple-50" : "text-blue-700 bg-blue-50"}`}>
+                      {s.location === "in-person" ? <MapPin className="w-3 h-3" /> : <Video className="w-3 h-3" />}
+                      {s.location === "in-person" ? "In-Person" : "Virtual"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.time}</td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.clock}</td>
                   <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.duration}min</td>
                   <td className="px-4 py-3"><SessionStatusPill status={s.status} /></td>
                   <td className="px-4 py-3">
-                    {s.status === "in-progress" && s.meetingId && (
-                      <button
-                        onClick={() => setActiveSession(s)}
-                        className="px-3 py-1 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
-                      >
-                        Watch
+                    <div className="flex items-center gap-1 justify-end">
+                      {s.status === "in-progress" && s.meetingId && (
+                        <button
+                          onClick={() => setActiveSession(s)}
+                          className="px-3 py-1 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                        >
+                          Watch
+                        </button>
+                      )}
+                      <button onClick={() => setReassigning(s)} title="Reassign tutor"
+                        className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -135,6 +152,7 @@ export default function Sessions() {
       </div>
 
       {modal && <ScheduleModal onClose={() => setModal(false)} />}
+      {reassigning && <ReassignTutorModal session={reassigning} onClose={() => setReassigning(null)} />}
       {activeSession?.meetingId && (
         <ZoomModal
           sessionId={activeSession.id}

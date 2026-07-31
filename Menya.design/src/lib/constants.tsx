@@ -3,13 +3,25 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
   GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec } from "../types";
+import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor } from "../types";
 
 // Math courses only, matching the Program > Curriculum library. Each gets a distinct color/icon.
 export const courseColor: Record<string, string> = {
   Algebra: "#1B5E4F", "Algebra II": "#059669", "Pre-Alg": "#F59E0B",
   Geometry: "#3B82F6", Statistics: "#EC4899", "Pre-Calculus": "#8B5CF6", Calculus: "#6366F1",
 };
+
+export const ALL_COURSES = Object.keys(courseColor);
+export const TUTOR_GRADES = [6, 7, 8, 9, 10, 11, 12];
+
+// Shared tutor-matching score used by both the booking flow and session
+// reassignment, so "best match" means the same thing in both places:
+// course + grade match (3) beats course-only (2) beats grade-only (1).
+export function scoreTutorMatch(t: Tutor, course: string, grade?: number): number {
+  const courseMatch = t.courses.includes(course);
+  const gradeMatch = grade !== undefined && t.grades.includes(grade);
+  return (courseMatch ? 2 : 0) + (gradeMatch ? 1 : 0);
+}
 
 export const courseIcon: Record<string, React.ReactNode> = {
   Algebra: <Sigma className="w-4 h-4" />, "Algebra II": <Variable className="w-4 h-4" />, "Pre-Alg": <Divide className="w-4 h-4" />,

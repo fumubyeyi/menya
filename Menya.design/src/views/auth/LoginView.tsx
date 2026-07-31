@@ -12,7 +12,8 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { students, tutors, tutorNameById } from "../../data";
+import { useTutors } from "../../context/TutorsContext";
+import { students } from "../../data";
 import type { Role } from "../../types";
 
 const ROLE_OPTIONS: {
@@ -275,6 +276,7 @@ function CreateAccountModal({
 // ── Login View ────────────────────────────────────────────────────────────────
 export default function LoginView() {
   const { login } = useAuth();
+  const { tutors } = useTutors();
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<Role | null>(
     null,

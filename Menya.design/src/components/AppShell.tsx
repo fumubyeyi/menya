@@ -4,9 +4,10 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
   Bell, Plus, Menu, X, Settings, Atom, Trophy,
   Briefcase, UserCheck, GraduationCap, ClipboardList, LogOut,
-  Award, AlertTriangle,
+  Award, AlertTriangle, UserCog,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useTutors } from "../context/TutorsContext";
 import { aiProjects, getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID } from "../data";
 import { statusMeta } from "../lib/constants";
 import Avatar from "./Avatar";
@@ -19,6 +20,7 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
     { to: "/program/students",   label: "Students",   Icon: Users           },
     { to: "/program/curriculum", label: "Curriculum", Icon: BookOpen        },
     { to: "/program/sessions",   label: "Sessions",   Icon: Calendar        },
+    { to: "/program/tutors",     label: "Tutors",     Icon: UserCog         },
     { to: "/program/analytics",  label: "Analytics",  Icon: BarChart3       },
     { to: "/program/alumni",     label: "Alumni",     Icon: Award           },
   ],
@@ -51,6 +53,7 @@ const STATS: Record<Role, [string, string][]> = {
 
 export default function AppShell({ onSchedule }: { onSchedule?: (student?: string) => void }) {
   const { user, logout } = useAuth();
+  const { tutors } = useTutors();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -66,8 +69,8 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   // At-risk students whose grade + course this tutor covers — broader than a tutor's
   // own roster, which only reflects students they've already had a session with.
   const tutorId = user.tutorId ?? CURRENT_TUTOR_ID;
-  const atRiskAlerts = role === "tutor" ? getAtRiskAlertsForTutor(tutorId) : [];
-  const tutorRecord = role === "tutor" ? getTutorById(tutorId) : undefined;
+  const atRiskAlerts = role === "tutor" ? getAtRiskAlertsForTutor(tutors, tutorId) : [];
+  const tutorRecord = role === "tutor" ? getTutorById(tutors, tutorId) : undefined;
   const stats: [string, string][] = tutorRecord
     ? [[String(tutorRecord.students), "students"], [String(tutorRecord.sessions), "sessions"]]
     : STATS[role];
