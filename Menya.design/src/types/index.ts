@@ -315,6 +315,9 @@ export interface AuthUser {
   name: string;
   studentId?: number;
   tutorId?: number;
+  // Only meaningful for role === "program": regular staff can view everything but
+  // not add/edit records; admins can. Absent/false means regular staff.
+  isAdmin?: boolean;
 }
 
 export interface ZoomModalProps {

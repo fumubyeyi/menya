@@ -8,12 +8,13 @@ interface Props {
   onClose: () => void;
   course: string;
   chapter: CurriculumChapter;
+  isAdmin: boolean;
   onAddModule: (title: string) => void;
   onEditModule: (moduleIndex: number) => void;
   onEditTest: () => void;
 }
 
-export default function ChapterModulesModal({ onClose, course, chapter, onAddModule, onEditModule, onEditTest }: Props) {
+export default function ChapterModulesModal({ onClose, course, chapter, isAdmin, onAddModule, onEditModule, onEditTest }: Props) {
   const [title, setTitle] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,10 +38,12 @@ export default function ChapterModulesModal({ onClose, course, chapter, onAddMod
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <button onClick={onEditTest} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
-              {!isChapterTestAuthored(chapter) && <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
-              Edit Test
-            </button>
+            {isAdmin && (
+              <button onClick={onEditTest} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+                {!isChapterTestAuthored(chapter) && <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
+                Edit Test
+              </button>
+            )}
             <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
               <X className="w-4 h-4" />
             </button>
@@ -60,22 +63,26 @@ export default function ChapterModulesModal({ onClose, course, chapter, onAddMod
                   <span className="w-6 h-6 rounded-md bg-muted text-muted-foreground text-[11px] font-mono flex items-center justify-center flex-shrink-0">{i + 1}</span>
                   <span className="text-sm text-foreground flex-1">{m.title}</span>
                   {!isModuleAuthored(m) && <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
-                  <button onClick={() => onEditModule(i)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
+                  {isAdmin && (
+                    <button onClick={() => onEditModule(i)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 px-6 py-4 border-t border-border flex-shrink-0">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a module…"
-            className="flex-1 px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
-          <button type="submit" disabled={!title.trim()} className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center gap-1.5 flex-shrink-0">
-            <Plus className="w-4 h-4" />Add
-          </button>
-        </form>
+        {isAdmin && (
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 px-6 py-4 border-t border-border flex-shrink-0">
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a module…"
+              className="flex-1 px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
+            <button type="submit" disabled={!title.trim()} className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center gap-1.5 flex-shrink-0">
+              <Plus className="w-4 h-4" />Add
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -65,6 +65,8 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   const role = user.role;
   const nav = NAV[role];
   const meta = ROLE_META[role];
+  const isAdmin = !!user.isAdmin;
+  const tagline = role === "program" ? (isAdmin ? "Program Admin" : "Program Staff") : meta.tagline;
 
   // At-risk students whose grade + course this tutor covers — broader than a tutor's
   // own roster, which only reflects students they've already had a session with.
@@ -134,7 +136,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
         <div className="px-4 py-3 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
           <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
             <meta.Icon className="w-3.5 h-3.5 text-accent flex-shrink-0" />
-            <span className="text-[11px] font-mono text-white/70">{meta.tagline}</span>
+            <span className="text-[11px] font-mono text-white/70">{tagline}</span>
           </div>
         </div>
 
@@ -183,7 +185,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-white truncate">{user.name}</p>
-            <p className="text-[10px] font-mono text-white/40">{meta.tagline}</p>
+            <p className="text-[10px] font-mono text-white/40">{tagline}</p>
           </div>
           <button onClick={handleLogout} title="Sign out"
             className="text-white/30 hover:text-white/70 cursor-pointer transition-colors flex-shrink-0">

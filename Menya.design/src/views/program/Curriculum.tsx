@@ -8,12 +8,15 @@ import ChapterModulesModal from "../../components/ChapterModulesModal";
 import EditModuleModal from "../../components/EditModuleModal";
 import EditChapterTestModal from "../../components/EditChapterTestModal";
 import { useCurriculum } from "../../context/CurriculumContext";
+import { useAuth } from "../../context/AuthContext";
 import { diffCls, courseColor, chapterContentGaps, courseContentGaps } from "../../lib/constants";
 import type { CurriculumCourse, CurriculumChapter } from "../../types";
 
 const VISIBLE_MODULES = 5;
 
 export default function Curriculum() {
+  const { user } = useAuth();
+  const isAdmin = !!user?.isAdmin;
   const { courses, addCourse, addChapter, addModule, updateModule, updateChapterTest } = useCurriculum();
   const [activeTab, setActiveTab] = useState("All");
   const [showAddCourse, setShowAddCourse] = useState(false);
@@ -58,10 +61,12 @@ export default function Curriculum() {
             {totalContentGaps > 0 && ` · ${totalContentGaps} modules need content`}
           </p>
         </div>
-        <button onClick={() => setShowAddCourse(true)} className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-          <PlusCircle className="w-4 h-4" />
-          Add Course
-        </button>
+        {isAdmin && (
+          <button onClick={() => setShowAddCourse(true)} className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+            <PlusCircle className="w-4 h-4" />
+            Add Course
+          </button>
+        )}
       </div>
 
       {/* Course Filter Tabs */}
@@ -108,10 +113,12 @@ export default function Curriculum() {
                       </span>
                     )}
                   </div>
-                  <button onClick={() => setAddChapterFor(course)} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    Add Chapter
-                  </button>
+                  {isAdmin && (
+                    <button onClick={() => setAddChapterFor(course)} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      Add Chapter
+                    </button>
+                  )}
                 </div>
 
                 {/* Chapter Grid */}
@@ -166,10 +173,12 @@ export default function Curriculum() {
                               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <BookOpen className="w-3.5 h-3.5" />{chapter.modules.length} modules
                               </span>
-                              <button onClick={() => setAddModuleFor({ course, chapter })}
-                                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-                                <Plus className="w-3 h-3" />Add Module
-                              </button>
+                              {isAdmin && (
+                                <button onClick={() => setAddModuleFor({ course, chapter })}
+                                  className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                                  <Plus className="w-3 h-3" />Add Module
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -194,6 +203,7 @@ export default function Curriculum() {
       )}
       {liveViewModulesFor && (
         <ChapterModulesModal course={liveViewModulesFor.course.name} chapter={liveViewModulesFor.chapter}
+          isAdmin={isAdmin}
           onClose={() => setViewModulesFor(null)}
           onAddModule={(title) => addModule(liveViewModulesFor.course.id, liveViewModulesFor.chapter.id, title)}
           onEditModule={(moduleIndex) => setEditModuleFor({ course: liveViewModulesFor.course, chapter: liveViewModulesFor.chapter, moduleIndex })}

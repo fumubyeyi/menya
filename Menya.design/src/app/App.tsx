@@ -6,6 +6,7 @@ import { AlumniProvider } from "../context/AlumniContext";
 import { SessionsProvider } from "../context/SessionsContext";
 import { HelpRequestsProvider } from "../context/HelpRequestsContext";
 import { TutorsProvider } from "../context/TutorsContext";
+import { StudentsProvider } from "../context/StudentsContext";
 import { router } from "./routes";
 
 export default function App() {
@@ -15,11 +16,13 @@ export default function App() {
         <CurriculumProvider>
           <AlumniProvider>
             <TutorsProvider>
-              <SessionsProvider>
-                <HelpRequestsProvider>
-                  <RouterProvider router={router} />
-                </HelpRequestsProvider>
-              </SessionsProvider>
+              <StudentsProvider>
+                <SessionsProvider>
+                  <HelpRequestsProvider>
+                    <RouterProvider router={router} />
+                  </HelpRequestsProvider>
+                </SessionsProvider>
+              </StudentsProvider>
             </TutorsProvider>
           </AlumniProvider>
         </CurriculumProvider>

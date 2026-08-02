@@ -4,7 +4,9 @@ import { Search, UserPlus, ChevronRight } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import ProgressRing from "../../components/ProgressRing";
 import CourseTag from "../../components/CourseTag";
-import { students } from "../../data";
+import AddStudentModal from "../../components/AddStudentModal";
+import { useStudents } from "../../context/StudentsContext";
+import { useAuth } from "../../context/AuthContext";
 import { statusMeta } from "../../lib/constants";
 import { getEnrolledCourses } from "../../hooks/useEnrollment";
 import type { StudentStatus } from "../../types";
@@ -19,8 +21,12 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
 
 export default function Students() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = !!user?.isAdmin;
+  const { students } = useStudents();
   const [query, setQuery]   = useState("");
   const [status, setStatus] = useState("all");
+  const [adding, setAdding] = useState(false);
 
   const filtered = students.filter((s) => {
     const matchName    = s.name.toLowerCase().includes(query.toLowerCase());
@@ -36,10 +42,13 @@ export default function Students() {
           <h1 className="text-2xl font-display font-semibold text-foreground">Student Roster</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{students.length} students enrolled</p>
         </div>
-        <button className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-          <UserPlus className="w-4 h-4" />
-          Add Student
-        </button>
+        {isAdmin && (
+          <button onClick={() => setAdding(true)}
+            className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+            <UserPlus className="w-4 h-4" />
+            Add Student
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -108,6 +117,8 @@ export default function Students() {
           })}
         </div>
       )}
+
+      {adding && <AddStudentModal onClose={() => setAdding(false)} />}
     </div>
   );
 }

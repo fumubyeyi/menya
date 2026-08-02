@@ -53,6 +53,11 @@ const ROLE_HOME: Record<Role, string> = {
   program: "/program/dashboard",
 };
 
+const PROGRAM_STAFF: Record<"staff" | "admin", { name: string; email: string }> = {
+  staff: { name: "Taylor Reed",    email: "taylor.reed@menya.org" },
+  admin: { name: "Jordan Alvarez", email: "jordan.alvarez@menya.org" },
+};
+
 // ── Create Account Modal ──────────────────────────────────────────────────────
 function CreateAccountModal({
   onClose,
@@ -285,11 +290,17 @@ export default function LoginView() {
     students[2].name,
   ); // Sofia
   const [tutorId, setTutorId] = useState(tutors[4].id);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(PROGRAM_STAFF.staff.email);
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [error, setError] = useState("");
+  const [staffIsAdmin, setStaffIsAdmin] = useState(false);
+
+  const selectStaffTier = (isAdmin: boolean) => {
+    setStaffIsAdmin(isAdmin);
+    setEmail(PROGRAM_STAFF[isAdmin ? "admin" : "staff"].email);
+  };
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,7 +327,7 @@ export default function LoginView() {
         setError("Please enter your email.");
         return;
       }
-      login({ role: "program", name: "Taylor Reed" });
+      login({ role: "program", name: PROGRAM_STAFF[staffIsAdmin ? "admin" : "staff"].name, isAdmin: staffIsAdmin });
     }
 
     navigate(ROLE_HOME[selectedRole], { replace: true });
@@ -490,19 +501,44 @@ export default function LoginView() {
               )}
 
               {selectedRole === "program" && (
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-                    Email address
-                  </span>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="director@org.edu"
-                    className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25"
-                  />
-                </label>
+                <>
+                  <div>
+                    <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Access level
+                    </span>
+                    <div className="flex gap-2">
+                      {([false, true] as const).map((isAdmin) => (
+                        <button
+                          key={String(isAdmin)}
+                          type="button"
+                          onClick={() => selectStaffTier(isAdmin)}
+                          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-colors ${staffIsAdmin === isAdmin ? "bg-primary text-primary-foreground border-primary" : "border-border text-foreground hover:bg-muted"}`}
+                        >
+                          {isAdmin ? "Admin" : "Regular Staff"}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      {staffIsAdmin
+                        ? "Can view and edit all program data, including students and curriculum."
+                        : "Can view all program data, schedule sessions, and add/edit tutors & alumni. Students and curriculum are admin-only."}
+                    </p>
+                  </div>
+
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+                      Email address
+                    </span>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="director@org.edu"
+                      className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25"
+                    />
+                  </label>
+                </>
               )}
 
               <label className="flex flex-col gap-1.5">
@@ -546,7 +582,7 @@ export default function LoginView() {
                 Sign In
               </button>
 
-              {selectedRole === "program" && (
+              {selectedRole === "program" && staffIsAdmin && (
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
