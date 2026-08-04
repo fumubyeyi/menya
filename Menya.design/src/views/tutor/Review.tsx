@@ -67,8 +67,11 @@ export default function Review() {
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
       <div className="mb-5">
-        <h1 className="text-2xl font-display font-semibold text-foreground">AI Curriculum Review</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Review AI-generated assignments before assigning to students</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-2xl font-display font-semibold text-foreground">AI Curriculum Review</h1>
+          <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-purple-100 text-purple-700">Augmentation Mode</span>
+        </div>
+        <p className="text-sm text-muted-foreground mt-0.5">Review AI-generated, per-student practice that extends your existing curriculum — before it's assigned to a student</p>
       </div>
 
       <div className="flex gap-5 h-[calc(100vh-180px)]">

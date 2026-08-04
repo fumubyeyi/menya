@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { PlusCircle, Plus, BookOpen, Users, ChevronRight, AlertTriangle } from "lucide-react";
+import { PlusCircle, Plus, BookOpen, Users, ChevronRight, AlertTriangle, Upload, Wand2 } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
 import AddCourseModal from "../../components/AddCourseModal";
+import ImportCurriculumModal from "../../components/ImportCurriculumModal";
+import BootstrapCurriculumModal from "../../components/BootstrapCurriculumModal";
 import AddChapterModal from "../../components/AddChapterModal";
 import AddModuleModal from "../../components/AddModuleModal";
 import ChapterModulesModal from "../../components/ChapterModulesModal";
@@ -20,6 +22,8 @@ export default function Curriculum() {
   const { courses, addCourse, addChapter, addModule, updateModule, updateChapterTest } = useCurriculum();
   const [activeTab, setActiveTab] = useState("All");
   const [showAddCourse, setShowAddCourse] = useState(false);
+  const [showImportCourse, setShowImportCourse] = useState(false);
+  const [showBootstrapCourse, setShowBootstrapCourse] = useState(false);
   const [addChapterFor, setAddChapterFor] = useState<CurriculumCourse | null>(null);
   const [addModuleFor, setAddModuleFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
   const [viewModulesFor, setViewModulesFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
@@ -62,10 +66,20 @@ export default function Curriculum() {
           </p>
         </div>
         {isAdmin && (
-          <button onClick={() => setShowAddCourse(true)} className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-            <PlusCircle className="w-4 h-4" />
-            Add Course
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => setShowImportCourse(true)} className="flex items-center gap-1.5 border border-border text-foreground text-sm font-medium px-3.5 py-2 rounded-lg hover:bg-muted transition-colors">
+              <Upload className="w-4 h-4" />
+              Import Curriculum
+            </button>
+            <button onClick={() => setShowBootstrapCourse(true)} className="flex items-center gap-1.5 border border-border text-foreground text-sm font-medium px-3.5 py-2 rounded-lg hover:bg-muted transition-colors">
+              <Wand2 className="w-4 h-4" />
+              Bootstrap with AI
+            </button>
+            <button onClick={() => setShowAddCourse(true)} className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+              <PlusCircle className="w-4 h-4" />
+              Add Course
+            </button>
+          </div>
         )}
       </div>
 
@@ -193,6 +207,8 @@ export default function Curriculum() {
       )}
 
       {showAddCourse && <AddCourseModal onClose={() => setShowAddCourse(false)} onAdd={addCourse} />}
+      {showImportCourse && <ImportCurriculumModal onClose={() => setShowImportCourse(false)} onAdd={addCourse} />}
+      {showBootstrapCourse && <BootstrapCurriculumModal onClose={() => setShowBootstrapCourse(false)} onAdd={addCourse} />}
       {addChapterFor && (
         <AddChapterModal course={addChapterFor} onClose={() => setAddChapterFor(null)}
           onAdd={(title, difficulty) => addChapter(addChapterFor.id, title, difficulty)} />
