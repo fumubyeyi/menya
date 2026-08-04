@@ -1,7 +1,7 @@
 # Menya Database Schema
 
 Relational schema derived from the prototype's TypeScript data model
-(`Menya.design/src/types/index.ts`). The prototype itself only persists to
+(`Menya.prototype/src/types/index.ts`). The prototype itself only persists to
 `localStorage`; this is what a real backend's schema would look like,
 normalizing the arrays/nested objects in that model into tables and join
 tables.
