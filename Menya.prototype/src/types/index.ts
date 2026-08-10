@@ -25,6 +25,28 @@ export interface Student {
   location: string;
 }
 
+export type AttendanceScope = "grade" | "course";
+export type AttendanceMark = "present" | "absent";
+
+export interface AttendanceEntry {
+  studentId: number;
+  status: AttendanceMark;
+}
+
+// A tutor-led in-person roll call covering an entire grade or course at once —
+// distinct from the 1:1 Session model below, which tracks individual tutoring time.
+export interface AttendanceSession {
+  id: number;
+  tutorId: number;
+  scope: AttendanceScope;
+  grade?: number;   // set when scope === "grade"
+  course?: string;  // set when scope === "course"
+  date: string;     // YYYY-MM-DD
+  notes?: string;
+  entries: AttendanceEntry[];
+  createdAt: string;
+}
+
 export interface Session {
   id: number;
   student: string;
@@ -41,6 +63,18 @@ export interface Session {
   password?: string;
   // Absent means "virtual" — in-person sessions carry no Zoom meetingId/password.
   location?: "in-person" | "virtual";
+}
+
+// Sent to a tutor when program staff publish a batch of sessions for an
+// upcoming week — lets the tutor's notification bell surface "N new sessions"
+// without them having to notice the schedule changed on their own.
+export interface ScheduleNotice {
+  id: number;
+  tutorId: number;
+  weekLabel: string;
+  sessionCount: number;
+  createdAt: string;
+  seen: boolean;
 }
 
 export type ModuleStatus = "not-started" | "in-progress" | "completed";

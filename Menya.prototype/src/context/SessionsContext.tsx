@@ -20,6 +20,7 @@ function readSessions(): Session[] {
 interface SessionsContextValue {
   sessions: Session[];
   addSession: (session: Omit<Session, "id">) => void;
+  addSessions: (sessions: Omit<Session, "id">[]) => void;
   updateSession: (session: Session) => void;
 }
 
@@ -28,9 +29,16 @@ const SessionsContext = createContext<SessionsContextValue | null>(null);
 export function SessionsProvider({ children }: { children: ReactNode }) {
   const [records, setRecords] = useState<Session[]>(readSessions);
 
-  const addSession = (session: Omit<Session, "id">) => {
-    const nextId = records.length ? Math.max(...records.map((s) => s.id)) + 1 : 1;
-    const next = [...records, { ...session, id: nextId }];
+  const addSession = (session: Omit<Session, "id">) => addSessions([session]);
+
+  // Bulk insert — assigns every id off one snapshot of `records` and commits with a
+  // single setRecords call, so a loop of individual addSession calls (each reading
+  // the same stale `records` closure before a re-render lands) can't silently drop
+  // all but the last one, which matters for a "publish a week's worth" flow.
+  const addSessions = (newSessions: Omit<Session, "id">[]) => {
+    let nextId = records.length ? Math.max(...records.map((s) => s.id)) + 1 : 1;
+    const additions = newSessions.map((session) => ({ ...session, id: nextId++ }));
+    const next = [...records, ...additions];
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
     setRecords(next);
   };
@@ -42,7 +50,7 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SessionsContext.Provider value={{ sessions: records, addSession, updateSession }}>
+    <SessionsContext.Provider value={{ sessions: records, addSession, addSessions, updateSession }}>
       {children}
     </SessionsContext.Provider>
   );

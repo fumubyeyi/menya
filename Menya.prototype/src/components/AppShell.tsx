@@ -4,10 +4,11 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
   Bell, Plus, Menu, X, Settings, Atom, Trophy,
   Briefcase, UserCheck, GraduationCap, ClipboardList, LogOut,
-  Award, AlertTriangle, UserCog,
+  Award, AlertTriangle, UserCog, CalendarRange,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTutors } from "../context/TutorsContext";
+import { useScheduleNotices } from "../context/ScheduleNoticesContext";
 import { aiProjects, getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID } from "../data";
 import { statusMeta } from "../lib/constants";
 import Avatar from "./Avatar";
@@ -19,7 +20,7 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
     { to: "/program/dashboard",  label: "Dashboard",  Icon: LayoutDashboard },
     { to: "/program/students",   label: "Students",   Icon: Users           },
     { to: "/program/curriculum", label: "Curriculum", Icon: BookOpen        },
-    { to: "/program/sessions",   label: "Sessions",   Icon: Calendar        },
+    { to: "/program/sessions",   label: "Attendance", Icon: Calendar },
     { to: "/program/tutors",     label: "Tutors",     Icon: UserCog         },
     { to: "/program/analytics",  label: "Analytics",  Icon: BarChart3       },
     { to: "/program/alumni",     label: "Alumni",     Icon: Award           },
@@ -27,7 +28,7 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
   tutor: [
     { to: "/tutor/home",        label: "My Home",     Icon: LayoutDashboard },
     { to: "/tutor/students",    label: "My Students", Icon: Users           },
-    { to: "/tutor/schedule",    label: "My Schedule", Icon: Calendar        },
+    { to: "/tutor/schedule",    label: "Attendance", Icon: Calendar },
     { to: "/tutor/review",      label: "Review",      Icon: ClipboardList, badge: aiProjects.filter((p) => p.status === "pending").length },
     { to: "/tutor/performance", label: "Performance", Icon: BarChart3       },
   ],
@@ -54,6 +55,7 @@ const STATS: Record<Role, [string, string][]> = {
 export default function AppShell({ onSchedule }: { onSchedule?: (student?: string) => void }) {
   const { user, logout } = useAuth();
   const { tutors } = useTutors();
+  const { scheduleNotices, markScheduleNoticeSeen } = useScheduleNotices();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -83,6 +85,11 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     else alertRows.push({ student, courses: [course] });
   });
 
+  // Weekly schedules program staff publish for this tutor — surfaced here so they
+  // notice new sessions without having to stumble onto them in their schedule.
+  const myScheduleNotices = role === "tutor" ? scheduleNotices.filter((n) => n.tutorId === tutorId && !n.seen) : [];
+  const notificationCount = alertRows.length + myScheduleNotices.length;
+
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
@@ -92,12 +99,12 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/program/dashboard":  "Dashboard",
     "/program/students":   "Students",
     "/program/curriculum": "Curriculum",
-    "/program/sessions":   "Sessions",
+    "/program/sessions":   "Attendance",
     "/program/analytics":  "Analytics",
     "/program/alumni":     "Alumni Tracking",
     "/tutor/home":         "My Home",
     "/tutor/students":     "My Students",
-    "/tutor/schedule":     "My Schedule",
+    "/tutor/schedule":     "Attendance",
     "/tutor/review":       "Review",
     "/tutor/performance":  "Performance",
     "/student/home":       "My Home",
@@ -210,9 +217,9 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
               className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <Bell className="w-4 h-4" />
-              {alertRows.length > 0 && (
+              {notificationCount > 0 && (
                 <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent text-white text-[10px] font-mono font-bold flex items-center justify-center">
-                  {alertRows.length}
+                  {notificationCount}
                 </span>
               )}
             </button>
@@ -224,10 +231,31 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
                   <div className="px-4 py-3 border-b border-border">
                     <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
                   </div>
-                  {alertRows.length === 0 ? (
+                  {notificationCount === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8 px-4">No new notifications.</p>
                   ) : (
                     <div className="max-h-96 overflow-y-auto divide-y divide-border">
+                      {myScheduleNotices.map((notice) => (
+                        <div key={notice.id} className="p-3.5 flex flex-col gap-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <CalendarRange className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground">
+                                {notice.sessionCount} new session{notice.sessionCount === 1 ? "" : "s"} scheduled
+                              </p>
+                              <p className="text-[11px] font-mono text-muted-foreground">Week of {notice.weekLabel} · from Program</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => { markScheduleNoticeSeen(notice.id); setNotifOpen(false); navigate("/tutor/schedule"); }}
+                            className="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary border border-primary/30 hover:bg-primary/10 transition-colors"
+                          >
+                            View Schedule
+                          </button>
+                        </div>
+                      ))}
                       {alertRows.map(({ student, courses }) => {
                         const atRiskMeta = statusMeta["at-risk"];
                         return (

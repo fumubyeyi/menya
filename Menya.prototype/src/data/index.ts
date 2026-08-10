@@ -1,4 +1,4 @@
-import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, CourseDetail, SessionRecord, AIProject, HomeworkItem, AlumniRecord } from "../types";
+import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, CourseDetail, SessionRecord, AIProject, HomeworkItem, AlumniRecord, AttendanceSession, AttendanceScope, AttendanceEntry } from "../types";
 
 export const CURRENT_STUDENT_ID = 3;
 // Fallback used only if a logged-in tutor's AuthUser.tutorId is somehow missing —
@@ -1459,6 +1459,42 @@ export function getTutorStudents(tutorId: number) {
   return students.filter((s) =>
     studentSessionHistory[s.id]?.some((h) => h.tutorId === tutorId)
   );
+}
+
+// Seed roll calls — a tutor takes one of these per in-person session for an
+// entire grade or course at once, rather than per individual student.
+export const attendanceSessions: AttendanceSession[] = [
+  { id: 1, tutorId: 1, scope: "course", course: "Algebra", date: "2026-06-16", createdAt: "2026-06-16T15:35:00Z",
+    entries: [{ studentId: 1, status: "present" }, { studentId: 6, status: "present" }] },
+  { id: 2, tutorId: 1, scope: "grade", grade: 7, date: "2026-06-17", createdAt: "2026-06-17T15:05:00Z",
+    entries: [{ studentId: 1, status: "present" }, { studentId: 5, status: "present" }] },
+  { id: 3, tutorId: 3, scope: "course", course: "Pre-Alg", date: "2026-06-16", createdAt: "2026-06-16T16:32:00Z",
+    entries: [{ studentId: 3, status: "present" }, { studentId: 7, status: "absent" }] },
+  { id: 4, tutorId: 4, scope: "grade", grade: 8, date: "2026-06-18", createdAt: "2026-06-18T14:02:00Z",
+    entries: [{ studentId: 2, status: "present" }, { studentId: 6, status: "present" }] },
+  { id: 5, tutorId: 5, scope: "course", course: "Calculus", date: "2026-06-19", createdAt: "2026-06-19T17:03:00Z",
+    entries: [{ studentId: 2, status: "present" }, { studentId: 6, status: "absent" }, { studentId: 8, status: "present" }] },
+  { id: 6, tutorId: 2, scope: "grade", grade: 9, date: "2026-06-19", createdAt: "2026-06-19T15:04:00Z",
+    entries: [{ studentId: 4, status: "absent" }, { studentId: 8, status: "present" }] },
+];
+
+// Students matching a roll call's scope — every student in the grade, or every
+// student enrolled in the course — so a tutor's roster auto-populates before
+// they mark individual exceptions.
+export function studentsForAttendanceScope(studentList: Student[], scope: AttendanceScope, value: string): Student[] {
+  return scope === "grade"
+    ? studentList.filter((s) => s.grade === Number(value))
+    : studentList.filter((s) => s.courses.includes(value));
+}
+
+export function attendanceRate(entries: AttendanceEntry[]): number {
+  if (entries.length === 0) return 0;
+  const present = entries.filter((e) => e.status === "present").length;
+  return Math.round((present / entries.length) * 100);
+}
+
+export function attendanceSessionLabel(session: AttendanceSession): string {
+  return session.scope === "grade" ? `Grade ${session.grade}` : (session.course ?? "");
 }
 
 export const sofia = students.find((s) => s.id === CURRENT_STUDENT_ID)!;

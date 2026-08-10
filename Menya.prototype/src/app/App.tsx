@@ -7,6 +7,8 @@ import { SessionsProvider } from "../context/SessionsContext";
 import { HelpRequestsProvider } from "../context/HelpRequestsContext";
 import { TutorsProvider } from "../context/TutorsContext";
 import { StudentsProvider } from "../context/StudentsContext";
+import { AttendanceProvider } from "../context/AttendanceContext";
+import { ScheduleNoticesProvider } from "../context/ScheduleNoticesContext";
 import { router } from "./routes";
 
 export default function App() {
@@ -18,9 +20,13 @@ export default function App() {
             <TutorsProvider>
               <StudentsProvider>
                 <SessionsProvider>
-                  <HelpRequestsProvider>
-                    <RouterProvider router={router} />
-                  </HelpRequestsProvider>
+                  <AttendanceProvider>
+                    <ScheduleNoticesProvider>
+                      <HelpRequestsProvider>
+                        <RouterProvider router={router} />
+                      </HelpRequestsProvider>
+                    </ScheduleNoticesProvider>
+                  </AttendanceProvider>
                 </SessionsProvider>
               </StudentsProvider>
             </TutorsProvider>

@@ -19,6 +19,13 @@ erDiagram
     COURSES  ||--o{ SESSIONS : covers
     SESSIONS ||--o{ SESSION_ARTIFACTS : produces
 
+    TUTORS   ||--o{ ATTENDANCE_SESSIONS : "takes roll call for"
+    COURSES  ||--o{ ATTENDANCE_SESSIONS : "covers (course scope)"
+    ATTENDANCE_SESSIONS ||--o{ ATTENDANCE_ENTRIES : records
+    STUDENTS ||--o{ ATTENDANCE_ENTRIES : "marked in"
+
+    TUTORS ||--o{ SCHEDULE_NOTICES : "notified by"
+
     STUDENTS ||--o{ ENROLLMENTS : enrolls
     COURSES  ||--o{ ENROLLMENTS : "enrolled via"
 
@@ -161,6 +168,33 @@ erDiagram
         string url
     }
 
+    ATTENDANCE_SESSIONS {
+        int      id PK
+        int      tutor_id FK
+        string   scope "grade | course"
+        int      grade "nullable; set when scope = grade"
+        int      course_id FK "nullable; set when scope = course"
+        date     date
+        text     notes
+        datetime created_at
+    }
+
+    ATTENDANCE_ENTRIES {
+        int    id PK
+        int    attendance_session_id FK
+        int    student_id FK
+        string status "present | absent"
+    }
+
+    SCHEDULE_NOTICES {
+        int      id PK
+        int      tutor_id FK
+        string   week_label "denormalized display range, e.g. 'Aug 17 - Aug 23'"
+        int      session_count
+        datetime created_at
+        boolean  seen
+    }
+
     HOMEWORK_ITEMS {
         int      id PK
         int      student_id FK
@@ -261,3 +295,19 @@ erDiagram
   surrogate `id` so `HELP_REQUESTS` and `PRACTICE_ITEMS` can reference a
   specific module directly instead of via `module_index`, except where
   `HELP_REQUESTS` still carries `module_index` to match today's app behavior.
+- **`ATTENDANCE_SESSIONS`** represents one in-person roll call a tutor takes
+  for an entire grade or course at once — distinct from `SESSIONS`, which is
+  always one tutor with one student. `grade` and `course_id` are mutually
+  exclusive, set by `scope`, the same pattern as `SESSIONS.meeting_id`/
+  `meeting_password` being set only for virtual sessions.
+- **`ATTENDANCE_ENTRIES`** has no natural id in the current TypeScript model
+  (an entry is just `{ student_id, status }` inside an `AttendanceSession`);
+  this schema adds a surrogate `id` for the same reason as `MODULES` above,
+  and a `(attendance_session_id, student_id)` unique constraint would enforce
+  one mark per student per roll call.
+- **`SCHEDULE_NOTICES`** is created one-per-tutor when program staff publish a
+  batch of `SESSIONS` for an upcoming week (the "Plan Week" flow), so a
+  tutor's notification bell can say "N new sessions" without joining across
+  every session in that batch. `week_label` is denormalized display text
+  rather than a `week_start`/`week_end` pair because the prototype only ever
+  renders it, never queries by date range.
