@@ -1,4 +1,4 @@
-# menya
+# Menya Tutoring
 
 Adaptive STEM learning infrastructure for nonprofit tutoring organizations.
 
@@ -6,6 +6,10 @@ This repository holds the product prototype ([`Menya.prototype/`](Menya.prototyp
 role-based React app covering the program-director, tutor, and student
 experience — plus the [database schema](docs/schema/database-schema.md) that
 documents what a production backend for it would look like.
+
+The prototype is published at **[floral-minus-74527153.figma.site](https://floral-minus-74527153.figma.site)**.
+
+Repository: **[github.com/fumubyeyi/menya](https://github.com/fumubyeyi/menya)**.
 
 ## Features
 

@@ -1,0 +1,2037 @@
+openapi: 3.1.0
+
+info:
+  title: Menya API
+  version: "1.0.0"
+  description: >
+    REST API for a Menya backend, sitting in front of the relational
+    schema described in `database-schema.md`. The prototype today only
+    persists to `localStorage`; this spec is what that same data model looks
+    like as an API — one resource per table that a client actually needs to
+    query or mutate on its own. Field names are camelCase to match the
+    prototype's existing TypeScript types (`Menya.prototype/src/types/index.ts`)
+    rather than the snake_case column names in the DB doc, so the two read
+    side by side: `SESSIONS.student_id` in the schema is `studentId` here.
+
+    Tables that the prototype only ever reads or writes as part of a parent
+    (`SESSION_ARTIFACTS`, `ATTENDANCE_ENTRIES`, `ALUMNI_CHECK_INS`) are
+    exposed as nested collections rather than independent top-level
+    resources, matching how the TypeScript model already nests them
+    (`AlumniRecord.checkIns`, `AttendanceSession.entries`, ...). Pure join
+    tables with no attributes of their own (`TUTOR_COURSES`, `TUTOR_GRADES`)
+    aren't exposed at all — they're just the `courses`/`grades` arrays on
+    `Tutor`, managed via `PATCH /tutors/{tutorId}`. `ENROLLMENTS` is the one
+    join table with its own attribute (`enrolledAt`), so it gets a thin
+    nested resource under `/students/{studentId}/enrollments`.
+
+servers:
+  - url: https://api.menya.org/v1
+    description: Placeholder — no live API exists yet; the prototype is client-only.
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Students
+  - name: Tutors
+  - name: Curriculum
+    description: Courses, chapters, and modules.
+  - name: Sessions
+    description: 1:1 tutoring sessions (virtual or in-person).
+  - name: Attendance
+    description: Tutor-led roll calls for a whole grade or course at once.
+  - name: Schedule Notices
+  - name: Homework
+  - name: AI Projects
+    description: AI-generated practice, pending tutor review.
+  - name: Alumni
+  - name: Help Requests
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ----------------------------------------------------------- API info
+  /:
+    get:
+      operationId: getApiInfo
+      summary: API info / health check.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, version, status]
+                properties:
+                  name: { type: string, example: "Menya API" }
+                  version: { type: string, example: "1.0.0" }
+                  status: { type: string, example: "ok" }
+
+  # ---------------------------------------------------------------- Auth
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Sign in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, user]
+                properties:
+                  token: { type: string, description: Bearer token for subsequent requests. }
+                  user: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Sign out the current session.
+      responses:
+        "204": { description: Signed out. }
+
+  /me:
+    get:
+      tags: [Auth]
+      operationId: getCurrentUser
+      summary: The signed-in user, including their `studentId`/`tutorId` if applicable.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # --------------------------------------------------------------- Users
+  /users:
+    get:
+      tags: [Users]
+      operationId: listUsers
+      summary: List users.
+      parameters:
+        - name: role
+          in: query
+          schema: { $ref: "#/components/schemas/Role" }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200": { $ref: "#/components/responses/UserList" }
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Create a user account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+
+  /users/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [Users]
+      operationId: getUser
+      summary: Get a user.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Users]
+      operationId: updateUser
+      summary: Update a user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserUpdate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Users]
+      operationId: deleteUser
+      summary: Delete a user.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ------------------------------------------------------------ Students
+  /students:
+    get:
+      tags: [Students]
+      operationId: listStudents
+      summary: List students.
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/StudentStatus" }
+        - name: grade
+          in: query
+          schema: { type: integer }
+        - name: course
+          in: query
+          description: Filter to students enrolled in this course name.
+          schema: { type: string }
+        - name: search
+          in: query
+          description: Case-insensitive match against student name.
+          schema: { type: string }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200": { $ref: "#/components/responses/StudentList" }
+    post:
+      tags: [Students]
+      operationId: createStudent
+      summary: Add a student.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StudentCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+
+  /students/{studentId}:
+    parameters:
+      - $ref: "#/components/parameters/StudentId"
+    get:
+      tags: [Students]
+      operationId: getStudent
+      summary: Get a student.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Students]
+      operationId: updateStudent
+      summary: Update a student.
+      description: >
+        `progress`, `streak`, and `sessionCount` are server-computed from
+        `SESSIONS` and read-only here — see the note on cached columns in
+        `database-schema.md`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StudentUpdate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Students]
+      operationId: deleteStudent
+      summary: Remove a student.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /students/{studentId}/enrollments:
+    parameters:
+      - $ref: "#/components/parameters/StudentId"
+    get:
+      tags: [Students]
+      operationId: listStudentEnrollments
+      summary: Courses this student is enrolled in.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Enrollment" }
+    post:
+      tags: [Students]
+      operationId: enrollStudent
+      summary: Enroll the student in a course.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [courseId]
+              properties:
+                courseId: { type: integer }
+      responses:
+        "201":
+          description: Enrolled.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "409": { description: Already enrolled in this course. }
+
+  /students/{studentId}/enrollments/{courseId}:
+    parameters:
+      - $ref: "#/components/parameters/StudentId"
+      - name: courseId
+        in: path
+        required: true
+        schema: { type: integer }
+    delete:
+      tags: [Students]
+      operationId: unenrollStudent
+      summary: Drop the student from a course.
+      responses:
+        "204": { description: Removed. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # -------------------------------------------------------------- Tutors
+  /tutors:
+    get:
+      tags: [Tutors]
+      operationId: listTutors
+      summary: List tutors.
+      parameters:
+        - name: course
+          in: query
+          schema: { type: string }
+        - name: grade
+          in: query
+          schema: { type: integer }
+        - name: search
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200": { $ref: "#/components/responses/TutorList" }
+    post:
+      tags: [Tutors]
+      operationId: createTutor
+      summary: Add a tutor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TutorCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tutor" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+
+  /tutors/{tutorId}:
+    parameters:
+      - $ref: "#/components/parameters/TutorId"
+    get:
+      tags: [Tutors]
+      operationId: getTutor
+      summary: Get a tutor.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tutor" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Tutors]
+      operationId: updateTutor
+      summary: Update a tutor, including their `courses`/`grades` coverage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TutorUpdate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tutor" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Tutors]
+      operationId: deleteTutor
+      summary: Remove a tutor.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # --------------------------------------------------------- Curriculum
+  /courses:
+    get:
+      tags: [Curriculum]
+      operationId: listCourses
+      summary: List courses in the curriculum library.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Course" }
+    post:
+      tags: [Curriculum]
+      operationId: createCourse
+      summary: Add a course.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CourseCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Course" }
+
+  /courses/{courseId}:
+    parameters:
+      - $ref: "#/components/parameters/CourseId"
+    get:
+      tags: [Curriculum]
+      operationId: getCourse
+      summary: Get a course.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Course" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Curriculum]
+      operationId: updateCourse
+      summary: Update a course.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CourseCreate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Course" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Curriculum]
+      operationId: deleteCourse
+      summary: Remove a course.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /courses/{courseId}/chapters:
+    parameters:
+      - $ref: "#/components/parameters/CourseId"
+    get:
+      tags: [Curriculum]
+      operationId: listChapters
+      summary: List a course's chapters, in `sortOrder`.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Chapter" }
+    post:
+      tags: [Curriculum]
+      operationId: createChapter
+      summary: Add a chapter to a course.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChapterCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Chapter" }
+
+  /chapters/{chapterId}:
+    parameters:
+      - $ref: "#/components/parameters/ChapterId"
+    get:
+      tags: [Curriculum]
+      operationId: getChapter
+      summary: Get a chapter.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Chapter" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Curriculum]
+      operationId: updateChapter
+      summary: Update a chapter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChapterCreate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Chapter" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Curriculum]
+      operationId: deleteChapter
+      summary: Remove a chapter.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /chapters/{chapterId}/modules:
+    parameters:
+      - $ref: "#/components/parameters/ChapterId"
+    get:
+      tags: [Curriculum]
+      operationId: listModules
+      summary: List a chapter's modules, in `sortOrder`.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Module" }
+    post:
+      tags: [Curriculum]
+      operationId: createModule
+      summary: Add a module to a chapter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModuleCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Module" }
+
+  /chapters/{chapterId}/test:
+    parameters:
+      - $ref: "#/components/parameters/ChapterId"
+    get:
+      tags: [Curriculum]
+      operationId: getChapterTest
+      summary: The chapter's end-of-chapter test questions.
+      description: >
+        Empty array means the test hasn't been authored yet — see
+        `isChapterTestAuthored` in the prototype's `lib/constants.tsx`. The
+        app deliberately does not fabricate placeholder questions.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PracticeItem" }
+    put:
+      tags: [Curriculum]
+      operationId: replaceChapterTest
+      summary: Replace the chapter's test questions wholesale.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/PracticeItemCreate" }
+      responses:
+        "200":
+          description: Replaced.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PracticeItem" }
+
+  /modules/{moduleId}:
+    parameters:
+      - $ref: "#/components/parameters/ModuleId"
+    get:
+      tags: [Curriculum]
+      operationId: getModule
+      summary: Get a module, with its content, worked example, and exercises.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Module" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Curriculum]
+      operationId: updateModule
+      summary: Update a module.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModuleCreate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Module" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Curriculum]
+      operationId: deleteModule
+      summary: Remove a module.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ----------------------------------------------------------- Sessions
+  /sessions:
+    get:
+      tags: [Sessions]
+      operationId: listSessions
+      summary: List sessions.
+      parameters:
+        - name: studentId
+          in: query
+          schema: { type: integer }
+        - name: tutorId
+          in: query
+          schema: { type: integer }
+        - name: courseId
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/SessionStatus" }
+        - name: location
+          in: query
+          schema: { $ref: "#/components/schemas/Location" }
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200": { $ref: "#/components/responses/SessionList" }
+    post:
+      tags: [Sessions]
+      operationId: createSession
+      summary: Schedule a session.
+      description: >
+        Also used by the "Plan Week" bulk flow — clients wanting to publish
+        several sessions at once should POST an array to
+        `/sessions:batch` instead, so the server can assign every id and
+        fan out `ScheduleNotice`s in one transaction rather than one call
+        per session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionCreate" }
+      responses:
+        "201":
+          description: Scheduled.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+
+  /sessions:batch:
+    post:
+      tags: [Sessions]
+      operationId: createSessionsBatch
+      summary: Schedule multiple sessions in one transaction ("Plan Week").
+      description: >
+        Publishes every session, then creates one `ScheduleNotice` per
+        tutor with sessions in the batch.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessions]
+              properties:
+                sessions:
+                  type: array
+                  minItems: 1
+                  items: { $ref: "#/components/schemas/SessionCreate" }
+                weekLabel:
+                  type: string
+                  description: Denormalized display range for the resulting schedule notices, e.g. "Aug 17 - Aug 23".
+      responses:
+        "201":
+          description: Scheduled.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Session" }
+                  scheduleNotices:
+                    type: array
+                    items: { $ref: "#/components/schemas/ScheduleNotice" }
+
+  /sessions/{sessionId}:
+    parameters:
+      - $ref: "#/components/parameters/SessionId"
+    get:
+      tags: [Sessions]
+      operationId: getSession
+      summary: Get a session.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Sessions]
+      operationId: updateSession
+      summary: Update a session (status, reassign tutor, record score, ...).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionUpdate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Sessions]
+      operationId: cancelSession
+      summary: Cancel/remove a session.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /sessions/{sessionId}/artifacts:
+    parameters:
+      - $ref: "#/components/parameters/SessionId"
+    get:
+      tags: [Sessions]
+      operationId: listSessionArtifacts
+      summary: Notes/whiteboard artifacts produced during a session.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionArtifact" }
+    post:
+      tags: [Sessions]
+      operationId: addSessionArtifact
+      summary: Attach an artifact to a session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, label, url]
+              properties:
+                type: { $ref: "#/components/schemas/SessionArtifactType" }
+                label: { type: string }
+                url: { type: string, format: uri }
+      responses:
+        "201":
+          description: Added.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionArtifact" }
+
+  # --------------------------------------------------------- Attendance
+  /attendance-sessions:
+    get:
+      tags: [Attendance]
+      operationId: listAttendanceSessions
+      summary: List roll calls.
+      parameters:
+        - name: tutorId
+          in: query
+          schema: { type: integer }
+        - name: scope
+          in: query
+          schema: { $ref: "#/components/schemas/AttendanceScope" }
+        - name: grade
+          in: query
+          schema: { type: integer }
+        - name: courseId
+          in: query
+          schema: { type: integer }
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200": { $ref: "#/components/responses/AttendanceSessionList" }
+    post:
+      tags: [Attendance]
+      operationId: createAttendanceSession
+      summary: Submit a roll call (the tutor's "Take Roll Call" action).
+      description: >
+        `grade` and `courseId` are mutually exclusive, set by `scope` — see
+        the note on `ATTENDANCE_SESSIONS` in `database-schema.md`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AttendanceSessionCreate" }
+      responses:
+        "201":
+          description: Recorded.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttendanceSession" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+
+  /attendance-sessions/{attendanceSessionId}:
+    parameters:
+      - $ref: "#/components/parameters/AttendanceSessionId"
+    get:
+      tags: [Attendance]
+      operationId: getAttendanceSession
+      summary: Get a roll call, with its per-student entries.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttendanceSession" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Attendance]
+      operationId: updateAttendanceSession
+      summary: Correct a roll call (notes, or an individual student's mark).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes: { type: string }
+                entries:
+                  type: array
+                  items: { $ref: "#/components/schemas/AttendanceEntry" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttendanceSession" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Attendance]
+      operationId: deleteAttendanceSession
+      summary: Remove a roll call (e.g. logged for the wrong group).
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ---------------------------------------------------- Schedule Notices
+  /schedule-notices:
+    get:
+      tags: [Schedule Notices]
+      operationId: listScheduleNotices
+      summary: List schedule notices (a tutor's notification bell).
+      parameters:
+        - name: tutorId
+          in: query
+          schema: { type: integer }
+        - name: seen
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ScheduleNotice" }
+    post:
+      tags: [Schedule Notices]
+      operationId: createScheduleNotices
+      summary: Create one or more notices (typically alongside `/sessions:batch`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/ScheduleNoticeCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ScheduleNotice" }
+
+  /schedule-notices/{noticeId}:
+    parameters:
+      - name: noticeId
+        in: path
+        required: true
+        schema: { type: integer }
+    patch:
+      tags: [Schedule Notices]
+      operationId: markScheduleNoticeSeen
+      summary: Mark a notice seen (fired when a tutor opens "View Schedule").
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [seen]
+              properties:
+                seen: { type: boolean }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleNotice" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ---------------------------------------------------------- Homework
+  /homework:
+    get:
+      tags: [Homework]
+      operationId: listHomework
+      summary: List homework items.
+      parameters:
+        - name: studentId
+          in: query
+          schema: { type: integer }
+        - name: courseId
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/HomeworkStatus" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HomeworkItem" }
+    post:
+      tags: [Homework]
+      operationId: assignHomework
+      summary: Assign homework to a student.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HomeworkItemCreate" }
+      responses:
+        "201":
+          description: Assigned.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HomeworkItem" }
+
+  /homework/{homeworkId}:
+    parameters:
+      - name: homeworkId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Homework]
+      operationId: getHomework
+      summary: Get a homework item.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HomeworkItem" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Homework]
+      operationId: updateHomework
+      summary: Update status/completion (typically the student's own progress).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { $ref: "#/components/schemas/HomeworkStatus" }
+                completion: { type: integer, minimum: 0, maximum: 100 }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HomeworkItem" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Homework]
+      operationId: deleteHomework
+      summary: Remove a homework item.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # -------------------------------------------------------- AI Projects
+  /ai-projects:
+    get:
+      tags: [AI Projects]
+      operationId: listAIProjects
+      summary: List AI-generated projects.
+      parameters:
+        - name: studentId
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/ProjectStatus" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AIProject" }
+    post:
+      tags: [AI Projects]
+      operationId: createAIProject
+      summary: Record a newly-generated AI project, queued for tutor review.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AIProjectCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AIProject" }
+
+  /ai-projects/{projectId}:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [AI Projects]
+      operationId: getAIProject
+      summary: Get an AI project.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AIProject" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [AI Projects]
+      operationId: reviewAIProject
+      summary: A tutor's review decision — approve, request revision, or reject.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: "#/components/schemas/ProjectStatus" }
+                tutorNote: { type: string }
+                dueDate: { type: string, format: date }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AIProject" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [AI Projects]
+      operationId: deleteAIProject
+      summary: Remove an AI project.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # -------------------------------------------------------------- Alumni
+  /alumni:
+    get:
+      tags: [Alumni]
+      operationId: listAlumni
+      summary: List alumni records.
+      parameters:
+        - name: outcome
+          in: query
+          schema: { $ref: "#/components/schemas/AlumniOutcome" }
+        - name: followUpStatus
+          in: query
+          schema: { $ref: "#/components/schemas/FollowUpStatus" }
+        - name: exitYear
+          in: query
+          schema: { type: integer }
+        - name: isSuccessStory
+          in: query
+          description: Filter to alumni opted in to the public success-stories page.
+          schema: { type: boolean }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200": { $ref: "#/components/responses/AlumniList" }
+    post:
+      tags: [Alumni]
+      operationId: createAlumnus
+      summary: Add an alumni record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AlumniCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alumni" }
+
+  /alumni/{alumniId}:
+    parameters:
+      - $ref: "#/components/parameters/AlumniId"
+    get:
+      tags: [Alumni]
+      operationId: getAlumnus
+      summary: Get an alumni record.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alumni" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Alumni]
+      operationId: updateAlumnus
+      summary: Update an alumni record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AlumniCreate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alumni" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Alumni]
+      operationId: deleteAlumnus
+      summary: Remove an alumni record.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /alumni/{alumniId}/check-ins:
+    parameters:
+      - $ref: "#/components/parameters/AlumniId"
+    get:
+      tags: [Alumni]
+      operationId: listAlumniCheckIns
+      summary: Dated follow-up check-ins for this alumnus.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AlumniCheckIn" }
+    post:
+      tags: [Alumni]
+      operationId: addAlumniCheckIn
+      summary: Record a new follow-up check-in.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AlumniCheckInCreate" }
+      responses:
+        "201":
+          description: Recorded.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlumniCheckIn" }
+
+  # -------------------------------------------------------- Help Requests
+  /help-requests:
+    get:
+      tags: [Help Requests]
+      operationId: listHelpRequests
+      summary: List help requests ("I'm stuck" flags).
+      parameters:
+        - name: studentId
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/HelpRequestStatus" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HelpRequest" }
+    post:
+      tags: [Help Requests]
+      operationId: createHelpRequest
+      summary: A student flags "I'm stuck" from inside a module.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HelpRequestCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HelpRequest" }
+
+  /help-requests/{helpRequestId}:
+    parameters:
+      - name: helpRequestId
+        in: path
+        required: true
+        schema: { type: integer }
+    patch:
+      tags: [Help Requests]
+      operationId: resolveHelpRequest
+      summary: A tutor resolves the request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: "#/components/schemas/HelpRequestStatus" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HelpRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Help Requests]
+      operationId: deleteHelpRequest
+      summary: Remove a help request.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: integer }
+    StudentId:
+      name: studentId
+      in: path
+      required: true
+      schema: { type: integer }
+    TutorId:
+      name: tutorId
+      in: path
+      required: true
+      schema: { type: integer }
+    CourseId:
+      name: courseId
+      in: path
+      required: true
+      schema: { type: integer }
+    ChapterId:
+      name: chapterId
+      in: path
+      required: true
+      schema: { type: integer }
+    ModuleId:
+      name: moduleId
+      in: path
+      required: true
+      schema: { type: integer }
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema: { type: integer }
+    AttendanceSessionId:
+      name: attendanceSessionId
+      in: path
+      required: true
+      schema: { type: integer }
+    AlumniId:
+      name: alumniId
+      in: path
+      required: true
+      schema: { type: integer }
+
+  responses:
+    NotFound:
+      description: No resource with that id.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationError:
+      description: The request body failed validation.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    UserList:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/PageMeta"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/User" }
+    StudentList:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/PageMeta"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Student" }
+    TutorList:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/PageMeta"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Tutor" }
+    SessionList:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/PageMeta"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Session" }
+    AttendanceSessionList:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/PageMeta"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/AttendanceSession" }
+    AlumniList:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/PageMeta"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Alumni" }
+
+  schemas:
+    # ------------------------------------------------------------ Common
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: "not_found" }
+            message: { type: string }
+
+    PageMeta:
+      type: object
+      properties:
+        total: { type: integer, description: "Total matching rows, ignoring limit/offset." }
+        limit: { type: integer }
+        offset: { type: integer }
+
+    Diagram:
+      type: object
+      description: >
+        One of nine inline-diagram shapes (graph, number-line, factor-tree,
+        bar-chart, shape, ratio-bar, balance-scale, step-sequence,
+        unit-circle) — see `DiagramSpec` in `types/index.ts`. Left as a
+        free-form object here rather than fully modeled as a discriminated
+        union, the same simplification `database-schema.md` makes by typing
+        it `json`.
+      additionalProperties: true
+
+    # ----------------------------------------------------------- Enums
+    Role: { type: string, enum: [program, tutor, student] }
+    StudentStatus: { type: string, enum: [exceeding, on-track, needs-support, at-risk] }
+    SessionStatus: { type: string, enum: [upcoming, in-progress, scheduled, completed] }
+    SessionType: { type: string, enum: [tutoring, check-in] }
+    Location: { type: string, enum: [in-person, virtual] }
+    Difficulty: { type: string, enum: [Beginner, Intermediate, Advanced] }
+    ModuleStatus: { type: string, enum: [not-started, in-progress, completed] }
+    QuestionType: { type: string, enum: [free-response, true-false, multiple-choice, numeric] }
+    PracticeItemKind: { type: string, enum: [worked_example, exercise, chapter_test] }
+    AttendanceScope: { type: string, enum: [grade, course] }
+    AttendanceMark: { type: string, enum: [present, absent] }
+    SessionArtifactType: { type: string, enum: [notes, whiteboard] }
+    HomeworkStatus: { type: string, enum: [not-started, in-progress, submitted] }
+    ProjectStatus: { type: string, enum: [pending, approved, revision, rejected] }
+    ExitReason: { type: string, enum: [graduated, left-program] }
+    AlumniOutcome:
+      type: string
+      enum: [stem-college, non-stem-college, stem-career, non-stem-career, military, gap-year, unknown]
+    FollowUpStatus: { type: string, enum: [up-to-date, due-soon, overdue] }
+    VerificationSource: { type: string, enum: [self-reported, verified] }
+    HelpRequestStatus: { type: string, enum: [open, resolved] }
+
+    # ------------------------------------------------------------ Users
+    User:
+      type: object
+      required: [id, email, role, name, createdAt]
+      properties:
+        id: { type: integer, readOnly: true }
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/Role" }
+        isAdmin:
+          type: boolean
+          nullable: true
+          description: Program role only — view-only staff vs. staff who can add/edit records.
+        name: { type: string }
+        studentId: { type: integer, nullable: true, readOnly: true }
+        tutorId: { type: integer, nullable: true, readOnly: true }
+        createdAt: { type: string, format: date-time, readOnly: true }
+    UserCreate:
+      type: object
+      required: [email, password, role, name]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+        role: { $ref: "#/components/schemas/Role" }
+        isAdmin: { type: boolean }
+        name: { type: string }
+    UserUpdate:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/Role" }
+        isAdmin: { type: boolean }
+        name: { type: string }
+
+    # ---------------------------------------------------------- Students
+    Student:
+      type: object
+      required: [id, name, grade, location, status, progress, streak, sessionCount]
+      properties:
+        id: { type: integer, readOnly: true }
+        userId: { type: integer, nullable: true }
+        name: { type: string }
+        grade: { type: integer }
+        location: { type: string }
+        status: { $ref: "#/components/schemas/StudentStatus" }
+        courses:
+          type: array
+          items: { type: string }
+          readOnly: true
+          description: Denormalized course names, convenience view over `/students/{studentId}/enrollments`.
+        progress: { type: integer, minimum: 0, maximum: 100, readOnly: true, description: "Cached; derived from SESSIONS." }
+        streak: { type: integer, readOnly: true, description: "Cached, in days." }
+        sessionCount: { type: integer, readOnly: true }
+        createdAt: { type: string, format: date-time, readOnly: true }
+    StudentCreate:
+      type: object
+      required: [name, grade, location]
+      properties:
+        name: { type: string }
+        grade: { type: integer }
+        location: { type: string }
+        userId: { type: integer, nullable: true }
+    StudentUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        grade: { type: integer }
+        location: { type: string }
+        status: { $ref: "#/components/schemas/StudentStatus" }
+
+    Enrollment:
+      type: object
+      required: [studentId, courseId, enrolledAt]
+      properties:
+        studentId: { type: integer }
+        courseId: { type: integer }
+        enrolledAt: { type: string, format: date-time, readOnly: true }
+
+    # ----------------------------------------------------------- Tutors
+    Tutor:
+      type: object
+      required: [id, firstName, lastName, courses, grades, studentCount, sessionCount, description]
+      properties:
+        id: { type: integer, readOnly: true }
+        userId: { type: integer, nullable: true }
+        firstName: { type: string }
+        lastName: { type: string }
+        courses:
+          type: array
+          items: { type: string }
+          description: Course names this tutor is willing to teach.
+        grades:
+          type: array
+          items: { type: integer }
+          description: Grades this tutor covers.
+        studentCount: { type: integer, readOnly: true, description: "Cached; derived from SESSIONS." }
+        sessionCount: { type: integer, readOnly: true }
+        description: { type: string }
+        createdAt: { type: string, format: date-time, readOnly: true }
+    TutorCreate:
+      type: object
+      required: [firstName, lastName, courses, grades, description]
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        courses: { type: array, items: { type: string } }
+        grades: { type: array, items: { type: integer } }
+        description: { type: string }
+        userId: { type: integer, nullable: true }
+    TutorUpdate:
+      type: object
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        courses: { type: array, items: { type: string } }
+        grades: { type: array, items: { type: integer } }
+        description: { type: string }
+
+    # ------------------------------------------------------- Curriculum
+    Course:
+      type: object
+      required: [id, name, gradeRange]
+      properties:
+        id: { type: integer, readOnly: true }
+        name: { type: string }
+        gradeRange: { type: string, example: "7-8" }
+        description: { type: string, nullable: true }
+    CourseCreate:
+      type: object
+      required: [name, gradeRange]
+      properties:
+        name: { type: string }
+        gradeRange: { type: string }
+        description: { type: string, nullable: true }
+
+    Chapter:
+      type: object
+      required: [id, courseId, title, difficulty, sortOrder]
+      properties:
+        id: { type: integer, readOnly: true }
+        courseId: { type: integer, readOnly: true }
+        title: { type: string }
+        difficulty: { $ref: "#/components/schemas/Difficulty" }
+        sortOrder: { type: integer }
+    ChapterCreate:
+      type: object
+      required: [title, difficulty, sortOrder]
+      properties:
+        title: { type: string }
+        difficulty: { $ref: "#/components/schemas/Difficulty" }
+        sortOrder: { type: integer }
+
+    Module:
+      type: object
+      required: [id, chapterId, title, status, sortOrder]
+      properties:
+        id: { type: integer, readOnly: true }
+        chapterId: { type: integer, readOnly: true }
+        title: { type: string }
+        status: { $ref: "#/components/schemas/ModuleStatus" }
+        description: { type: string, nullable: true }
+        content:
+          type: array
+          items: { type: string }
+          description: Body text blocks. Absent/empty means the module isn't authored yet — the app shows an honest "not available" state rather than placeholder text.
+        diagram: { $ref: "#/components/schemas/Diagram" }
+        workedExample:
+          allOf: [{ $ref: "#/components/schemas/PracticeItem" }]
+          nullable: true
+        exercises:
+          type: array
+          items: { $ref: "#/components/schemas/PracticeItem" }
+        sortOrder: { type: integer }
+    ModuleCreate:
+      type: object
+      required: [title, status, sortOrder]
+      properties:
+        title: { type: string }
+        status: { $ref: "#/components/schemas/ModuleStatus" }
+        description: { type: string, nullable: true }
+        content: { type: array, items: { type: string } }
+        diagram: { $ref: "#/components/schemas/Diagram" }
+        workedExample: { $ref: "#/components/schemas/PracticeItemCreate" }
+        exercises:
+          type: array
+          items: { $ref: "#/components/schemas/PracticeItemCreate" }
+        sortOrder: { type: integer }
+
+    PracticeChoice:
+      type: object
+      required: [label]
+      properties:
+        label: { type: string }
+        diagram: { $ref: "#/components/schemas/Diagram" }
+
+    PracticeItem:
+      type: object
+      required: [id, kind, prompt, answer]
+      properties:
+        id: { type: integer, readOnly: true }
+        kind: { $ref: "#/components/schemas/PracticeItemKind" }
+        moduleId: { type: integer, nullable: true, readOnly: true }
+        chapterId: { type: integer, nullable: true, readOnly: true }
+        prompt: { type: string }
+        answer: { type: string, description: Model answer (free-response) or explanation shown after grading. }
+        type:
+          allOf: [{ $ref: "#/components/schemas/QuestionType" }]
+          default: free-response
+        choices:
+          type: array
+          items: { $ref: "#/components/schemas/PracticeChoice" }
+          description: Multiple-choice only.
+        correctIndex: { type: integer, nullable: true, description: "Multiple-choice/true-false (0 = True, 1 = False)." }
+        numericAnswer: { type: string, nullable: true }
+        hint: { type: string, nullable: true }
+        diagram: { $ref: "#/components/schemas/Diagram" }
+    PracticeItemCreate:
+      type: object
+      required: [prompt, answer]
+      properties:
+        prompt: { type: string }
+        answer: { type: string }
+        type: { $ref: "#/components/schemas/QuestionType" }
+        choices:
+          type: array
+          items: { $ref: "#/components/schemas/PracticeChoice" }
+        correctIndex: { type: integer, nullable: true }
+        numericAnswer: { type: string, nullable: true }
+        hint: { type: string, nullable: true }
+        diagram: { $ref: "#/components/schemas/Diagram" }
+
+    # --------------------------------------------------------- Sessions
+    Session:
+      type: object
+      required: [id, studentId, tutorId, courseId, scheduledDate, scheduledTime, durationMinutes, status]
+      properties:
+        id: { type: integer, readOnly: true }
+        studentId: { type: integer }
+        tutorId: { type: integer }
+        courseId: { type: integer }
+        scheduledDate: { type: string, format: date }
+        scheduledTime: { type: string, example: "15:30" }
+        durationMinutes: { type: integer }
+        status: { $ref: "#/components/schemas/SessionStatus" }
+        type:
+          allOf: [{ $ref: "#/components/schemas/SessionType" }]
+          default: tutoring
+        location:
+          allOf: [{ $ref: "#/components/schemas/Location" }]
+          default: virtual
+        meetingId: { type: string, nullable: true, description: Virtual sessions only. }
+        meetingPassword: { type: string, nullable: true, description: Virtual sessions only. }
+        score: { type: integer, nullable: true, description: Set once the session is completed. }
+        createdAt: { type: string, format: date-time, readOnly: true }
+    SessionCreate:
+      type: object
+      required: [studentId, tutorId, courseId, scheduledDate, scheduledTime, durationMinutes]
+      properties:
+        studentId: { type: integer }
+        tutorId: { type: integer }
+        courseId: { type: integer }
+        scheduledDate: { type: string, format: date }
+        scheduledTime: { type: string }
+        durationMinutes: { type: integer }
+        type: { $ref: "#/components/schemas/SessionType" }
+        location: { $ref: "#/components/schemas/Location" }
+    SessionUpdate:
+      type: object
+      properties:
+        tutorId: { type: integer, description: Reassign to a different tutor. }
+        scheduledDate: { type: string, format: date }
+        scheduledTime: { type: string }
+        durationMinutes: { type: integer }
+        status: { $ref: "#/components/schemas/SessionStatus" }
+        score: { type: integer, nullable: true }
+
+    SessionArtifact:
+      type: object
+      required: [id, sessionId, type, label, url]
+      properties:
+        id: { type: integer, readOnly: true }
+        sessionId: { type: integer, readOnly: true }
+        type: { $ref: "#/components/schemas/SessionArtifactType" }
+        label: { type: string }
+        url: { type: string, format: uri }
+
+    # ------------------------------------------------------- Attendance
+    AttendanceEntry:
+      type: object
+      required: [studentId, status]
+      properties:
+        id: { type: integer, readOnly: true, description: "Surrogate id, not present in the prototype's client-side shape." }
+        studentId: { type: integer }
+        status: { $ref: "#/components/schemas/AttendanceMark" }
+
+    AttendanceSession:
+      type: object
+      required: [id, tutorId, scope, date, entries]
+      properties:
+        id: { type: integer, readOnly: true }
+        tutorId: { type: integer }
+        scope: { $ref: "#/components/schemas/AttendanceScope" }
+        grade: { type: integer, nullable: true, description: Set when scope = grade. }
+        courseId: { type: integer, nullable: true, description: Set when scope = course. }
+        date: { type: string, format: date }
+        notes: { type: string, nullable: true }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/AttendanceEntry" }
+        createdAt: { type: string, format: date-time, readOnly: true }
+    AttendanceSessionCreate:
+      type: object
+      required: [tutorId, scope, date, entries]
+      properties:
+        tutorId: { type: integer }
+        scope: { $ref: "#/components/schemas/AttendanceScope" }
+        grade: { type: integer, nullable: true }
+        courseId: { type: integer, nullable: true }
+        date: { type: string, format: date }
+        notes: { type: string, nullable: true }
+        entries:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [studentId, status]
+            properties:
+              studentId: { type: integer }
+              status: { $ref: "#/components/schemas/AttendanceMark" }
+
+    # -------------------------------------------------- Schedule Notices
+    ScheduleNotice:
+      type: object
+      required: [id, tutorId, weekLabel, sessionCount, createdAt, seen]
+      properties:
+        id: { type: integer, readOnly: true }
+        tutorId: { type: integer }
+        weekLabel: { type: string, example: "Aug 17 - Aug 23" }
+        sessionCount: { type: integer }
+        createdAt: { type: string, format: date-time, readOnly: true }
+        seen: { type: boolean, default: false }
+    ScheduleNoticeCreate:
+      type: object
+      required: [tutorId, weekLabel, sessionCount]
+      properties:
+        tutorId: { type: integer }
+        weekLabel: { type: string }
+        sessionCount: { type: integer }
+
+    # ---------------------------------------------------------- Homework
+    HomeworkItem:
+      type: object
+      required: [id, studentId, courseId, assignedByTutorId, title, assignedAt, dueDate, status, completion]
+      properties:
+        id: { type: integer, readOnly: true }
+        studentId: { type: integer }
+        courseId: { type: integer }
+        assignedByTutorId: { type: integer }
+        title: { type: string }
+        assignedAt: { type: string, format: date-time, readOnly: true }
+        dueDate: { type: string, format: date }
+        status:
+          allOf: [{ $ref: "#/components/schemas/HomeworkStatus" }]
+          default: not-started
+        completion: { type: integer, minimum: 0, maximum: 100, default: 0 }
+    HomeworkItemCreate:
+      type: object
+      required: [studentId, courseId, assignedByTutorId, title, dueDate]
+      properties:
+        studentId: { type: integer }
+        courseId: { type: integer }
+        assignedByTutorId: { type: integer }
+        title: { type: string }
+        dueDate: { type: string, format: date }
+
+    # ------------------------------------------------------- AI Projects
+    AIProject:
+      type: object
+      required: [id, studentId, courseId, moduleTitle, title, difficulty, estimatedMins, status, generatedAt, aiNote, tasks]
+      properties:
+        id: { type: integer, readOnly: true }
+        studentId: { type: integer }
+        courseId: { type: integer }
+        moduleTitle: { type: string, description: Denormalized reference into the curriculum. }
+        title: { type: string }
+        difficulty: { $ref: "#/components/schemas/Difficulty" }
+        estimatedMins: { type: integer }
+        status:
+          allOf: [{ $ref: "#/components/schemas/ProjectStatus" }]
+          default: pending
+        generatedAt: { type: string, format: date-time, readOnly: true }
+        aiNote: { type: string }
+        tasks: { type: array, items: { type: string } }
+        assignedAt: { type: string, format: date-time, nullable: true }
+        dueDate: { type: string, format: date, nullable: true }
+        tutorNote: { type: string, nullable: true }
+    AIProjectCreate:
+      type: object
+      required: [studentId, courseId, moduleTitle, title, difficulty, estimatedMins, aiNote, tasks]
+      properties:
+        studentId: { type: integer }
+        courseId: { type: integer }
+        moduleTitle: { type: string }
+        title: { type: string }
+        difficulty: { $ref: "#/components/schemas/Difficulty" }
+        estimatedMins: { type: integer }
+        aiNote: { type: string }
+        tasks: { type: array, items: { type: string } }
+
+    # ------------------------------------------------------------ Alumni
+    AlumniCheckIn:
+      type: object
+      required: [id, timeframe, date, outcome, verification]
+      properties:
+        id: { type: integer, readOnly: true }
+        timeframe: { type: string, example: "6-month" }
+        date: { type: string, format: date }
+        outcome: { $ref: "#/components/schemas/AlumniOutcome" }
+        verification: { $ref: "#/components/schemas/VerificationSource" }
+        note: { type: string, nullable: true }
+    AlumniCheckInCreate:
+      type: object
+      required: [timeframe, date, outcome, verification]
+      properties:
+        timeframe: { type: string }
+        date: { type: string, format: date }
+        outcome: { $ref: "#/components/schemas/AlumniOutcome" }
+        verification: { $ref: "#/components/schemas/VerificationSource" }
+        note: { type: string, nullable: true }
+
+    Alumni:
+      type: object
+      required: [id, name, lastGrade, location, exitReason, exitYear, hsGraduated, outcome, verification, lastContact, followUpStatus, assignedStaffId, checkIns]
+      properties:
+        id: { type: integer, readOnly: true }
+        studentId: { type: integer, nullable: true, description: Absent for self-reported/historical exits with no tracked-student link. }
+        name: { type: string }
+        lastGrade: { type: integer }
+        location: { type: string }
+        exitReason: { $ref: "#/components/schemas/ExitReason" }
+        exitYear: { type: integer }
+        hsGraduated: { type: boolean }
+        outcome: { $ref: "#/components/schemas/AlumniOutcome" }
+        verification: { $ref: "#/components/schemas/VerificationSource" }
+        institution: { type: string, nullable: true }
+        fieldOfStudy: { type: string, nullable: true }
+        lastContact: { type: string, format: date }
+        followUpStatus: { $ref: "#/components/schemas/FollowUpStatus" }
+        assignedStaffId: { type: integer, description: "-> User.id" }
+        notes: { type: string, nullable: true }
+        checkIns:
+          type: array
+          items: { $ref: "#/components/schemas/AlumniCheckIn" }
+        email: { type: string, format: email, nullable: true }
+        phone: { type: string, nullable: true }
+        linkedIn: { type: string, nullable: true }
+        isSuccessStory: { type: boolean, nullable: true }
+        testimonial: { type: string, nullable: true }
+        openToMentoring: { type: boolean, nullable: true }
+    AlumniCreate:
+      type: object
+      required: [name, lastGrade, location, exitReason, exitYear, hsGraduated, outcome, verification, lastContact, followUpStatus, assignedStaffId]
+      properties:
+        studentId: { type: integer, nullable: true }
+        name: { type: string }
+        lastGrade: { type: integer }
+        location: { type: string }
+        exitReason: { $ref: "#/components/schemas/ExitReason" }
+        exitYear: { type: integer }
+        hsGraduated: { type: boolean }
+        outcome: { $ref: "#/components/schemas/AlumniOutcome" }
+        verification: { $ref: "#/components/schemas/VerificationSource" }
+        institution: { type: string, nullable: true }
+        fieldOfStudy: { type: string, nullable: true }
+        lastContact: { type: string, format: date }
+        followUpStatus: { $ref: "#/components/schemas/FollowUpStatus" }
+        assignedStaffId: { type: integer }
+        notes: { type: string, nullable: true }
+        email: { type: string, format: email, nullable: true }
+        phone: { type: string, nullable: true }
+        linkedIn: { type: string, nullable: true }
+        isSuccessStory: { type: boolean }
+        testimonial: { type: string, nullable: true }
+        openToMentoring: { type: boolean }
+
+    # ------------------------------------------------------ Help Requests
+    HelpRequest:
+      type: object
+      required: [id, studentId, courseId, chapterId, moduleIndex, createdAt, status]
+      properties:
+        id: { type: integer, readOnly: true }
+        studentId: { type: integer, readOnly: true }
+        courseId: { type: integer }
+        chapterId: { type: integer }
+        moduleIndex: { type: integer, description: "Position within the chapter; modules aren't independently addressable in the flag itself." }
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time, readOnly: true }
+        status:
+          allOf: [{ $ref: "#/components/schemas/HelpRequestStatus" }]
+          default: open
+        resolvedAt: { type: string, format: date-time, nullable: true }
+    HelpRequestCreate:
+      type: object
+      required: [courseId, chapterId, moduleIndex]
+      properties:
+        courseId: { type: integer }
+        chapterId: { type: integer }
+        moduleIndex: { type: integer }
+        note: { type: string, nullable: true }
