@@ -8,51 +8,11 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuChe
 import { useSessions } from "../../context/SessionsContext";
 import { useTutors } from "../../context/TutorsContext";
 import { useScheduleNotices } from "../../context/ScheduleNoticesContext";
-import { formatSessionTime } from "../../lib/constants";
+import { useRecurringSlots, type RecurringSlot } from "../../context/RecurringSlotsContext";
+import { formatSessionTime, formatTime12h } from "../../lib/constants";
 import type { Session } from "../../types";
 
-// Most in-person sessions land on the same recurring weekly slots by grade band.
-// This table is a standing reference of those slots — assigning tutors here just
-// sets what the "Add" action pre-fills; it doesn't publish anything until that
-// opens the session modal and is saved.
-export interface RecurringSlot {
-  id: string;
-  day: string;
-  time: string;
-  grades: number[];
-  tutorIds: number[];
-}
-
-const RECURRING_SLOTS_KEY = "menya:recurringSlots";
-const RECURRING_GRADE_GROUPS: number[][] = [[6, 7], [8, 9], [10, 11, 12]];
-const RECURRING_DEFAULT_DAYS = ["Monday", "Wednesday"];
-const RECURRING_DEFAULT_TIME = "18:00";
-
-function defaultRecurringSlots(): RecurringSlot[] {
-  return RECURRING_DEFAULT_DAYS.flatMap((day) =>
-    RECURRING_GRADE_GROUPS.map((grades) => ({ id: `${day}-${grades.join(",")}`, day, time: RECURRING_DEFAULT_TIME, grades, tutorIds: [] }))
-  );
-}
-
-function readRecurringSlots(): RecurringSlot[] {
-  try {
-    const saved = JSON.parse(localStorage.getItem(RECURRING_SLOTS_KEY) ?? "null");
-    // Slots saved before the per-slot "time" field existed only had day/grades/tutorIds —
-    // backfill a default time so old localStorage data doesn't crash the sort below.
-    if (Array.isArray(saved) && saved.length > 0) return saved.map((slot) => ({ time: RECURRING_DEFAULT_TIME, ...slot }));
-  } catch {
-    // fall through to defaults
-  }
-  return defaultRecurringSlots();
-}
-
-function formatTime12h(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  let h = parseInt(hStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  h = h % 12 || 12;
-  return `${h}:${mStr} ${period}`;
-}
+export type { RecurringSlot };
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -80,10 +40,10 @@ export default function Schedule() {
   const { sessions, addSessions, removeSession, removeSessions } = useSessions();
   const { tutors } = useTutors();
   const { addScheduleNotices } = useScheduleNotices();
+  const { recurringSlots, toggleSlotTutor, saveSlot: saveSlotToContext, deleteSlot } = useRecurringSlots();
 
   const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
   const [modalState, setModalState] = useState<ModalState | null>(null);
-  const [recurringSlots, setRecurringSlots] = useState<RecurringSlot[]>(readRecurringSlots);
   const [slotModal, setSlotModal] = useState<{ mode: "add" } | { mode: "edit"; slot: RecurringSlot } | null>(null);
   const [toast, setToast] = useState("");
 
@@ -93,35 +53,9 @@ export default function Schedule() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const toggleSlotTutor = (slotId: string, tutorId: number) => {
-    setRecurringSlots((prev) => {
-      const next = prev.map((slot) =>
-        slot.id === slotId
-          ? { ...slot, tutorIds: slot.tutorIds.includes(tutorId) ? slot.tutorIds.filter((id) => id !== tutorId) : [...slot.tutorIds, tutorId] }
-          : slot
-      );
-      localStorage.setItem(RECURRING_SLOTS_KEY, JSON.stringify(next));
-      return next;
-    });
-  };
-
   const saveSlot = (fields: { day: string; time: string; grades: number[] }) => {
-    setRecurringSlots((prev) => {
-      const next = slotModal?.mode === "edit"
-        ? prev.map((slot) => (slot.id === slotModal.slot.id ? { ...slot, ...fields } : slot))
-        : [...prev, { id: `slot-${Date.now()}`, ...fields, tutorIds: [] }];
-      localStorage.setItem(RECURRING_SLOTS_KEY, JSON.stringify(next));
-      return next;
-    });
+    saveSlotToContext(fields, slotModal?.mode === "edit" ? slotModal.slot.id : undefined);
     setSlotModal(null);
-  };
-
-  const deleteSlot = (slotId: string) => {
-    setRecurringSlots((prev) => {
-      const next = prev.filter((slot) => slot.id !== slotId);
-      localStorage.setItem(RECURRING_SLOTS_KEY, JSON.stringify(next));
-      return next;
-    });
   };
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => {

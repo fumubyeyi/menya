@@ -39,9 +39,13 @@ export interface AttendanceSession {
   id: number;
   tutorId: number;
   scope: AttendanceScope;
-  grade?: number;   // set when scope === "grade"
-  course?: string;  // set when scope === "course"
-  date: string;     // YYYY-MM-DD
+  grades?: number[]; // set when scope === "grade" — the grade band covered, e.g. [6, 7]
+  course?: string;   // set when scope === "course"
+  date: string;      // YYYY-MM-DD
+  // Set when this roll call was taken against a specific Recurring Slot occurrence
+  // (see RecurringSlotsContext) — lets Attendance detect which scheduled slots
+  // still have no roll call logged for a given date.
+  slotId?: string;
   notes?: string;
   entries: AttendanceEntry[];
   createdAt: string;

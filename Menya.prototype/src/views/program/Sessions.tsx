@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pencil, ClipboardCheck, Percent, XCircle, AlertTriangle, Download } from "lucide-react";
+import { Pencil, ClipboardCheck, Percent, XCircle, AlertTriangle, Download, CalendarClock } from "lucide-react";
 import type { Session, AttendanceScope } from "../../types";
 import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
@@ -10,12 +10,13 @@ import { useSessions } from "../../context/SessionsContext";
 import { useTutors } from "../../context/TutorsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useStudents } from "../../context/StudentsContext";
+import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { attendanceRate, attendanceSessionLabel, getTutorById } from "../../data";
-import { ALL_COURSES, TUTOR_GRADES } from "../../lib/constants";
+import { ALL_COURSES, GRADE_GROUPS, formatTime12h } from "../../lib/constants";
 
 const MODES = [
-  { key: "online",    label: "Online"    },
   { key: "in-person", label: "In-Person" },
+  { key: "online",    label: "Online"    },
 ] as const;
 type Mode = (typeof MODES)[number]["key"];
 
@@ -25,12 +26,6 @@ const STATUS_TABS = [
   { key: "live",      label: "Live"      },
   { key: "scheduled", label: "Scheduled" },
 ];
-
-function rateCls(rate: number) {
-  if (rate >= 90) return "text-emerald-700 bg-emerald-50";
-  if (rate >= 75) return "text-amber-700 bg-amber-50";
-  return "text-red-700 bg-red-50";
-}
 
 function csvEscape(value: string | number): string {
   const s = String(value);
@@ -42,18 +37,19 @@ export default function Sessions() {
   const { tutors } = useTutors();
   const { attendanceSessions } = useAttendance();
   const { students } = useStudents();
+  const { recurringSlots } = useRecurringSlots();
 
-  const [mode, setMode] = useState<Mode>("online");
+  const [mode, setMode] = useState<Mode>("in-person");
   const [statusTab, setStatusTab] = useState("all");
   const [reassigning, setReassigning] = useState<Session | null>(null);
 
-  const [scope, setScope] = useState<AttendanceScope | "all">("all");
+  const [scope, setScope] = useState<AttendanceScope>("grade");
   const [value, setValue] = useState("");
   const [datePreset, setDatePreset] = useState<"today" | "yesterday" | "range">("range");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  const setScopeAndReset = (next: AttendanceScope | "all") => {
+  const setScopeAndReset = (next: AttendanceScope) => {
     setScope(next);
     setValue("");
   };
@@ -65,6 +61,15 @@ export default function Sessions() {
   const effectiveFromDate = datePreset === "today" ? todayStr : datePreset === "yesterday" ? yesterdayStr : fromDate;
   const effectiveToDate = datePreset === "today" ? todayStr : datePreset === "yesterday" ? yesterdayStr : toDate;
 
+  // Today's recurring slots that have an assigned tutor but no roll call logged yet —
+  // the sync check between what's on the Schedule and what's actually been taken.
+  const todayWeekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const missingRollCalls = recurringSlots
+    .filter((slot) => slot.day === todayWeekday && slot.tutorIds.length > 0)
+    .filter((slot) => !attendanceSessions.some((a) =>
+      a.date === todayStr && (a.slotId === slot.id || (a.scope === "grade" && (a.grades ?? []).some((g) => slot.grades.includes(g))))
+    ));
+
   const modeSessions = sessions.filter((s) => (mode === "online" ? s.location !== "in-person" : s.location === "in-person"));
   const filtered = modeSessions.filter((s) => {
     if (statusTab === "all")       return true;
@@ -75,8 +80,8 @@ export default function Sessions() {
   });
 
   const filteredAttendance = attendanceSessions
-    .filter((s) => scope === "all" || s.scope === scope)
-    .filter((s) => !value || (scope === "grade" ? String(s.grade) === value : s.course === value))
+    .filter((s) => s.scope === scope)
+    .filter((s) => !value || (scope === "grade" ? (s.grades ?? []).some((g) => value.split(",").map(Number).includes(g)) : s.course === value))
     .filter((s) => !effectiveFromDate || s.date >= effectiveFromDate)
     .filter((s) => !effectiveToDate || s.date <= effectiveToDate)
     .sort((a, b) => b.date.localeCompare(a.date));
@@ -106,17 +111,27 @@ export default function Sessions() {
 
   const belowThreshold = perStudent.filter((r) => r.rate < 80).length;
 
-  // One row per student per roll call — the granular record a program can pivot/filter externally.
-  const exportAttendanceCsv = () => {
-    const headers = ["Date", "Group", "Tutor", "Student", "Grade", "Status"];
-    const rows = filteredAttendance.flatMap((s) => {
-      const t = getTutorById(tutors, s.tutorId);
-      const tutorName = t ? `${t.firstName} ${t.lastName}` : "";
-      return s.entries.map((e) => {
+  // One row per student per roll call — the granular "was this student present, and
+  // when" record, driving both the on-screen log and the CSV export.
+  const attendanceLog = useMemo(() => {
+    return filteredAttendance
+      .flatMap((s) => s.entries.map((e) => {
         const student = students.find((st) => st.id === e.studentId);
-        return [s.date, attendanceSessionLabel(s), tutorName, student?.name ?? "", student?.grade ?? "", e.status === "present" ? "Present" : "Not Present"];
-      });
-    });
+        return {
+          key: `${s.id}-${e.studentId}`,
+          date: s.date,
+          group: attendanceSessionLabel(s),
+          studentName: student?.name ?? "Unknown",
+          grade: student?.grade,
+          status: e.status,
+        };
+      }))
+      .sort((a, b) => (a.studentName === b.studentName ? b.date.localeCompare(a.date) : a.studentName.localeCompare(b.studentName)));
+  }, [filteredAttendance, students]);
+
+  const exportAttendanceCsv = () => {
+    const headers = ["Student", "Date", "Group", "Grade", "Status"];
+    const rows = attendanceLog.map((r) => [r.studentName, r.date, r.group, r.grade ?? "", r.status === "present" ? "Present" : "Not Present"]);
     const csv = [headers, ...rows].map((r) => r.map(csvEscape).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -241,6 +256,22 @@ export default function Sessions() {
             </button>
           </div>
 
+          {missingRollCalls.length > 0 && (
+            <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200">
+              <CalendarClock className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-800">
+                <span className="font-semibold">{missingRollCalls.length} session{missingRollCalls.length === 1 ? "" : "s"} scheduled today without a roll call yet:</span>{" "}
+                {missingRollCalls.map((slot, i) => (
+                  <span key={slot.id}>
+                    Grades {slot.grades.join(", ")} · {formatTime12h(slot.time)}
+                    {" ("}{slot.tutorIds.map((tid) => getTutorById(tutors, tid)?.firstName).filter(Boolean).join(", ")}{")"}
+                    {i < missingRollCalls.length - 1 ? "; " : ""}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatTile label="Roll Calls Logged" value={filteredAttendance.length} Icon={ClipboardCheck} color="#1B5E4F" />
             <StatTile label="Avg Attendance Rate" value={`${avgRate}%`} Icon={Percent} color="#059669" />
@@ -251,7 +282,7 @@ export default function Sessions() {
           {/* Filters */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 border-b border-border">
-              {(["all", "grade", "course"] as const).map((s) => (
+              {(["grade", "course"] as const).map((s) => (
                 <button key={s} onClick={() => setScopeAndReset(s)}
                   className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 capitalize ${
                     scope === s ? "border-primary text-primary bg-primary/5" : "border-transparent text-muted-foreground hover:text-foreground"
@@ -260,15 +291,13 @@ export default function Sessions() {
                 </button>
               ))}
             </div>
-            {scope !== "all" && (
-              <select value={value} onChange={(e) => setValue(e.target.value)}
-                className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer">
-                <option value="">{scope === "grade" ? "All grades" : "All courses"}</option>
-                {scope === "grade"
-                  ? TUTOR_GRADES.map((g) => <option key={g} value={g}>Grade {g}</option>)
-                  : ALL_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            )}
+            <select value={value} onChange={(e) => setValue(e.target.value)}
+              className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer">
+              <option value="">{scope === "grade" ? "All grades" : "All courses"}</option>
+              {scope === "grade"
+                ? GRADE_GROUPS.map((g) => <option key={g.join(",")} value={g.join(",")}>Grades {g.join(", ")}</option>)
+                : ALL_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
             <div className="flex items-center gap-2 ml-auto">
               <select value={datePreset} onChange={(e) => setDatePreset(e.target.value as typeof datePreset)} aria-label="Date filter"
                 className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer">
@@ -294,110 +323,49 @@ export default function Sessions() {
             </div>
           </div>
 
-          {/* Roll call sessions */}
+          {/* Attendance log — was this student present, and when */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border">
-              <h3 className="text-sm font-semibold text-foreground">Roll Calls</h3>
+              <h3 className="text-sm font-semibold text-foreground">Attendance Log</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Every roll call entry, per student</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
-                    {["Group", "Tutor", "Date", "Present / Total", "Rate"].map((h) => (
+                    {["Student", "Grade", "Date", "Group", "Status"].map((h) => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-mono text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredAttendance.map((s) => {
-                    const rate = attendanceRate(s.entries);
-                    const present = s.entries.filter((e) => e.status === "present").length;
-                    const t = getTutorById(tutors, s.tutorId);
-                    return (
-                      <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-4 py-3">
-                          {s.scope === "course" ? <CourseTag course={s.course ?? ""} /> : <span className="text-xs font-mono text-foreground">Grade {s.grade}</span>}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{t ? `${t.firstName} ${t.lastName}` : "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.date}</td>
-                        <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{present} / {s.entries.length}</td>
-                        <td className="px-4 py-3">
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${rateCls(rate)}`}>{rate}%</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {filteredAttendance.length === 0 && (
-                <div className="py-12 text-center text-sm text-muted-foreground">No roll calls match this filter.</div>
-              )}
-            </div>
-          </div>
-
-          {/* Per-student breakdown */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-border">
-              <h3 className="text-sm font-semibold text-foreground">By Student</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Sorted lowest attendance first</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40">
-                    {["Student", "Grade", "Roll Calls", "Attendance Rate"].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-mono text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {perStudent.map(({ student, rate, total }) => (
-                    <tr key={student.id} className="hover:bg-muted/30 transition-colors">
+                  {attendanceLog.map((r) => (
+                    <tr key={r.key} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <Avatar name={student.name} size={7} />
-                          <span className="font-medium text-foreground whitespace-nowrap">{student.name}</span>
+                          <Avatar name={r.studentName} size={7} />
+                          <span className="font-medium text-foreground whitespace-nowrap">{r.studentName}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{student.grade}</td>
-                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{total}</td>
+                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{r.grade ?? "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{r.date}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{r.group}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${rateCls(rate)}`}>{rate}%</span>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${r.status === "present" ? "text-emerald-700 bg-emerald-50" : "text-red-700 bg-red-50"}`}>
+                          {r.status === "present" ? "Present" : "Absent"}
+                        </span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {perStudent.length === 0 && (
+              {attendanceLog.length === 0 && (
                 <div className="py-12 text-center text-sm text-muted-foreground">No attendance data yet.</div>
               )}
             </div>
           </div>
         </div>
       )}
-
-      {/* Tutor Cards */}
-      <div>
-        <h2 className="text-sm font-semibold text-foreground mb-3">Active Tutors</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-          {tutors.map((t) => (
-            <div key={t.id} className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors">
-              <div className="flex items-center gap-3 mb-3">
-                <Avatar name={`${t.firstName} ${t.lastName}`} size={9} />
-                <p className="text-sm font-semibold text-foreground leading-tight">{t.firstName} {t.lastName}</p>
-              </div>
-              <div className="flex flex-wrap gap-1 mb-3">
-                {t.courses.map((s) => <CourseTag key={s} course={s} />)}
-              </div>
-              <div className="flex gap-3 text-xs text-muted-foreground font-mono">
-                <span>{t.students} students</span>
-                <span>·</span>
-                <span>{t.sessions} sessions</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {reassigning && <ReassignTutorModal session={reassigning} onClose={() => setReassigning(null)} />}
     </div>

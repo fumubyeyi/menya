@@ -14,6 +14,11 @@ export const courseColor: Record<string, string> = {
 export const ALL_COURSES = Object.keys(courseColor);
 export const TUTOR_GRADES = [6, 7, 8, 9, 10, 11, 12];
 
+// In-person sessions are planned and rolled up by grade band, not individual grade —
+// see the Recurring Slots table under Program > Schedule. Anything filtering or
+// grouping session/attendance data by grade should use these same three bands.
+export const GRADE_GROUPS: number[][] = [[6, 7], [8, 9], [10, 11, 12]];
+
 // Shared tutor-matching score used by both the booking flow and session
 // reassignment, so "best match" means the same thing in both places:
 // course + grade match (3) beats course-only (2) beats grade-only (1).
@@ -120,6 +125,16 @@ export function isNumericAnswerCorrect(input: string, expected: string): boolean
 // strings the rest of the app already uses for sessions ("Today"/"Tomorrow"/
 // "Jun 22" and "3:30 PM"), so a newly-scheduled session renders identically
 // to the seeded mock ones.
+// "18:00" -> "6:00 PM" — shared by the Recurring Slots table and Roll Call so a
+// slot's time reads identically wherever it's shown.
+export function formatTime12h(time: string): string {
+  const [hStr, mStr] = time.split(":");
+  let h = parseInt(hStr, 10);
+  const period = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${mStr} ${period}`;
+}
+
 export function formatSessionTime(dateStr: string, timeStr: string): { time: string; clock: string } {
   const target = new Date(`${dateStr}T${timeStr}`);
   const today = new Date();

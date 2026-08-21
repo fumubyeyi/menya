@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { X, ClipboardCheck, Check } from "lucide-react";
+import { X, ClipboardCheck, Check, CalendarClock } from "lucide-react";
 import Avatar from "./Avatar";
 import { useAuth } from "../context/AuthContext";
 import { useAttendance } from "../context/AttendanceContext";
 import { useTutors } from "../context/TutorsContext";
 import { useStudents } from "../context/StudentsContext";
+import { useRecurringSlots } from "../context/RecurringSlotsContext";
 import { getTutorById, studentsForAttendanceScope, CURRENT_TUTOR_ID } from "../data";
+import { GRADE_GROUPS, formatTime12h } from "../lib/constants";
 import type { AttendanceMark, AttendanceScope } from "../types";
 
 interface Props {
@@ -13,20 +15,46 @@ interface Props {
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
+const weekdayOf = (dateStr: string) => new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", { weekday: "long" });
 
 export default function RollCallModal({ onClose }: Props) {
   const { user } = useAuth();
   const { tutors } = useTutors();
   const { students } = useStudents();
   const { addAttendanceSession } = useAttendance();
+  const { recurringSlots } = useRecurringSlots();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const tutor = getTutorById(tutors, tutorId);
 
-  const [scope, setScope] = useState<AttendanceScope>("course");
+  const [scope, setScope] = useState<AttendanceScope>("grade");
   const [value, setValue] = useState("");
   const [date, setDate] = useState(todayIso());
+  const [slotId, setSlotId] = useState<string | undefined>(undefined);
   const [marks, setMarks] = useState<Record<number, AttendanceMark>>({});
   const [submitted, setSubmitted] = useState(false);
+
+  // Recurring Slots this tutor is assigned to that land on the selected date's
+  // weekday — this is what makes Roll Call reflect what's actually on the
+  // schedule, instead of any grade/course the tutor happens to be qualified for.
+  const scheduledSlots = recurringSlots.filter((s) => s.tutorIds.includes(tutorId) && s.day === weekdayOf(date));
+
+  // Grade bands this tutor covers at all, for logging a roll call that isn't
+  // tied to a specific scheduled slot (e.g. an unscheduled or make-up session).
+  const gradeBandOptions = GRADE_GROUPS.filter((band) => band.some((g) => tutor?.grades.includes(g)));
+
+  const pickSlot = (id: string) => {
+    const slot = recurringSlots.find((s) => s.id === id);
+    if (!slot) return;
+    setSlotId(id);
+    setScope("grade");
+    setValue(slot.grades.join(","));
+  };
+
+  const setScopeAndReset = (next: AttendanceScope) => {
+    setScope(next);
+    setValue("");
+    setSlotId(undefined);
+  };
 
   const roster = value ? studentsForAttendanceScope(students, scope, value) : [];
 
@@ -41,24 +69,21 @@ export default function RollCallModal({ onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope, value]);
 
-  const setScopeAndReset = (next: AttendanceScope) => {
-    setScope(next);
-    setValue("");
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addAttendanceSession({
       tutorId,
       scope,
-      ...(scope === "grade" ? { grade: Number(value) } : { course: value }),
+      ...(scope === "grade" ? { grades: value.split(",").map(Number) } : { course: value }),
       date,
+      slotId,
       entries: roster.map((s) => ({ studentId: s.id, status: marks[s.id] ?? "present" })),
     });
     setSubmitted(true);
   };
 
   const presentCount = roster.filter((s) => (marks[s.id] ?? "present") === "present").length;
+  const summaryLabel = scope === "grade" ? `Grades ${value.split(",").join(", ")}` : value;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -82,7 +107,7 @@ export default function RollCallModal({ onClose }: Props) {
             <div>
               <h3 className="font-semibold text-foreground text-base">Attendance Logged</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {scope === "grade" ? `Grade ${value}` : value} · {presentCount}/{roster.length} present
+                {summaryLabel} · {presentCount}/{roster.length} present
               </p>
             </div>
             <button onClick={onClose} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">Done</button>
@@ -90,12 +115,40 @@ export default function RollCallModal({ onClose }: Props) {
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 scrollbar-hide">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Date *</span>
+                <input required type="date" value={date} onChange={(e) => { setDate(e.target.value); setSlotId(undefined); setValue(""); }}
+                  className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
+              </label>
+
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Take roll call by</span>
+                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <CalendarClock className="w-3.5 h-3.5" /> Scheduled for {weekdayOf(date)}
+                </span>
+                {scheduledSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-3 px-3 text-center border border-dashed border-border rounded-lg">
+                    No recurring sessions scheduled for you on this date.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {scheduledSlots.map((s) => (
+                      <button key={s.id} type="button" onClick={() => pickSlot(s.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium border transition-colors ${
+                          slotId === s.id ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border text-foreground hover:bg-muted"
+                        }`}>
+                        Grades {s.grades.join(", ")} · {formatTime12h(s.time)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5 pt-1 border-t border-border">
+                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider pt-3">Or log a custom roll call</span>
                 <div className="flex gap-2">
-                  {(["course", "grade"] as const).map((s) => (
+                  {(["grade", "course"] as const).map((s) => (
                     <button key={s} type="button" onClick={() => setScopeAndReset(s)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-mono font-medium border transition-colors capitalize ${scope === s ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border text-foreground hover:bg-muted"}`}>
+                      className={`flex-1 py-2 rounded-lg text-sm font-mono font-medium border transition-colors capitalize ${scope === s && !slotId ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border text-foreground hover:bg-muted"}`}>
                       {s}
                     </button>
                   ))}
@@ -103,20 +156,14 @@ export default function RollCallModal({ onClose }: Props) {
               </div>
 
               <label className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">{scope === "grade" ? "Grade *" : "Course *"}</span>
-                <select required value={value} onChange={(e) => setValue(e.target.value)}
+                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">{scope === "grade" ? "Grades *" : "Course *"}</span>
+                <select required value={value} onChange={(e) => { setValue(e.target.value); setSlotId(undefined); }}
                   className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer">
-                  <option value="">{scope === "grade" ? "Select grade" : "Select course"}</option>
+                  <option value="">{scope === "grade" ? "Select grades" : "Select course"}</option>
                   {scope === "grade"
-                    ? (tutor?.grades ?? []).map((g) => <option key={g} value={g}>Grade {g}</option>)
+                    ? gradeBandOptions.map((band) => <option key={band.join(",")} value={band.join(",")}>Grades {band.join(", ")}</option>)
                     : (tutor?.courses ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Date *</span>
-                <input required type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                  className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
               </label>
 
               {value && (

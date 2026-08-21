@@ -161,7 +161,7 @@ export default function TutorSchedule() {
                     return (
                       <tr key={s.id} className="hover:bg-muted/30 transition-colors">
                         <td className="py-2.5 pr-4">
-                          {s.scope === "course" ? <CourseTag course={s.course ?? ""} /> : <span className="text-xs font-mono text-foreground">Grade {s.grade}</span>}
+                          {s.scope === "course" ? <CourseTag course={s.course ?? ""} /> : <span className="text-xs font-mono text-foreground">Grades {(s.grades ?? []).join(", ")}</span>}
                         </td>
                         <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{s.date}</td>
                         <td className="py-2.5 pr-4 font-mono text-xs text-emerald-700">

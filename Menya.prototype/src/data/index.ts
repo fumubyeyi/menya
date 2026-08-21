@@ -1466,25 +1466,26 @@ export function getTutorStudents(tutorId: number) {
 export const attendanceSessions: AttendanceSession[] = [
   { id: 1, tutorId: 1, scope: "course", course: "Algebra", date: "2026-06-16", createdAt: "2026-06-16T15:35:00Z",
     entries: [{ studentId: 1, status: "present" }, { studentId: 6, status: "present" }] },
-  { id: 2, tutorId: 1, scope: "grade", grade: 7, date: "2026-06-17", createdAt: "2026-06-17T15:05:00Z",
+  { id: 2, tutorId: 1, scope: "grade", grades: [6, 7], date: "2026-06-17", createdAt: "2026-06-17T15:05:00Z",
     entries: [{ studentId: 1, status: "present" }, { studentId: 5, status: "present" }] },
   { id: 3, tutorId: 3, scope: "course", course: "Pre-Alg", date: "2026-06-16", createdAt: "2026-06-16T16:32:00Z",
     entries: [{ studentId: 3, status: "present" }, { studentId: 7, status: "absent" }] },
-  { id: 4, tutorId: 4, scope: "grade", grade: 8, date: "2026-06-18", createdAt: "2026-06-18T14:02:00Z",
+  { id: 4, tutorId: 4, scope: "grade", grades: [8, 9], date: "2026-06-18", createdAt: "2026-06-18T14:02:00Z",
     entries: [{ studentId: 2, status: "present" }, { studentId: 6, status: "present" }] },
   { id: 5, tutorId: 5, scope: "course", course: "Calculus", date: "2026-06-19", createdAt: "2026-06-19T17:03:00Z",
     entries: [{ studentId: 2, status: "present" }, { studentId: 6, status: "absent" }, { studentId: 8, status: "present" }] },
-  { id: 6, tutorId: 2, scope: "grade", grade: 9, date: "2026-06-19", createdAt: "2026-06-19T15:04:00Z",
+  { id: 6, tutorId: 2, scope: "grade", grades: [8, 9], date: "2026-06-19", createdAt: "2026-06-19T15:04:00Z",
     entries: [{ studentId: 4, status: "absent" }, { studentId: 8, status: "present" }] },
 ];
 
-// Students matching a roll call's scope — every student in the grade, or every
-// student enrolled in the course — so a tutor's roster auto-populates before
-// they mark individual exceptions.
+// Students matching a roll call's scope — every student across the grade band, or
+// every student enrolled in the course — so a tutor's roster auto-populates before
+// they mark individual exceptions. `value` for grade scope is a comma-joined grade
+// band, e.g. "6,7" (matching RecurringSlot.grades / GRADE_GROUPS).
 export function studentsForAttendanceScope(studentList: Student[], scope: AttendanceScope, value: string): Student[] {
-  return scope === "grade"
-    ? studentList.filter((s) => s.grade === Number(value))
-    : studentList.filter((s) => s.courses.includes(value));
+  if (scope === "course") return studentList.filter((s) => s.courses.includes(value));
+  const grades = value.split(",").map(Number);
+  return studentList.filter((s) => grades.includes(s.grade));
 }
 
 export function attendanceRate(entries: AttendanceEntry[]): number {
@@ -1494,7 +1495,7 @@ export function attendanceRate(entries: AttendanceEntry[]): number {
 }
 
 export function attendanceSessionLabel(session: AttendanceSession): string {
-  return session.scope === "grade" ? `Grade ${session.grade}` : (session.course ?? "");
+  return session.scope === "grade" ? `Grades ${(session.grades ?? []).join(", ")}` : (session.course ?? "");
 }
 
 export const sofia = students.find((s) => s.id === CURRENT_STUDENT_ID)!;
