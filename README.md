@@ -11,6 +11,12 @@ The prototype is published at **[floral-minus-74527153.figma.site](https://flora
 
 Repository: **[github.com/fumubyeyi/menya](https://github.com/fumubyeyi/menya)**.
 
+## Mission & Vision
+
+**Mission** — Accelerate learning and access by building adaptive infrastructure for nonprofit STEM tutoring organizations.
+
+**Vision** — Menya helps organizations give every student the continuity, personalization, and follow-through it takes to build a STEM identity.
+
 ## Features
 
 The prototype models three roles (Program Director, Tutor, Student), each with

@@ -22,6 +22,9 @@ interface SessionsContextValue {
   addSession: (session: Omit<Session, "id">) => void;
   addSessions: (sessions: Omit<Session, "id">[]) => void;
   updateSession: (session: Session) => void;
+  updateSessions: (sessions: Session[]) => void;
+  removeSession: (id: number) => void;
+  removeSessions: (ids: number[]) => void;
 }
 
 const SessionsContext = createContext<SessionsContextValue | null>(null);
@@ -31,26 +34,48 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
 
   const addSession = (session: Omit<Session, "id">) => addSessions([session]);
 
-  // Bulk insert — assigns every id off one snapshot of `records` and commits with a
-  // single setRecords call, so a loop of individual addSession calls (each reading
-  // the same stale `records` closure before a re-render lands) can't silently drop
-  // all but the last one, which matters for a "publish a week's worth" flow.
+  // Bulk insert, and every mutator below, uses the *functional* setRecords(prev => ...)
+  // form rather than closing over `records` directly. That matters not just for a loop
+  // of same-function calls (e.g. publishing a week's worth of sessions) but for a
+  // handler that calls two *different* mutators back to back (e.g. an edit that both
+  // updates kept sessions and adds new ones) — with a closed-over `records`, the second
+  // call would compute its result from the pre-handler snapshot and silently discard
+  // the first call's change when React applies the batch. The functional form always
+  // composes against the true latest state, in order, regardless of caller.
   const addSessions = (newSessions: Omit<Session, "id">[]) => {
-    let nextId = records.length ? Math.max(...records.map((s) => s.id)) + 1 : 1;
-    const additions = newSessions.map((session) => ({ ...session, id: nextId++ }));
-    const next = [...records, ...additions];
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
-    setRecords(next);
+    setRecords((prev) => {
+      let nextId = prev.length ? Math.max(...prev.map((s) => s.id)) + 1 : 1;
+      const additions = newSessions.map((session) => ({ ...session, id: nextId++ }));
+      const next = [...prev, ...additions];
+      localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
-  const updateSession = (updated: Session) => {
-    const next = records.map((s) => (s.id === updated.id ? updated : s));
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
-    setRecords(next);
+  const updateSession = (updated: Session) => updateSessions([updated]);
+
+  const updateSessions = (updated: Session[]) => {
+    setRecords((prev) => {
+      const byId = new Map(updated.map((s) => [s.id, s]));
+      const next = prev.map((s) => byId.get(s.id) ?? s);
+      localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const removeSession = (id: number) => removeSessions([id]);
+
+  const removeSessions = (ids: number[]) => {
+    setRecords((prev) => {
+      const idSet = new Set(ids);
+      const next = prev.filter((s) => !idSet.has(s.id));
+      localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
   return (
-    <SessionsContext.Provider value={{ sessions: records, addSession, addSessions, updateSession }}>
+    <SessionsContext.Provider value={{ sessions: records, addSession, addSessions, updateSession, updateSessions, removeSession, removeSessions }}>
       {children}
     </SessionsContext.Provider>
   );

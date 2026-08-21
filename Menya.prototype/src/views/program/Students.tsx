@@ -1,15 +1,32 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Search, UserPlus, ChevronRight } from "lucide-react";
+import { Search, UserPlus, ChevronRight, Upload } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import ProgressRing from "../../components/ProgressRing";
 import CourseTag from "../../components/CourseTag";
 import AddStudentModal from "../../components/AddStudentModal";
+import ImportModal, { type ImportColumn } from "../../components/ImportModal";
 import { useStudents } from "../../context/StudentsContext";
 import { useAuth } from "../../context/AuthContext";
 import { statusMeta } from "../../lib/constants";
 import { getEnrolledCourses } from "../../hooks/useEnrollment";
 import type { StudentStatus } from "../../types";
+
+interface StudentImportRow {
+  name: string;
+  grade: number;
+  location: string;
+  courses: string[];
+}
+
+const splitList = (raw: string) => raw.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+
+const STUDENT_IMPORT_COLUMNS: ImportColumn<StudentImportRow>[] = [
+  { key: "name", label: "Name", required: true, aliases: ["full name", "student name", "student"] },
+  { key: "grade", label: "Grade", required: true, aliases: ["grade level"], parse: (raw) => Number(raw) },
+  { key: "location", label: "Location", required: true, aliases: ["city", "city, state"] },
+  { key: "courses", label: "Courses", required: true, aliases: ["course", "enrolled courses"], parse: splitList },
+];
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "all",           label: "All Statuses"   },
@@ -23,10 +40,11 @@ export default function Students() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
-  const { students } = useStudents();
+  const { students, addStudents } = useStudents();
   const [query, setQuery]   = useState("");
   const [status, setStatus] = useState("all");
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const filtered = students.filter((s) => {
     const matchName    = s.name.toLowerCase().includes(query.toLowerCase());
@@ -42,13 +60,18 @@ export default function Students() {
           <h1 className="text-2xl font-display font-semibold text-foreground">Student Roster</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{students.length} students enrolled</p>
         </div>
-        {isAdmin && (
+        <div className="flex items-center gap-2">
+          <button onClick={() => setImporting(true)}
+            className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
+            <Upload className="w-4 h-4" />
+            Import from Excel
+          </button>
           <button onClick={() => setAdding(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
             <UserPlus className="w-4 h-4" />
             Add Student
           </button>
-        )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -119,6 +142,16 @@ export default function Students() {
       )}
 
       {adding && <AddStudentModal onClose={() => setAdding(false)} />}
+      {importing && (
+        <ImportModal<StudentImportRow>
+          title="Import Students"
+          entityLabelSingular="student"
+          entityLabelPlural="students"
+          columns={STUDENT_IMPORT_COLUMNS}
+          onImport={(rows) => addStudents(rows.map((r) => ({ ...r, status: "on-track" })))}
+          onClose={() => setImporting(false)}
+        />
+      )}
     </div>
   );
 }

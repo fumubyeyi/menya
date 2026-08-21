@@ -16,9 +16,12 @@ function readTutors(): Tutor[] {
   return tutors;
 }
 
+type NewTutor = Omit<Tutor, "id" | "students" | "sessions">;
+
 interface TutorsContextValue {
   tutors: Tutor[];
-  addTutor: (tutor: Omit<Tutor, "id" | "students" | "sessions">) => void;
+  addTutor: (tutor: NewTutor) => void;
+  addTutors: (tutors: NewTutor[]) => void;
 }
 
 const TutorsContext = createContext<TutorsContextValue | null>(null);
@@ -26,15 +29,21 @@ const TutorsContext = createContext<TutorsContextValue | null>(null);
 export function TutorsProvider({ children }: { children: ReactNode }) {
   const [records, setRecords] = useState<Tutor[]>(readTutors);
 
-  const addTutor = (tutor: Omit<Tutor, "id" | "students" | "sessions">) => {
-    const nextId = records.length ? Math.max(...records.map((t) => t.id)) + 1 : 1;
-    const next = [...records, { ...tutor, id: nextId, students: 0, sessions: 0 }];
+  const addTutor = (tutor: NewTutor) => addTutors([tutor]);
+
+  // Bulk insert — see StudentsContext.addStudents for why a loop of single-item
+  // adds would silently drop all but the last one. Matters for the Excel-import
+  // flow, which can add many tutors at once.
+  const addTutors = (newTutors: NewTutor[]) => {
+    let nextId = records.length ? Math.max(...records.map((t) => t.id)) + 1 : 1;
+    const additions = newTutors.map((tutor) => ({ ...tutor, id: nextId++, students: 0, sessions: 0 }));
+    const next = [...records, ...additions];
     localStorage.setItem(TUTORS_KEY, JSON.stringify(next));
     setRecords(next);
   };
 
   return (
-    <TutorsContext.Provider value={{ tutors: records, addTutor }}>
+    <TutorsContext.Provider value={{ tutors: records, addTutor, addTutors }}>
       {children}
     </TutorsContext.Provider>
   );

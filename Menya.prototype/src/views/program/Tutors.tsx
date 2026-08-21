@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Search, UserPlus, CalendarRange, Clock } from "lucide-react";
+import { Link } from "react-router";
+import { Search, UserPlus, CalendarRange, Clock, Upload } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
 import AddTutorModal from "../../components/AddTutorModal";
-import WeeklyScheduleModal from "../../components/WeeklyScheduleModal";
+import ImportModal, { type ImportColumn } from "../../components/ImportModal";
 import { useTutors } from "../../context/TutorsContext";
 import { useSessions } from "../../context/SessionsContext";
 
@@ -15,12 +16,30 @@ function dayRank(time: string): number {
   return 2;
 }
 
+interface TutorImportRow {
+  firstName: string;
+  lastName: string;
+  courses: string[];
+  grades: number[];
+  description: string;
+}
+
+const splitList = (raw: string) => raw.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+
+const TUTOR_IMPORT_COLUMNS: ImportColumn<TutorImportRow>[] = [
+  { key: "firstName", label: "First Name", required: true, aliases: ["first"] },
+  { key: "lastName", label: "Last Name", required: true, aliases: ["last"] },
+  { key: "courses", label: "Courses", required: true, aliases: ["preferred courses", "course"], parse: splitList },
+  { key: "grades", label: "Grades", required: true, aliases: ["preferred grades", "grade levels", "grade"], parse: (raw) => splitList(raw).map(Number).filter((n) => !Number.isNaN(n)) },
+  { key: "description", label: "Description", aliases: ["bio", "notes"] },
+];
+
 export default function Tutors() {
-  const { tutors } = useTutors();
+  const { tutors, addTutors } = useTutors();
   const { sessions } = useSessions();
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
-  const [planningWeek, setPlanningWeek] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const filtered = tutors.filter((t) => `${t.firstName} ${t.lastName}`.toLowerCase().includes(query.toLowerCase()));
 
@@ -32,9 +51,13 @@ export default function Tutors() {
           <p className="text-sm text-muted-foreground mt-0.5">{tutors.length} tutors on the roster</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPlanningWeek(true)}
+          <Link to="/program/schedule"
             className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
-            <CalendarRange className="w-4 h-4" /> Plan Week
+            <CalendarRange className="w-4 h-4" /> Schedule
+          </Link>
+          <button onClick={() => setImporting(true)}
+            className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
+            <Upload className="w-4 h-4" /> Import from Excel
           </button>
           <button onClick={() => setAdding(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
@@ -110,7 +133,16 @@ export default function Tutors() {
       )}
 
       {adding && <AddTutorModal onClose={() => setAdding(false)} />}
-      {planningWeek && <WeeklyScheduleModal onClose={() => setPlanningWeek(false)} />}
+      {importing && (
+        <ImportModal<TutorImportRow>
+          title="Import Tutors"
+          entityLabelSingular="tutor"
+          entityLabelPlural="tutors"
+          columns={TUTOR_IMPORT_COLUMNS}
+          onImport={(rows) => addTutors(rows.map((r) => ({ ...r, description: r.description ?? "" })))}
+          onClose={() => setImporting(false)}
+        />
+      )}
     </div>
   );
 }

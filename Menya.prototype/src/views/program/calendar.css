@@ -1,0 +1,99 @@
+/* Theme overrides for react-calendar so it matches Menya's design tokens
+   instead of the library's default blue/gray look. */
+
+.menya-calendar.react-calendar {
+  width: 100%;
+  max-width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  font-family: "Manrope", sans-serif;
+  line-height: 1.2;
+  padding: 0.625rem;
+}
+
+.menya-calendar .react-calendar__navigation {
+  height: auto;
+  margin-bottom: 0.375rem;
+}
+
+.menya-calendar .react-calendar__navigation button {
+  min-width: 28px;
+  border-radius: 0.5rem;
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.menya-calendar .react-calendar__navigation button:enabled:hover,
+.menya-calendar .react-calendar__navigation button:enabled:focus {
+  background-color: var(--muted);
+}
+
+.menya-calendar .react-calendar__navigation button:disabled {
+  background: none;
+  opacity: 0.3;
+}
+
+.menya-calendar .react-calendar__month-view__weekdays {
+  font-family: "DM Mono", monospace;
+  font-size: 0.625rem;
+  color: var(--muted-foreground);
+}
+
+.menya-calendar .react-calendar__month-view__weekdays__weekday {
+  padding: 0.35em 0;
+}
+
+.menya-calendar .react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none;
+}
+
+.menya-calendar .react-calendar__tile {
+  border-radius: 0.5rem;
+  padding: 0.4rem 0;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+
+.menya-calendar .react-calendar__tile:enabled:hover,
+.menya-calendar .react-calendar__tile:enabled:focus {
+  background-color: var(--muted);
+}
+
+.menya-calendar .react-calendar__tile:disabled {
+  background: none;
+  color: var(--muted-foreground);
+  opacity: 0.35;
+}
+
+.menya-calendar .react-calendar__month-view__days__day--weekend {
+  color: var(--foreground);
+}
+
+.menya-calendar .react-calendar__month-view__days__day--neighboringMonth {
+  color: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+.menya-calendar .react-calendar__tile--now {
+  background: var(--secondary);
+  font-weight: 600;
+}
+
+.menya-calendar .react-calendar__tile--now:enabled:hover,
+.menya-calendar .react-calendar__tile--now:enabled:focus {
+  background: var(--muted);
+}
+
+.menya-calendar .react-calendar__tile--active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+}
+
+.menya-calendar .react-calendar__tile--active:enabled:hover,
+.menya-calendar .react-calendar__tile--active:enabled:focus {
+  background: var(--primary);
+  opacity: 0.92;
+}

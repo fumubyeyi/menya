@@ -54,6 +54,10 @@ export interface Session {
   course: string;
   time: string;
   clock: string;
+  // ISO date (yyyy-mm-dd) the session actually falls on — kept alongside the display
+  // labels above so a session can be reliably grouped into a calendar week later.
+  // Absent on older/seed sessions, which predate this field.
+  date?: string;
   duration: number;
   status: SessionStatus;
   // Absent means "tutoring" — the ordinary self- or tutor-scheduled session.
@@ -72,6 +76,10 @@ export interface ScheduleNotice {
   id: number;
   tutorId: number;
   weekLabel: string;
+  // ISO date (yyyy-mm-dd) of the Monday that starts this week — lets the Plan Week
+  // page reliably match a notice back to a week, unlike weekLabel (e.g. "Aug 24 – Aug
+  // 28"), which has no year and isn't sortable.
+  weekStart?: string;
   sessionCount: number;
   createdAt: string;
   seen: boolean;

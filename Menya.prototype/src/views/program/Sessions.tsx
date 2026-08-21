@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
-import { CalendarPlus, Pencil, ClipboardCheck, Percent, XCircle, AlertTriangle, Download } from "lucide-react";
-import ZoomModal from "../../components/ZoomModal";
+import { Pencil, ClipboardCheck, Percent, XCircle, AlertTriangle, Download } from "lucide-react";
 import type { Session, AttendanceScope } from "../../types";
 import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
-import ScheduleModal from "../../components/ScheduleModal";
 import ReassignTutorModal from "../../components/ReassignTutorModal";
 import StatTile from "../../components/StatTile";
 import { useSessions } from "../../context/SessionsContext";
@@ -47,12 +45,11 @@ export default function Sessions() {
 
   const [mode, setMode] = useState<Mode>("online");
   const [statusTab, setStatusTab] = useState("all");
-  const [modal, setModal] = useState(false);
-  const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [reassigning, setReassigning] = useState<Session | null>(null);
 
   const [scope, setScope] = useState<AttendanceScope | "all">("all");
   const [value, setValue] = useState("");
+  const [datePreset, setDatePreset] = useState<"today" | "yesterday" | "range">("range");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -60,6 +57,13 @@ export default function Sessions() {
     setScope(next);
     setValue("");
   };
+
+  const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+  const todayStr = isoDate(new Date());
+  const yesterdayStr = isoDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+  const effectiveFromDate = datePreset === "today" ? todayStr : datePreset === "yesterday" ? yesterdayStr : fromDate;
+  const effectiveToDate = datePreset === "today" ? todayStr : datePreset === "yesterday" ? yesterdayStr : toDate;
 
   const modeSessions = sessions.filter((s) => (mode === "online" ? s.location !== "in-person" : s.location === "in-person"));
   const filtered = modeSessions.filter((s) => {
@@ -73,8 +77,8 @@ export default function Sessions() {
   const filteredAttendance = attendanceSessions
     .filter((s) => scope === "all" || s.scope === scope)
     .filter((s) => !value || (scope === "grade" ? String(s.grade) === value : s.course === value))
-    .filter((s) => !fromDate || s.date >= fromDate)
-    .filter((s) => !toDate || s.date <= toDate)
+    .filter((s) => !effectiveFromDate || s.date >= effectiveFromDate)
+    .filter((s) => !effectiveToDate || s.date <= effectiveToDate)
     .sort((a, b) => b.date.localeCompare(a.date));
 
   const totalAbsences = filteredAttendance.reduce((sum, s) => sum + s.entries.filter((e) => e.status === "absent").length, 0);
@@ -118,7 +122,7 @@ export default function Sessions() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const range = fromDate || toDate ? `${fromDate || "start"}_to_${toDate || "now"}` : new Date().toISOString().slice(0, 10);
+    const range = effectiveFromDate || effectiveToDate ? `${effectiveFromDate || "start"}_to_${effectiveToDate || "now"}` : todayStr;
     link.download = `attendance-${range}.csv`;
     link.click();
     URL.revokeObjectURL(url);
@@ -134,12 +138,6 @@ export default function Sessions() {
             {mode === "online" ? `${modeSessions.length} online sessions` : `${modeSessions.length} in-person sessions · ${attendanceSessions.length} roll calls logged`}
           </p>
         </div>
-        <button
-          onClick={() => setModal(true)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
-        >
-          <CalendarPlus className="w-4 h-4" /> Schedule Session
-        </button>
       </div>
 
       {/* Mode Tabs */}
@@ -159,78 +157,74 @@ export default function Sessions() {
         ))}
       </div>
 
-      {/* Status Filter Tabs */}
-      <div className="flex gap-1 border-b border-border">
-        {STATUS_TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setStatusTab(key)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
-              statusTab === key
-                ? "border-primary text-primary bg-primary/5"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {mode === "online" && (
+        <>
+          {/* Status Filter Tabs */}
+          <div className="flex gap-1 border-b border-border">
+            {STATUS_TABS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setStatusTab(key)}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+                  statusTab === key
+                    ? "border-primary text-primary bg-primary/5"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-      {/* Sessions Table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                {["Student", "Course", "Tutor", "Date", "Time", "Duration", "Status", ""].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-mono text-muted-foreground uppercase tracking-wide whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map((s) => (
-                <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar name={s.student} size={7} />
-                      <span className="font-medium text-foreground whitespace-nowrap">{s.student}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3"><CourseTag course={s.course} /></td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                    {(() => { const t = tutors.find((tu) => tu.id === s.tutorId); return t ? `${t.firstName} ${t.lastName}` : "—"; })()}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.time}</td>
-                  <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.clock}</td>
-                  <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.duration}min</td>
-                  <td className="px-4 py-3"><SessionStatusPill status={s.status} /></td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      {s.status === "in-progress" && s.meetingId && (
-                        <button
-                          onClick={() => setActiveSession(s)}
-                          className="px-3 py-1 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
-                        >
-                          Watch
-                        </button>
-                      )}
-                      <button onClick={() => setReassigning(s)} title="Reassign tutor"
-                        className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="py-12 text-center text-sm text-muted-foreground">No {mode === "online" ? "online" : "in-person"} sessions match this filter.</div>
-          )}
-        </div>
-      </div>
+          {/* Sessions Table */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    {["Student", "Course", "Tutor", "Date", "Time", "Duration", "Status", ""].map((h) => (
+                      <th key={h} className="text-left px-4 py-3 text-xs font-mono text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filtered.map((s) => (
+                    <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={s.student} size={7} />
+                          <span className="font-medium text-foreground whitespace-nowrap">{s.student}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3"><CourseTag course={s.course} /></td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                        {(() => { const t = tutors.find((tu) => tu.id === s.tutorId); return t ? `${t.firstName} ${t.lastName}` : "—"; })()}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.time}</td>
+                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.clock}</td>
+                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.duration}min</td>
+                      <td className="px-4 py-3"><SessionStatusPill status={s.status} /></td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 justify-end">
+                          <button onClick={() => setReassigning(s)} title="Reassign tutor"
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filtered.length === 0 && (
+                <div className="py-12 text-center text-sm text-muted-foreground">No online sessions match this filter.</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Roll Call Attendance — in-person only */}
       {mode === "in-person" && (
@@ -276,16 +270,26 @@ export default function Sessions() {
               </select>
             )}
             <div className="flex items-center gap-2 ml-auto">
-              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} max={toDate || undefined} aria-label="From date"
-                className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
-              <span className="text-xs text-muted-foreground">to</span>
-              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} min={fromDate || undefined} aria-label="To date"
-                className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
-              {(fromDate || toDate) && (
-                <button onClick={() => { setFromDate(""); setToDate(""); }}
-                  className="text-xs text-muted-foreground hover:text-foreground underline">
-                  Clear
-                </button>
+              <select value={datePreset} onChange={(e) => setDatePreset(e.target.value as typeof datePreset)} aria-label="Date filter"
+                className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer">
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="range">Date Range</option>
+              </select>
+              {datePreset === "range" && (
+                <>
+                  <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} max={toDate || undefined} aria-label="From date"
+                    className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} min={fromDate || undefined} aria-label="To date"
+                    className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
+                  {(fromDate || toDate) && (
+                    <button onClick={() => { setFromDate(""); setToDate(""); }}
+                      className="text-xs text-muted-foreground hover:text-foreground underline">
+                      Clear
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -395,18 +399,7 @@ export default function Sessions() {
         </div>
       </div>
 
-      {modal && <ScheduleModal onClose={() => setModal(false)} />}
       {reassigning && <ReassignTutorModal session={reassigning} onClose={() => setReassigning(null)} />}
-      {activeSession?.meetingId && (
-        <ZoomModal
-          sessionId={activeSession.id}
-          meetingId={activeSession.meetingId}
-          password={activeSession.password ?? ""}
-          userName="Program Admin"
-          course={activeSession.course}
-          onClose={() => setActiveSession(null)}
-        />
-      )}
     </div>
   );
 }
