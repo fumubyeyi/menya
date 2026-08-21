@@ -9,7 +9,7 @@ import { useSessions } from "../../context/SessionsContext";
 import { useScheduleNotices } from "../../context/ScheduleNoticesContext";
 import { useStudents } from "../../context/StudentsContext";
 import { useTutors } from "../../context/TutorsContext";
-import { formatSessionTime, scoreTutorMatch, ALL_COURSES, TUTOR_GRADES } from "../../lib/constants";
+import { formatSessionTime, scoreTutorMatch, ALL_COURSES, TUTOR_GRADES, gradesSummary, parseGroupLabel } from "../../lib/constants";
 import type { Session } from "../../types";
 
 // A row in "This Week's Schedule" — one virtual session, or one or more in-person
@@ -67,24 +67,6 @@ function clockTo24h(clock: string): string {
   if (isPM && hour !== 12) hour += 12;
   if (!isPM && hour === 12) hour = 0;
   return `${String(hour).padStart(2, "0")}:${m[2]}`;
-}
-
-export function gradesSummary(grades: number[]): string {
-  if (grades.length === 0) return "";
-  if (grades.length === 1) return `Grade ${grades[0]}`;
-  return `Grades ${[...grades].sort((a, b) => a - b).join(", ")}`;
-}
-
-// Reverses the "Grade 7 Group" / "Grades 6, 8 Group" / "<Course> Group" label this
-// modal generates, so editing an existing group can re-derive which grades/course
-// it was originally planned by.
-function parseGroupLabel(student: string, course: string): { scope: "grade" | "course"; grades: number[]; courseValue: string } {
-  if (course === "All Courses") {
-    const inner = student.replace(/ Group$/, "").replace(/^Grades? /, "");
-    const grades = inner.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n));
-    return { scope: "grade", grades, courseValue: "" };
-  }
-  return { scope: "course", grades: [], courseValue: course };
 }
 
 function matchLabel(score: number): string {

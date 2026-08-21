@@ -14,6 +14,11 @@ export const students: Student[] = [
   { id: 6, name: "Jaylen Brooks",    grade: 8, courses: ["Calculus", "Algebra"],       progress: 70, sessions: 9,  streak: 3, status: "on-track",      location: "Baltimore, MD"  },
   { id: 7, name: "Amara Osei",       grade: 6, courses: ["Pre-Alg", "Geometry"],       progress: 88, sessions: 14, streak: 6, status: "exceeding",     location: "Columbus, OH"   },
   { id: 8, name: "Noah Fitzgerald",  grade: 9, courses: ["Pre-Calculus", "Calculus"],  progress: 61, sessions: 7,  streak: 1, status: "needs-support", location: "Boston, MA"     },
+  // Grades 10-12 previously had no seed students at all, which left Francoise's
+  // (tutorId 5 — the default tutor login) in-person Grades 10,11,12 sessions with
+  // an empty roster and no attendance data despite being the default account.
+  { id: 9,  name: "Ethan Brooks",   grade: 10, courses: ["Pre-Calculus", "Calculus"], progress: 74, sessions: 10, streak: 3, status: "on-track",      location: "Denver, CO"     },
+  { id: 10, name: "Priya Nair",     grade: 11, courses: ["Calculus"],                 progress: 89, sessions: 13, streak: 7, status: "exceeding",     location: "Seattle, WA"    },
 ];
 
 export const sessions: Session[] = [
@@ -28,6 +33,19 @@ export const sessions: Session[] = [
   { id: 9,  student: "DeShawn Williams", tutorId: 5, course: "Pre-Calculus",  time: "Jun 22",   clock: "4:30 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   { id: 10, student: "Sofia Patel",      tutorId: 5, course: "Pre-Alg",       time: "Jun 23",   clock: "3:00 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   { id: 11, student: "DeShawn Williams", tutorId: 5, course: "Pre-Calculus",  time: "Today",    clock: "1:00 PM", duration: 60, status: "upcoming", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  // In-person group sessions — same shape "Add Session"/Notify Tutors publish, but
+  // pre-seeded with past dates so a tutor's Schedule > In-Person > Session History
+  // isn't empty on first load.
+  { id: 12, student: "Grades 6, 7 Group",       tutorId: 1, course: "All Courses", date: "2026-08-10", time: "Aug 10", clock: "6:00 PM", duration: 120, status: "scheduled", type: "tutoring", location: "in-person" },
+  // Co-tutored: same group/date/time as id 12, second tutor assigned — demonstrates
+  // that the roll call one of them logs is visible to both (see attendanceForSession).
+  { id: 18, student: "Grades 6, 7 Group",       tutorId: 3, course: "All Courses", date: "2026-08-10", time: "Aug 10", clock: "6:00 PM", duration: 120, status: "scheduled", type: "tutoring", location: "in-person" },
+  { id: 13, student: "Grades 8, 9 Group",       tutorId: 4, course: "All Courses", date: "2026-08-12", time: "Aug 12", clock: "6:00 PM", duration: 120, status: "scheduled", type: "tutoring", location: "in-person" },
+  { id: 14, student: "Grades 10, 11, 12 Group", tutorId: 5, course: "All Courses", date: "2026-08-10", time: "Aug 10", clock: "6:00 PM", duration: 120, status: "scheduled", type: "tutoring", location: "in-person" },
+  { id: 15, student: "Grades 10, 11, 12 Group", tutorId: 5, course: "All Courses", date: "2026-08-17", time: "Aug 17", clock: "6:00 PM", duration: 120, status: "scheduled", type: "tutoring", location: "in-person" },
+  { id: 16, student: "Grades 8, 9 Group",       tutorId: 2, course: "All Courses", date: "2026-08-19", time: "Aug 19", clock: "6:00 PM", duration: 120, status: "scheduled", type: "tutoring", location: "in-person" },
+  { id: 17, student: "Pre-Alg Group",           tutorId: 3, course: "Pre-Alg",     date: "2026-08-12", time: "Aug 12", clock: "6:00 PM", duration: 120, status: "scheduled", type: "tutoring", location: "in-person" },
+  { id: 19, student: "Grades 6, 7 Group",       tutorId: 1, course: "All Courses", date: "2026-08-03", time: "Aug 3",  clock: "6:00 PM", duration: 120, status: "scheduled", type: "tutoring", location: "in-person" },
 ];
 
 // Curriculum library — math courses only for now (other courses to follow later).
@@ -1466,16 +1484,47 @@ export function getTutorStudents(tutorId: number) {
 export const attendanceSessions: AttendanceSession[] = [
   { id: 1, tutorId: 1, scope: "course", course: "Algebra", date: "2026-06-16", createdAt: "2026-06-16T15:35:00Z",
     entries: [{ studentId: 1, status: "present" }, { studentId: 6, status: "present" }] },
-  { id: 2, tutorId: 1, scope: "grade", grades: [6, 7], date: "2026-06-17", createdAt: "2026-06-17T15:05:00Z",
-    entries: [{ studentId: 1, status: "present" }, { studentId: 5, status: "present" }] },
+  // Linked via sessionId to the seeded in-person Session records above (ids 12/13/16/19)
+  // so a tutor's Session History and Attendance page tell the same story, with real
+  // per-student notes rather than a single placeholder line.
+  { id: 2, tutorId: 1, scope: "grade", grades: [6, 7], date: "2026-08-10", sessionId: 12, createdAt: "2026-08-10T20:05:00Z",
+    entries: [
+      { studentId: 1, status: "present", notes: "Picked up simplifying radicals quickly today — ready for the next problem set." },
+      { studentId: 5, status: "present", notes: "Needed a refresher on combining like terms before joining the group activity." },
+    ] },
   { id: 3, tutorId: 3, scope: "course", course: "Pre-Alg", date: "2026-06-16", createdAt: "2026-06-16T16:32:00Z",
     entries: [{ studentId: 3, status: "present" }, { studentId: 7, status: "absent" }] },
-  { id: 4, tutorId: 4, scope: "grade", grades: [8, 9], date: "2026-06-18", createdAt: "2026-06-18T14:02:00Z",
-    entries: [{ studentId: 2, status: "present" }, { studentId: 6, status: "present" }] },
+  { id: 4, tutorId: 4, scope: "grade", grades: [8, 9], date: "2026-08-12", sessionId: 13, createdAt: "2026-08-12T20:02:00Z",
+    entries: [
+      { studentId: 2, status: "present", notes: "Still mixing up signs when distributing negatives — flagged for extra practice." },
+      { studentId: 6, status: "present", notes: "Confidently walked his table group through the word problems today." },
+    ] },
   { id: 5, tutorId: 5, scope: "course", course: "Calculus", date: "2026-06-19", createdAt: "2026-06-19T17:03:00Z",
     entries: [{ studentId: 2, status: "present" }, { studentId: 6, status: "absent" }, { studentId: 8, status: "present" }] },
-  { id: 6, tutorId: 2, scope: "grade", grades: [8, 9], date: "2026-06-19", createdAt: "2026-06-19T15:04:00Z",
-    entries: [{ studentId: 4, status: "absent" }, { studentId: 8, status: "present" }] },
+  { id: 6, tutorId: 2, scope: "grade", grades: [8, 9], date: "2026-08-19", sessionId: 16, createdAt: "2026-08-19T20:04:00Z",
+    entries: [
+      { studentId: 4, status: "absent", notes: "Absent — family conflict per parent text. Needs a catch-up before next week's group." },
+      { studentId: 8, status: "present", notes: "Engaged well but ran out of time on the last two problems; assign as homework." },
+    ] },
+  { id: 7, tutorId: 1, scope: "grade", grades: [6, 7], date: "2026-08-03", sessionId: 19, createdAt: "2026-08-03T20:06:00Z",
+    entries: [
+      { studentId: 1, status: "present", notes: "First session with the group — comfortable with one-step equations already." },
+      { studentId: 3, status: "present", notes: "Strong number sense; finished early and helped a table-mate check their work." },
+      { studentId: 5, status: "present" },
+      { studentId: 7, status: "absent", notes: "Absent — tutor left a voicemail, no response yet." },
+    ] },
+  // Francoise (tutorId 5) — the default tutor login — linked to her Grades 10,11,12
+  // sessions (ids 14/15), now that grades 10-12 have real seed students (9/10).
+  { id: 8, tutorId: 5, scope: "grade", grades: [10, 11, 12], date: "2026-08-10", sessionId: 14, createdAt: "2026-08-10T20:07:00Z",
+    entries: [
+      { studentId: 9,  status: "present", notes: "Confident with limits, but still mixing up removable vs. non-removable discontinuities." },
+      { studentId: 10, status: "present", notes: "Nailed today's related-rates problems — ready to move ahead of the group." },
+    ] },
+  { id: 9, tutorId: 5, scope: "grade", grades: [10, 11, 12], date: "2026-08-17", sessionId: 15, createdAt: "2026-08-17T20:08:00Z",
+    entries: [
+      { studentId: 9,  status: "present", notes: "Seemed distracted today — worth checking in before next session." },
+      { studentId: 10, status: "absent",  notes: "Absent — college info session conflict, per email." },
+    ] },
 ];
 
 // Students matching a roll call's scope — every student across the grade band, or

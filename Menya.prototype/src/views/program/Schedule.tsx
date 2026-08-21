@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Users, CalendarRange, ChevronDown, BellRing, Pencil, Trash2 } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
-import SessionModal, { gradesSummary, type PublishedGroup } from "./SessionModal";
+import SessionModal, { type PublishedGroup } from "./SessionModal";
 import RecurringSlotModal, { WEEKDAYS } from "./RecurringSlotModal";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from "../../app/components/ui/dropdown-menu";
 import { useSessions } from "../../context/SessionsContext";
 import { useTutors } from "../../context/TutorsContext";
 import { useScheduleNotices } from "../../context/ScheduleNoticesContext";
 import { useRecurringSlots, type RecurringSlot } from "../../context/RecurringSlotsContext";
-import { formatSessionTime, formatTime12h } from "../../lib/constants";
+import { formatSessionTime, formatTime12h, gradesSummary } from "../../lib/constants";
 import type { Session } from "../../types";
 
 export type { RecurringSlot };

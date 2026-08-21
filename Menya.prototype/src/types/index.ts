@@ -31,10 +31,12 @@ export type AttendanceMark = "present" | "absent";
 export interface AttendanceEntry {
   studentId: number;
   status: AttendanceMark;
+  notes?: string;
 }
 
-// A tutor-led in-person roll call covering an entire grade or course at once —
-// distinct from the 1:1 Session model below, which tracks individual tutoring time.
+// A tutor-led roll call covering a whole scheduled session at once — an in-person
+// group (grade band or course) or a single 1:1 online session — distinct from the
+// Session model below, which tracks the booking itself rather than who showed up.
 export interface AttendanceSession {
   id: number;
   tutorId: number;
@@ -42,9 +44,13 @@ export interface AttendanceSession {
   grades?: number[]; // set when scope === "grade" — the grade band covered, e.g. [6, 7]
   course?: string;   // set when scope === "course"
   date: string;      // YYYY-MM-DD
-  // Set when this roll call was taken against a specific Recurring Slot occurrence
-  // (see RecurringSlotsContext) — lets Attendance detect which scheduled slots
-  // still have no roll call logged for a given date.
+  // Set when this roll call was taken directly against a specific Session record
+  // (see SessionsContext) — the normal path from the tutor's Attendance page, which
+  // renders one card per session and lets attendance be logged right on it.
+  sessionId?: number;
+  // Set when this roll call was taken against a Recurring Slot occurrence that
+  // hasn't been published as a real Session yet (see RecurringSlotsContext) —
+  // the "log a custom roll call" fallback path.
   slotId?: string;
   notes?: string;
   entries: AttendanceEntry[];

@@ -3,7 +3,7 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
   GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor } from "../types";
+import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor, Session, AttendanceSession } from "../types";
 
 // Math courses only, matching the Program > Curriculum library. Each gets a distinct color/icon.
 export const courseColor: Record<string, string> = {
@@ -121,10 +121,27 @@ export function isNumericAnswerCorrect(input: string, expected: string): boolean
   return a.toLowerCase() === b.toLowerCase();
 }
 
-// Converts a <input type="date">/<input type="time"> pair into the display
-// strings the rest of the app already uses for sessions ("Today"/"Tomorrow"/
-// "Jun 22" and "3:30 PM"), so a newly-scheduled session renders identically
-// to the seeded mock ones.
+// "Grade 7" / "Grades 6, 8" — shared by the Add Session modal, Recurring Slots, and
+// a tutor's Attendance page so a grade band reads identically everywhere it's shown.
+export function gradesSummary(grades: number[]): string {
+  if (grades.length === 0) return "";
+  if (grades.length === 1) return `Grade ${grades[0]}`;
+  return `Grades ${[...grades].sort((a, b) => a - b).join(", ")}`;
+}
+
+// Reverses the "Grade 7 Group" / "Grades 6, 8 Group" / "<Course> Group" label an
+// in-person Session's student/course fields get set to when published — so editing
+// an existing group, or taking attendance for one, can re-derive which grades or
+// course it was originally planned by.
+export function parseGroupLabel(student: string, course: string): { scope: "grade" | "course"; grades: number[]; courseValue: string } {
+  if (course === "All Courses") {
+    const inner = student.replace(/ Group$/, "").replace(/^Grades? /, "");
+    const grades = inner.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n));
+    return { scope: "grade", grades, courseValue: "" };
+  }
+  return { scope: "course", grades: [], courseValue: course };
+}
+
 // "18:00" -> "6:00 PM" — shared by the Recurring Slots table and Roll Call so a
 // slot's time reads identically wherever it's shown.
 export function formatTime12h(time: string): string {
@@ -151,6 +168,25 @@ export function formatSessionTime(dateStr: string, timeStr: string): { time: str
   const clock = target.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   return { time, clock };
+}
+
+// An in-person group booking publishes one Session record per assigned tutor —
+// same student/course/date/time, different tutorId. This key identifies "the same
+// booked occurrence" across those sibling records, so attendance (and its notes)
+// taken by any one of the co-tutors is visible to all of them, not just whoever
+// happened to log it first.
+export function sessionGroupKey(session: Session): string {
+  return `${session.student}|${session.course}|${session.date ?? ""}|${session.time}|${session.clock}`;
+}
+
+// Finds the roll call already logged for a session, checking every sibling Session
+// that shares its group key (see sessionGroupKey) — not just this exact session id —
+// so co-tutors on the same in-person group see one shared record instead of each
+// needing to log (and separately see notes for) their own copy.
+export function attendanceForSession(session: Session, sessions: Session[], attendanceSessions: AttendanceSession[]): AttendanceSession | undefined {
+  const key = sessionGroupKey(session);
+  const siblingIds = new Set(sessions.filter((s) => sessionGroupKey(s) === key).map((s) => s.id));
+  return attendanceSessions.find((a) => a.sessionId !== undefined && siblingIds.has(a.sessionId));
 }
 
 export const statusMeta: Record<StudentStatus, { label: string; cls: string; Icon: React.ElementType }> = {

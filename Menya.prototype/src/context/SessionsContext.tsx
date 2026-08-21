@@ -10,7 +10,14 @@ const SESSIONS_KEY = "menya:sessions";
 function readSessions(): Session[] {
   try {
     const saved = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? "null");
-    if (Array.isArray(saved) && saved.length > 0 && typeof saved[0]?.student === "string") return saved;
+    if (Array.isArray(saved) && saved.length > 0 && typeof saved[0]?.student === "string") {
+      // Backfill any seed sessions added after this browser's localStorage was first
+      // populated (e.g. the in-person history rows) — saved data always wins for ids
+      // it already has, so nothing a user has since edited or removed gets clobbered.
+      const savedIds = new Set(saved.map((s: Session) => s.id));
+      const missingSeed = sessions.filter((s) => !savedIds.has(s.id));
+      return missingSeed.length > 0 ? [...saved, ...missingSeed] : saved;
+    }
   } catch {
     // fall through to seed data
   }

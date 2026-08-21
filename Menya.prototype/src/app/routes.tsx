@@ -20,6 +20,7 @@ import AlumniDetail      from "../views/program/AlumniDetail";
 import TutorHome        from "../views/tutor/Home";
 import TutorStudents    from "../views/tutor/MyStudents";
 import TutorSchedule    from "../views/tutor/Schedule";
+import TutorAttendance  from "../views/tutor/Attendance";
 import TutorReview      from "../views/tutor/Review";
 import TutorPerformance from "../views/tutor/Performance";
 
@@ -85,7 +86,7 @@ export const router = createBrowserRouter([
               { path: "students",   Component: TutorStudents    },
               { path: "students/:id", Component: StudentDetail  },
               { path: "schedule",   Component: TutorSchedule    },
-              { path: "attendance", element: <Navigate to="../schedule" replace /> },
+              { path: "attendance", Component: TutorAttendance  },
               { path: "review",     Component: TutorReview      },
               { path: "performance",Component: TutorPerformance },
             ],

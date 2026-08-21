@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { AlertTriangle, CalendarDays, Clock, HelpCircle, Plus, TrendingUp, Users, ChevronRight } from "lucide-react";
+import { AlertTriangle, CalendarDays, CalendarClock, ClipboardCheck, Clock, HelpCircle, Plus, TrendingUp, Users, ChevronRight } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import {
@@ -16,10 +16,20 @@ import { useSessions } from "../../context/SessionsContext";
 import { useHelpRequests } from "../../context/HelpRequestsContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
+import { useAttendance } from "../../context/AttendanceContext";
+import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import {
   getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
-import { statusMeta } from "../../lib/constants";
+import { statusMeta, formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession } from "../../lib/constants";
+import { WEEKDAYS } from "../program/RecurringSlotModal";
+
+// The grade band or course an in-person group session was booked for — same
+// reversal used on the Schedule and Attendance pages.
+function groupLabel(session: Session): string {
+  const parsed = parseGroupLabel(session.student, session.course);
+  return parsed.scope === "grade" ? gradesSummary(parsed.grades) : parsed.courseValue;
+}
 
 function timeAgo(iso: string): string {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -36,9 +46,24 @@ export default function TutorHome() {
   const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const { sessions } = useSessions();
+  const { attendanceSessions } = useAttendance();
+  const { recurringSlots } = useRecurringSlots();
   const { requests: helpRequests, resolveRequest } = useHelpRequests();
   const tutorSessions = sessions.filter((s) => s.tutorId === tutorId);
   const todayQueue = tutorSessions.filter((s) => s.time === "Today");
+
+  const mySlots = WEEKDAYS
+    .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.tutorIds.includes(tutorId)))
+    .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
+
+  // In-person sessions already in the past (or today) with no roll call logged yet —
+  // the same "shared across co-tutors" lookup the Schedule/Attendance pages use, so
+  // this only flags what's genuinely still outstanding for the whole group.
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const pendingRollCalls = tutorSessions
+    .filter((s) => s.location === "in-person" && !!s.date && s.date <= todayISO)
+    .filter((s) => !attendanceForSession(s, sessions, attendanceSessions))
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
   const [modal, setModal] = useState(false);
   const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
@@ -89,10 +114,11 @@ export default function TutorHome() {
       </div>
 
       {/* Stat Pillars */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatTile label="Assigned Students" value={currentTutor?.students ?? tutorStudents.length} Icon={Users} color="#1B5E4F" />
         <StatTile label="Sessions This Week" value={tutorWeeklyData[5].sessions} Icon={CalendarDays} color="#3B82F6" />
         <StatTile label="Avg Student Score" value={`${avgProgress}%`} Icon={TrendingUp} color="#F0981E" />
+        <StatTile label="Pending Roll Calls" value={pendingRollCalls.length} Icon={ClipboardCheck} color="#DC2626" />
       </div>
 
       {/* Needs Attention */}
@@ -150,6 +176,38 @@ export default function TutorHome() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Needs Attendance — in-person sessions with no roll call logged yet */}
+      {pendingRollCalls.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <ClipboardCheck className="w-4 h-4 text-red-600" />
+            <h2 className="text-sm font-semibold text-foreground">Needs Attendance</h2>
+            <span className="text-[11px] font-mono text-red-700 bg-red-100 px-2 py-0.5 rounded-full ml-auto">
+              {pendingRollCalls.length} session{pendingRollCalls.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {pendingRollCalls.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 bg-card border border-border rounded-lg p-3">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{groupLabel(s)} Group</p>
+                  <p className="text-[11px] font-mono text-muted-foreground">{s.date} · {s.clock}</p>
+                </div>
+                <button
+                  onClick={() => navigate("/tutor/attendance")}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                >
+                  Log Attendance
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -226,7 +284,33 @@ export default function TutorHome() {
           </div>
         </div>
 
-        {/* My Students sidebar */}
+        {/* Sidebar */}
+        <div className="space-y-4">
+        {/* My Recurring Slots */}
+        {mySlots.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <CalendarClock className="w-4 h-4 text-primary" /> My Recurring Slots
+              </h2>
+              <button
+                onClick={() => navigate("/tutor/schedule")}
+                className="flex items-center gap-0.5 text-xs text-primary hover:underline font-mono"
+              >
+                Schedule <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {mySlots.map((slot) => (
+                <span key={slot.id} className="px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium bg-muted text-foreground border border-border">
+                  {slot.day} · {gradesSummary(slot.grades)} · {formatTime12h(slot.time)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* My Students */}
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-foreground">My Students</h2>
@@ -256,6 +340,7 @@ export default function TutorHome() {
               );
             })}
           </div>
+        </div>
         </div>
       </div>
 

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from "../../app/components/ui/dropdown-menu";
-import { gradesSummary } from "./SessionModal";
-import { TUTOR_GRADES } from "../../lib/constants";
+import { TUTOR_GRADES, gradesSummary } from "../../lib/constants";
 import type { RecurringSlot } from "../../context/RecurringSlotsContext";
 
 export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Plus, ClipboardCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Clock, Plus, CalendarClock, Users as GroupIcon, X } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
@@ -7,18 +7,83 @@ import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
-import RollCallModal from "../../components/RollCallModal";
 import { useSessions } from "../../context/SessionsContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
+import { useStudents } from "../../context/StudentsContext";
 import { useAttendance } from "../../context/AttendanceContext";
-import {
-  getTutorStudents, studentSessionHistory, getTutorById, attendanceRate, CURRENT_TUTOR_ID,
-} from "../../data";
+import { useRecurringSlots } from "../../context/RecurringSlotsContext";
+import { getTutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID } from "../../data";
+import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession } from "../../lib/constants";
+import { WEEKDAYS } from "../program/RecurringSlotModal";
+import type { AttendanceSession, Student } from "../../types";
+
+// The grade band or course an in-person group session was booked for — reversed
+// from the "Grades 6, 7 Group" / "<Course> Group" label the same way editing one
+// (or taking attendance for one) already does.
+function groupLabel(session: Session): string {
+  const parsed = parseGroupLabel(session.student, session.course);
+  return parsed.scope === "grade" ? gradesSummary(parsed.grades) : parsed.courseValue;
+}
+
+// The per-student notes logged for a session — shared across every co-tutor on it
+// (see attendanceForSession) — as (name, note) pairs for the History table preview
+// and the "view all" modal.
+function noteEntries(attendance: AttendanceSession | undefined, students: Student[]): { studentId: number; studentName: string; note: string }[] {
+  if (!attendance) return [];
+  return attendance.entries
+    .filter((e) => e.notes?.trim())
+    .map((e) => ({ studentId: e.studentId, studentName: students.find((s) => s.id === e.studentId)?.name ?? "Unknown", note: e.notes! }));
+}
+
+interface SessionNotesModalProps {
+  session: Session;
+  attendance: AttendanceSession;
+  students: Student[];
+  onClose: () => void;
+}
+
+function SessionNotesModal({ session, attendance, students, onClose }: SessionNotesModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
+          <div>
+            <h2 className="font-display font-semibold text-foreground text-lg leading-none">{groupLabel(session)} Notes</h2>
+            <p className="text-[11px] font-mono text-muted-foreground mt-1">{session.date} · {session.clock}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-2 scrollbar-hide">
+          {attendance.entries.map((e) => {
+            const student = students.find((s) => s.id === e.studentId);
+            return (
+              <div key={e.studentId} className="flex items-start gap-3 p-2.5 border border-border rounded-lg">
+                <Avatar name={student?.name ?? "Unknown"} size={7} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-foreground">{student?.name ?? "Unknown"}</p>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${e.status === "present" ? "text-emerald-700 bg-emerald-50" : "text-red-700 bg-red-50"}`}>
+                      {e.status === "present" ? "Present" : "Absent"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{e.notes?.trim() || "No note."}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const MODES = [
-  { key: "online",    label: "Online"    },
   { key: "in-person", label: "In-Person" },
+  { key: "online",    label: "Online"    },
 ] as const;
 type Mode = (typeof MODES)[number]["key"];
 
@@ -28,60 +93,70 @@ function scoreCls(score: number) {
   return "text-red-600";
 }
 
-function rateCls(rate: number) {
-  if (rate >= 90) return "text-emerald-700 bg-emerald-50";
-  if (rate >= 75) return "text-amber-700 bg-amber-50";
-  return "text-red-700 bg-red-50";
-}
-
 export default function TutorSchedule() {
   const { user } = useAuth();
   const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const { sessions } = useSessions();
+  const { students } = useStudents();
   const { attendanceSessions } = useAttendance();
+  const { recurringSlots } = useRecurringSlots();
   const tutorSessions = sessions.filter((s) => s.tutorId === tutorId);
-  const [mode, setMode] = useState<Mode>("online");
+  const [mode, setMode] = useState<Mode>("in-person");
   const [modal, setModal] = useState(false);
-  const [rollCallModal, setRollCallModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const [notesModalSession, setNotesModalSession] = useState<Session | null>(null);
   const currentTutor = getTutorById(tutors, tutorId);
   const tutorStudents = getTutorStudents(tutorId);
 
   const modeSessions = tutorSessions.filter((s) => (mode === "online" ? s.location !== "in-person" : s.location === "in-person"));
 
-  const myRollCalls = attendanceSessions
-    .filter((s) => s.tutorId === tutorId)
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const mySlots = WEEKDAYS
+    .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.tutorIds.includes(tutorId)))
+    .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
 
   const history = tutorStudents.flatMap((s) =>
     (studentSessionHistory[s.id] ?? []).map((h) => ({ ...h, studentName: s.name }))
   );
 
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const inPersonHistory = tutorSessions
+    .filter((s) => s.location === "in-person" && !!s.date && s.date <= todayISO)
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground">Attendance</h1>
+          <h1 className="text-2xl font-display font-semibold text-foreground">Schedule</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {mode === "online" ? `${modeSessions.length} online sessions` : `${modeSessions.length} in-person sessions · ${myRollCalls.length} roll calls logged`}
+            {mode === "online" ? `${modeSessions.length} online sessions` : `${modeSessions.length} in-person sessions`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setRollCallModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 border border-border text-foreground rounded-lg text-sm font-semibold hover:bg-muted transition-colors"
-          >
-            <ClipboardCheck className="w-4 h-4" /> Take Roll Call
-          </button>
-          <button
-            onClick={() => setModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Schedule Session
-          </button>
-        </div>
+        <button
+          onClick={() => setModal(true)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Schedule Session
+        </button>
       </div>
+
+      {/* Recurring slots this tutor is assigned to — a standing weekly reference,
+          managed by Program staff under Program > Schedule. */}
+      {mySlots.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+            <CalendarClock className="w-4 h-4 text-primary" /> My Recurring Slots
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {mySlots.map((slot) => (
+              <span key={slot.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-muted text-foreground border border-border">
+                {slot.day} · {gradesSummary(slot.grades)} · {formatTime12h(slot.time)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Mode Tabs */}
       <div className="flex gap-1 border-b border-border">
@@ -136,95 +211,115 @@ export default function TutorSchedule() {
         )}
       </div>
 
-      {/* Roll Call Attendance — in-person only */}
-      {mode === "in-person" && (
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">My Roll Calls</h2>
-          {myRollCalls.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No attendance logged yet — take your first roll call above.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-[11px] font-mono text-muted-foreground uppercase tracking-wide">
-                    <th className="text-left pb-3 pr-4">Group</th>
-                    <th className="text-left pb-3 pr-4">Date</th>
-                    <th className="text-left pb-3 pr-4">Present</th>
-                    <th className="text-left pb-3 pr-4">Absent</th>
-                    <th className="text-left pb-3">Rate</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {myRollCalls.map((s) => {
-                    const rate = attendanceRate(s.entries);
-                    const count = (mark: string) => s.entries.filter((e) => e.status === mark).length;
-                    return (
-                      <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="py-2.5 pr-4">
-                          {s.scope === "course" ? <CourseTag course={s.course ?? ""} /> : <span className="text-xs font-mono text-foreground">Grades {(s.grades ?? []).join(", ")}</span>}
-                        </td>
-                        <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{s.date}</td>
-                        <td className="py-2.5 pr-4 font-mono text-xs text-emerald-700">
-                          <span className="inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />{count("present")}</span>
-                        </td>
-                        <td className="py-2.5 pr-4 font-mono text-xs text-red-700">
-                          <span className="inline-flex items-center gap-1"><XCircle className="w-3 h-3" />{count("absent")}</span>
-                        </td>
-                        <td className="py-2.5">
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${rateCls(rate)}`}>{rate}%</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Session History Table */}
       <div className="bg-card border border-border rounded-xl p-5">
         <h2 className="text-sm font-semibold text-foreground mb-4">Session History</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-[11px] font-mono text-muted-foreground uppercase tracking-wide">
-                <th className="text-left pb-3 pr-4">Student</th>
-                <th className="text-left pb-3 pr-4">Course</th>
-                <th className="text-left pb-3 pr-4">Score</th>
-                <th className="text-left pb-3 pr-4">Date</th>
-                <th className="text-left pb-3 pr-4">Duration</th>
-                <th className="text-left pb-3">Materials</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {history.map((h, i) => (
-                <tr key={i} className="hover:bg-muted/30 transition-colors">
-                  <td className="py-2.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <Avatar name={h.studentName} size={7} />
-                      <span className="font-medium text-foreground text-xs">{h.studentName}</span>
-                    </div>
-                  </td>
-                  <td className="py-2.5 pr-4">
-                    <CourseTag course={h.course} />
-                  </td>
-                  <td className={`py-2.5 pr-4 font-mono font-semibold text-xs ${scoreCls(h.score)}`}>{h.score}</td>
-                  <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.date}</td>
-                  <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.duration}m</td>
-                  <td className="py-2.5">
-                    <SessionArtifacts artifacts={h.artifacts} />
-                  </td>
+        {mode === "in-person" ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[11px] font-mono text-muted-foreground uppercase tracking-wide">
+                  <th className="text-left pb-3 pr-4">Grade Group</th>
+                  <th className="text-left pb-3 pr-4">Session</th>
+                  <th className="text-left pb-3 pr-4">Duration</th>
+                  <th className="text-left pb-3 pr-4">Status</th>
+                  <th className="text-left pb-3">Notes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {inPersonHistory.map((s) => {
+                  const attendance = attendanceForSession(s, sessions, attendanceSessions);
+                  const notes = noteEntries(attendance, students);
+                  return (
+                    <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-2.5 pr-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <GroupIcon className="w-3.5 h-3.5 text-primary" />
+                          </div>
+                          <span className="font-medium text-foreground text-xs">{groupLabel(s)}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground whitespace-nowrap align-top">{s.date} · {s.clock}</td>
+                      <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground align-top">{s.duration}m</td>
+                      <td className="py-2.5 pr-4 align-top">
+                        <SessionStatusPill status={s.status} />
+                      </td>
+                      <td className="py-2.5 max-w-xs align-top">
+                        {!attendance ? (
+                          <span className="text-xs text-muted-foreground">Not logged yet</span>
+                        ) : notes.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">No notes</span>
+                        ) : (
+                          <div className="space-y-1">
+                            {notes.slice(0, 2).map((n) => (
+                              <p key={n.studentId} className="text-xs text-muted-foreground truncate">
+                                <span className="font-medium text-foreground">{n.studentName}:</span> {n.note}
+                              </p>
+                            ))}
+                            <button type="button" onClick={() => setNotesModalSession(s)}
+                              className="text-[11px] font-mono text-primary hover:underline">
+                              {notes.length > 2 ? `+${notes.length - 2} more · View all` : "View all"}
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {inPersonHistory.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No past in-person sessions yet.</p>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[11px] font-mono text-muted-foreground uppercase tracking-wide">
+                  <th className="text-left pb-3 pr-4">Student</th>
+                  <th className="text-left pb-3 pr-4">Course</th>
+                  <th className="text-left pb-3 pr-4">Score</th>
+                  <th className="text-left pb-3 pr-4">Date</th>
+                  <th className="text-left pb-3 pr-4">Duration</th>
+                  <th className="text-left pb-3">Materials</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {history.map((h, i) => (
+                  <tr key={i} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-2.5 pr-4">
+                      <div className="flex items-center gap-2">
+                        <Avatar name={h.studentName} size={7} />
+                        <span className="font-medium text-foreground text-xs">{h.studentName}</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 pr-4">
+                      <CourseTag course={h.course} />
+                    </td>
+                    <td className={`py-2.5 pr-4 font-mono font-semibold text-xs ${scoreCls(h.score)}`}>{h.score}</td>
+                    <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.date}</td>
+                    <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.duration}m</td>
+                    <td className="py-2.5">
+                      <SessionArtifacts artifacts={h.artifacts} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
+      {notesModalSession && (() => {
+        const attendance = attendanceForSession(notesModalSession, sessions, attendanceSessions);
+        return attendance ? (
+          <SessionNotesModal session={notesModalSession} attendance={attendance} students={students} onClose={() => setNotesModalSession(null)} />
+        ) : null;
+      })()}
+
       {modal && <ScheduleModal onClose={() => setModal(false)} />}
-      {rollCallModal && <RollCallModal onClose={() => setRollCallModal(false)} />}
       {activeSession?.meetingId && (
         <ZoomModal
           sessionId={activeSession.id}
