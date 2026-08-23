@@ -35,7 +35,7 @@ const ROLE_OPTIONS: {
     label: "Tutor",
     Icon: UserCheck,
     description:
-      "Manage students, schedule & review curriculum",
+      "Manage students, schedule & search curriculum",
     color: "#3B82F6",
   },
   {

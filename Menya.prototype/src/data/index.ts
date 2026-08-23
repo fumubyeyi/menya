@@ -1,4 +1,4 @@
-import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, CourseDetail, SessionRecord, AIProject, HomeworkItem, AlumniRecord, AttendanceSession, AttendanceScope, AttendanceEntry } from "../types";
+import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, CourseDetail, SessionRecord, AIProject, HomeworkItem, AlumniRecord, AttendanceSession, AttendanceScope, AttendanceEntry, LibrarySearchQuery } from "../types";
 
 export const CURRENT_STUDENT_ID = 3;
 // Fallback used only if a logged-in tutor's AuthUser.tutorId is somehow missing —
@@ -1458,6 +1458,55 @@ export const aiProjects: AIProject[] = [
   { id: 4, title: "Simplifying Radicals — Basic Set",  course: "Pre-Alg",     module: "Pre-Algebra Foundations",  student: "Sofia Patel",      difficulty: "Beginner",     estimatedMins: 15, status: "revision", generatedAt: "Jun 18", tutorNote: "Sofia is already at 88%+ — these are too easy. Please regenerate at Intermediate difficulty.", aiNote: "Generated to reinforce radical basics following session on exponents.", tasks: ["Simplify: √36", "Simplify: √72", "Simplify: 3√8 + 2√2", "Evaluate: (√5)²", "Simplify: √(16/25)"] },
   { id: 5, title: "Rate of Change Word Problems",      course: "Calculus",     module: "Differential Equations",   student: "Noah Fitzgerald",  difficulty: "Advanced",     estimatedMins: 45, status: "pending",  generatedAt: "Jun 20", aiNote: "Builds on limit work. Real-world rate-of-change scenarios drawn from spots around Noah's home in Boston, MA to prepare for derivatives.", tasks: ["A ball drops from the top of the Bunker Hill Monument (100m) — find velocity at t=3s using limits", "The Frog Pond on Boston Common drains for cleaning at V(t)=50−2t² gallons remaining after t minutes. Find the drainage rate at t=4", "Sketch the tangent to y=x² at x=3 and find its slope", "Compare average vs instantaneous rate for f(x)=x³ on [1,2]"] },
   { id: 6, title: "Pre-Algebra Word Problems",         course: "Pre-Alg",     module: "Pre-Algebra Foundations",  student: "Sofia Patel",      difficulty: "Intermediate", estimatedMins: 20, status: "approved", generatedAt: "Jun 15", assignedAt: "Jun 16", dueDate: "Jun 22", aiNote: "Applied problems targeting equation setup and variable isolation, aligned with Sofia's current module progress and set around her Chicago, IL neighborhood.", tasks: ["Maria and Jake are trading Chicago Cubs pins at a swap meet in Wrigleyville — Maria has 3× more pins than Jake, and together they have 48. How many does each have?", "A community mural painted along Chicago's 606 Trail is a rectangle with length 5 ft more than its width and a perimeter of 42 ft. Find its dimensions.", "Solve: 4(x−2) = 3x + 5", "A Metra train leaves Union Station in Chicago at 60 mph and needs to cover 210 miles to reach its final stop. Find the travel time."] },
+];
+
+// Tutor-initiated Curriculum Library search history (see Curriculum Library Tutor
+// Search Feature.md) — seeded with a couple of past searches so the history panel
+// isn't empty on first load. Unlike the old aiProjects queue, nothing here is
+// system-generated; every entry originates from a tutor typing a prompt.
+export const libraryQueries: LibrarySearchQuery[] = [
+  {
+    id: 1,
+    tutorId: CURRENT_TUTOR_ID,
+    promptText: "8th grader is solid on the basics but keeps mixing up signs — needs a warm-up on factoring quadratics before we tackle harder problems",
+    createdAt: "Aug 19",
+    decision: "approved",
+    result: {
+      matchStrength: "strong",
+      course: "Algebra",
+      chapterTitle: "Quadratic Equations",
+      moduleTitle: "Factoring Quadratics",
+      difficulty: "Intermediate",
+      aiNote: "Found a close match in the library: Algebra › Quadratic Equations › Factoring Quadratics. Surfacing the existing notes, worked example, and practice questions.",
+      description: "Factor quadratic expressions into two binomials to solve equations and find roots.",
+      content: [
+        "Factoring reverses multiplication of binomials — look for two numbers that multiply to the constant term and add to the middle coefficient.",
+        "Sign mistakes are the most common error: double-check whether both factors should be positive, both negative, or one of each before moving on.",
+      ],
+      workedExample: { prompt: "Factor x² − x − 12.", answer: "Find two numbers that multiply to −12 and add to −1: −4 and 3. So x² − x − 12 = (x − 4)(x + 3)." },
+      exercises: [
+        { prompt: "Factor: x² + 5x + 6.", answer: "(x + 2)(x + 3)" },
+        { prompt: "Factor: x² − 2x − 15.", answer: "(x − 5)(x + 3)" },
+      ],
+    },
+  },
+  {
+    id: 2,
+    tutorId: CURRENT_TUTOR_ID,
+    promptText: "Need a quick warm-up activity before Friday's regional math competition, nothing tied to a specific unit",
+    createdAt: "Aug 20",
+    decision: "approved",
+    result: {
+      matchStrength: "none",
+      aiNote: "No close match found in the library for this prompt. Drafted general practice questions from what you typed — consider flagging this as a content gap for program staff.",
+      description: "Drafted content — no matching library topic found.",
+      content: [],
+      exercises: [
+        { prompt: "Warm-up: explain the key idea behind competition-style problem solving in your own words.", answer: "Model answer: no vetted content exists in the library yet — tutor to work through this live with the student." },
+        { prompt: "Apply a mixed-topic review problem of your choosing.", answer: "Model answer: no vetted content exists in the library yet — tutor to work through this live with the student." },
+      ],
+    },
+  },
 ];
 
 export const studentAssignments: Record<number, HomeworkItem[]> = {

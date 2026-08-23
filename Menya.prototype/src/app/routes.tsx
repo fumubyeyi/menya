@@ -21,7 +21,7 @@ import TutorHome        from "../views/tutor/Home";
 import TutorStudents    from "../views/tutor/MyStudents";
 import TutorSchedule    from "../views/tutor/Schedule";
 import TutorAttendance  from "../views/tutor/Attendance";
-import TutorReview      from "../views/tutor/Review";
+import TutorSearch      from "../views/tutor/Search";
 import TutorPerformance from "../views/tutor/Performance";
 
 // Student views
@@ -87,7 +87,7 @@ export const router = createBrowserRouter([
               { path: "students/:id", Component: StudentDetail  },
               { path: "schedule",   Component: TutorSchedule    },
               { path: "attendance", Component: TutorAttendance  },
-              { path: "review",     Component: TutorReview      },
+              { path: "search",     Component: TutorSearch      },
               { path: "performance",Component: TutorPerformance },
             ],
           },

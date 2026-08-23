@@ -3,13 +3,13 @@ import { NavLink, Outlet, Navigate, useNavigate, useLocation } from "react-route
 import {
   LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
   Bell, Plus, Menu, X, Settings, Atom, Trophy,
-  Briefcase, UserCheck, GraduationCap, ClipboardList, LogOut,
+  Briefcase, UserCheck, GraduationCap, Search, LogOut,
   Award, AlertTriangle, UserCog, CalendarRange,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTutors } from "../context/TutorsContext";
 import { useScheduleNotices } from "../context/ScheduleNoticesContext";
-import { aiProjects, getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID } from "../data";
+import { getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID } from "../data";
 import { statusMeta } from "../lib/constants";
 import Avatar from "./Avatar";
 import ScheduleModal from "./ScheduleModal";
@@ -30,7 +30,7 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
     { to: "/tutor/home",        label: "My Home",     Icon: LayoutDashboard },
     { to: "/tutor/schedule",    label: "Schedule",    Icon: CalendarRange   },
     { to: "/tutor/attendance",  label: "Attendance",  Icon: Calendar        },
-    { to: "/tutor/review",      label: "Review",      Icon: ClipboardList, badge: aiProjects.filter((p) => p.status === "pending").length },
+    { to: "/tutor/search",      label: "Curriculum Search", Icon: Search },
     { to: "/tutor/performance", label: "Performance", Icon: BarChart3       },
   ],
   student: [
@@ -108,7 +108,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/tutor/students":     "My Students",
     "/tutor/schedule":     "Schedule",
     "/tutor/attendance":   "Attendance",
-    "/tutor/review":       "Review",
+    "/tutor/search":       "Curriculum Search",
     "/tutor/performance":  "Performance",
     "/student/home":       "My Home",
     "/student/learning":   "My Courses",

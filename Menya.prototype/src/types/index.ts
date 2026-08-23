@@ -295,6 +295,37 @@ export interface AIProject {
   tutorNote?: string;
 }
 
+// Tutor-initiated Curriculum Library search (see Curriculum Library Tutor Search
+// Feature.md) — distinct from AIProject above, which is the older diagnostic-
+// initiated per-student generation flow. A search either surfaces a real,
+// authored library module ("strong") or, when nothing close enough exists yet,
+// drafts new practice questions and doubles as a library-gap signal ("weak"/"none").
+export type MatchStrength = "strong" | "weak" | "none";
+export type SearchDecision = "pending" | "approved" | "rejected";
+
+export interface LibrarySearchResult {
+  matchStrength: MatchStrength;
+  course?: string;
+  chapterTitle?: string;
+  moduleTitle?: string;
+  difficulty?: Difficulty;
+  aiNote: string;
+  description: string;
+  content: string[];
+  workedExample?: PracticeItem;
+  exercises: PracticeItem[];
+}
+
+export interface LibrarySearchQuery {
+  id: number;
+  tutorId: number;
+  promptText: string;
+  createdAt: string;
+  result: LibrarySearchResult;
+  decision: SearchDecision;
+  rejectNote?: string;
+}
+
 export interface HomeworkItem {
   id: number;
   studentId: number;

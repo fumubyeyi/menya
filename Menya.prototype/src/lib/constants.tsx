@@ -3,7 +3,7 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
   GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor, Session, AttendanceSession } from "../types";
+import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor, Session, AttendanceSession, MatchStrength, SearchDecision, LibrarySearchResult } from "../types";
 
 // Math courses only, matching the Program > Curriculum library. Each gets a distinct color/icon.
 export const courseColor: Record<string, string> = {
@@ -110,6 +110,119 @@ export function chapterContentGaps(chapter: CurriculumChapter): number {
 export function courseContentGaps(course: CurriculumCourse): number {
   return course.chapters.reduce((sum, ch) => sum + chapterContentGaps(ch), 0);
 }
+
+const SEARCH_STOPWORDS = new Set([
+  "a", "an", "the", "for", "with", "and", "or", "of", "to", "in", "on", "is", "are",
+  "needs", "need", "struggling", "struggle", "before", "we", "practice", "grader",
+  "grade", "student", "help", "session", "class", "next", "some", "just",
+]);
+
+function searchTokens(text: string): string[] {
+  return text.toLowerCase().match(/[a-z0-9]+/g)?.filter((w) => w.length > 2 && !SEARCH_STOPWORDS.has(w)) ?? [];
+}
+
+function scoreAgainst(tokens: string[], text: string): number {
+  const lower = text.toLowerCase();
+  return tokens.reduce((sum, t) => sum + (lower.includes(t) ? 1 : 0), 0);
+}
+
+// Placeholder practice questions built straight from the tutor's own prompt —
+// stands in for the doc's "LLM drafts new practice questions" step when nothing
+// close enough exists in the library yet (weak/no match).
+function draftPracticeItems(topic: string): PracticeItem[] {
+  const t = topic.trim() || "this topic";
+  const answer = "Model answer: no vetted content exists in the library yet — tutor to work through this live with the student.";
+  return [
+    { prompt: `Warm-up: explain the key idea behind ${t} in your own words.`, answer },
+    { prompt: `Apply ${t} to a short practice problem.`, answer },
+    { prompt: `Challenge: extend ${t} one level further and check understanding.`, answer },
+  ];
+}
+
+// Mock retrieval standing in for the doc's RAG pipeline (Curriculum Library Tutor
+// Search Feature.md, Section 2) — no real embeddings/model in this prototype, just
+// keyword overlap against the existing library structure. Reuses `isModuleAuthored`
+// (the same signal Program > Curriculum surfaces as "content gaps") to decide
+// whether a match is real library content or a gap that needs drafted content.
+export function searchCurriculumLibrary(courses: CurriculumCourse[], promptText: string): LibrarySearchResult {
+  const tokens = searchTokens(promptText);
+  const gradeHint = promptText.match(/(\d{1,2})\s*(?:st|nd|rd|th)?\s*grade/i)?.[1] ?? promptText.match(/grade\s*(\d{1,2})/i)?.[1];
+  const diffHint: Difficulty | null =
+    /\b(beginner|basic|intro|warm[- ]?up|easy)\b/i.test(promptText) ? "Beginner" :
+    /\b(advanced|challenge|hard|extension)\b/i.test(promptText) ? "Advanced" : null;
+
+  let best: { course: CurriculumCourse; chapter: CurriculumChapter; module: CurriculumModule; score: number } | null = null;
+  for (const course of courses) {
+    for (const chapter of course.chapters) {
+      for (const module of chapter.modules) {
+        let score = scoreAgainst(tokens, course.name) + scoreAgainst(tokens, chapter.title) + scoreAgainst(tokens, module.title) +
+          scoreAgainst(tokens, module.description ?? "") + scoreAgainst(tokens, (module.content ?? []).join(" "));
+        if (gradeHint && course.grade.includes(gradeHint)) score += 2;
+        if (diffHint && chapter.difficulty === diffHint) score += 1;
+        if (!best || score > best.score) best = { course, chapter, module, score };
+      }
+    }
+  }
+
+  // Require at least two independent signals before trusting a match — a single
+  // incidental word overlap (e.g. one common word coincidentally appearing in some
+  // module's notes) isn't real topic evidence, even if the score is nonzero.
+  if (!best || best.score < 2) {
+    return {
+      matchStrength: "none",
+      aiNote: "No close match found in the library for this prompt. Drafted general practice questions from what you typed — consider flagging this as a content gap for program staff.",
+      description: "Drafted content — no matching library topic found.",
+      content: [],
+      exercises: draftPracticeItems(promptText),
+    };
+  }
+
+  const { course, chapter, module } = best;
+  if (isModuleAuthored(module)) {
+    return {
+      matchStrength: "strong",
+      course: course.name,
+      chapterTitle: chapter.title,
+      moduleTitle: module.title,
+      difficulty: chapter.difficulty,
+      aiNote: `Found a close match in the library: ${course.name} › ${chapter.title} › ${module.title}. Surfacing the existing notes, worked example, and practice questions.`,
+      description: module.description ?? `Build a solid understanding of ${module.title.toLowerCase()}, part of ${chapter.title} in ${course.name}.`,
+      content: module.content ?? [],
+      workedExample: module.workedExample,
+      exercises: module.exercises ?? [],
+    };
+  }
+
+  return {
+    matchStrength: "weak",
+    course: course.name,
+    chapterTitle: chapter.title,
+    moduleTitle: module.title,
+    difficulty: chapter.difficulty,
+    aiNote: `"${module.title}" (${course.name} › ${chapter.title}) covers this topic but has no authored content yet — drafted new practice questions to fill the gap. Flagging this as a library gap for program review.`,
+    description: module.description ?? `${module.title} hasn't been authored yet in the library.`,
+    content: module.content ?? [],
+    exercises: draftPracticeItems(promptText),
+  };
+}
+
+export const matchStrengthMeta: Record<MatchStrength, { label: string; cls: string }> = {
+  strong: { label: "Matched from library", cls: "text-emerald-700 bg-emerald-50" },
+  weak:   { label: "Drafted — library gap", cls: "text-amber-700 bg-amber-50" },
+  none:   { label: "Drafted — no match", cls: "text-amber-700 bg-amber-50" },
+};
+
+export const searchDecisionCls: Record<SearchDecision, string> = {
+  pending:  "bg-amber-100 text-amber-700",
+  approved: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-red-100 text-red-700",
+};
+
+export const searchDecisionLabel: Record<SearchDecision, string> = {
+  pending:  "Needs review",
+  approved: "Approved",
+  rejected: "Rejected",
+};
 
 // Grades a numeric-entry answer: compares as numbers when both sides parse
 // (so "5" matches "5.0"), otherwise falls back to a case-insensitive string
