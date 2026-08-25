@@ -19,11 +19,12 @@ const VISIBLE_MODULES = 5;
 export default function Curriculum() {
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
-  const { courses, addCourse, addChapter, addModule, updateModule, updateChapterTest } = useCurriculum();
+  const { courses, addCourse, importChapters, addChapter, addModule, updateModule, updateChapterTest } = useCurriculum();
   const [activeTab, setActiveTab] = useState("All");
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [showImportCourse, setShowImportCourse] = useState(false);
   const [showBootstrapCourse, setShowBootstrapCourse] = useState(false);
+  const [importChaptersFor, setImportChaptersFor] = useState<CurriculumCourse | null>(null);
   const [addChapterFor, setAddChapterFor] = useState<CurriculumCourse | null>(null);
   const [addModuleFor, setAddModuleFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
   const [viewModulesFor, setViewModulesFor] = useState<{ course: CurriculumCourse; chapter: CurriculumChapter } | null>(null);
@@ -128,10 +129,16 @@ export default function Curriculum() {
                     )}
                   </div>
                   {isAdmin && (
-                    <button onClick={() => setAddChapterFor(course)} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      Add Chapter
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setImportChaptersFor(course)} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+                        <Upload className="w-3.5 h-3.5" />
+                        Import Curriculum
+                      </button>
+                      <button onClick={() => setAddChapterFor(course)} className="flex items-center gap-1.5 border border-border text-foreground text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        Add Chapter
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -207,8 +214,11 @@ export default function Curriculum() {
       )}
 
       {showAddCourse && <AddCourseModal onClose={() => setShowAddCourse(false)} onAdd={addCourse} />}
-      {showImportCourse && <ImportCurriculumModal onClose={() => setShowImportCourse(false)} onAdd={addCourse} />}
+      {showImportCourse && <ImportCurriculumModal onClose={() => setShowImportCourse(false)} onAdd={addCourse} onImportChapters={importChapters} />}
       {showBootstrapCourse && <BootstrapCurriculumModal onClose={() => setShowBootstrapCourse(false)} onAdd={addCourse} />}
+      {importChaptersFor && (
+        <ImportCurriculumModal course={importChaptersFor} onClose={() => setImportChaptersFor(null)} onAdd={addCourse} onImportChapters={importChapters} />
+      )}
       {addChapterFor && (
         <AddChapterModal course={addChapterFor} onClose={() => setAddChapterFor(null)}
           onAdd={(title, difficulty) => addChapter(addChapterFor.id, title, difficulty)} />

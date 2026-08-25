@@ -22,6 +22,7 @@ function readCurriculum(): CurriculumCourse[] {
 interface CurriculumContextValue {
   courses: CurriculumCourse[];
   addCourse: (course: CurriculumCourse) => void;
+  importChapters: (courseId: number, chapters: CurriculumChapter[]) => void;
   addChapter: (courseId: number, title: string, difficulty: Difficulty) => void;
   addModule: (courseId: number, chapterId: number, title: string) => void;
   updateModule: (courseId: number, chapterId: number, moduleIndex: number, patch: Partial<CurriculumModule>) => void;
@@ -40,6 +41,12 @@ export function CurriculumProvider({ children }: { children: ReactNode }) {
   };
 
   const addCourse = (course: CurriculumCourse) => persist([...courses, course]);
+
+  // Appends reviewed/approved imported chapters onto an existing course's library,
+  // as distinct from addCourse (which imports into a brand-new course).
+  const importChapters = (courseId: number, chapters: CurriculumChapter[]) => {
+    persist(courses.map((c) => c.id !== courseId ? c : { ...c, chapters: [...c.chapters, ...chapters] }));
+  };
 
   const addChapter = (courseId: number, title: string, difficulty: Difficulty) => {
     persist(courses.map((c) => c.id !== courseId ? c : {
@@ -79,7 +86,7 @@ export function CurriculumProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <CurriculumContext.Provider value={{ courses, addCourse, addChapter, addModule, updateModule, updateChapterTest, findChapterById }}>
+    <CurriculumContext.Provider value={{ courses, addCourse, importChapters, addChapter, addModule, updateModule, updateChapterTest, findChapterById }}>
       {children}
     </CurriculumContext.Provider>
   );
