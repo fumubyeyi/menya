@@ -1,29 +1,35 @@
 import { useState } from "react";
 import { Flame, Plus } from "lucide-react";
+import { Link } from "react-router";
 import ZoomModal from "../../components/ZoomModal";
 import ProgressRing from "../../components/ProgressRing";
-import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
-  sofia, sessions, studentCourseDetail, studentSessionHistory,
-  studentAssignments, CURRENT_STUDENT_ID, studentGoals, aiProjects, tutorNameById,
+  sofia, studentCourseDetail, studentSessionHistory, tutorNameById,
 } from "../../data";
-import { achievements, getCourseIcon, courseColor } from "../../lib/constants";
+import { achievements, getCourseIcon, courseColor, goalProgress, goalLabel } from "../../lib/constants";
 import { useEnrollment } from "../../hooks/useEnrollment";
+import { useSessions } from "../../context/SessionsContext";
+import { useStudentGoals } from "../../hooks/useStudentGoals";
+import { useStudentActivity } from "../../context/StudentActivityContext";
 
-const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
-const todaySession = sofiaSessions.find((s) => s.time === "Today");
 const courseDetails = studentCourseDetail[sofia.id] ?? [];
 const sessionHistory = studentSessionHistory[sofia.id] ?? [];
 const studyHours = Math.round(sessionHistory.reduce((sum, h) => sum + h.duration, 0) / 60);
-const earnedAchievements = achievements.filter((a) => a.condition(sofia));
-const lockedAchievements = achievements.filter((a) => !a.condition(sofia));
 
 export default function StudentHome() {
   const [modal, setModal] = useState(false);
   const [zoomOpen, setZoomOpen] = useState(false);
   const { courses: enrolledCourses } = useEnrollment();
+  const { sessions, updateSession } = useSessions();
+  const { goals } = useStudentGoals();
+  const { streak, sessionsAttendedTotal, studyDaysThisWeek, sessionsThisWeek, logSessionAttended } = useStudentActivity();
+
+  const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
+  const todaySession = sofiaSessions.find((s) => s.time === "Today");
+  const earnedAchievements = achievements.filter((a) => a.condition({ streak, progress: sofia.progress, sessions: sofia.sessions, sessionsAttended: sessionsAttendedTotal }));
+  const lockedAchievements = achievements.filter((a) => !a.condition({ streak, progress: sofia.progress, sessions: sofia.sessions, sessionsAttended: sessionsAttendedTotal }));
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
@@ -41,7 +47,7 @@ export default function StudentHome() {
         </div>
         <div className="flex flex-col items-center gap-1 bg-white/10 rounded-xl px-4 py-3">
           <Flame className="w-5 h-5 text-amber-400" />
-          <span className="text-xl font-display font-bold text-white">{sofia.streak}</span>
+          <span className="text-xl font-display font-bold text-white">{streak}</span>
           <span className="text-[10px] font-mono text-white/60">day streak</span>
         </div>
       </div>
@@ -51,7 +57,7 @@ export default function StudentHome() {
         {[
           { label: "Progress", value: `${sofia.progress}%`, color: "#1B5E4F" },
           { label: "Sessions", value: sofia.sessions, color: "#3B82F6" },
-          { label: "Streak", value: `${sofia.streak}d`, color: "#F59E0B" },
+          { label: "Streak", value: `${streak}d`, color: "#F59E0B" },
           { label: "Study Hours", value: `${studyHours}h`, color: "#8B5CF6" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-4 text-center">
@@ -112,34 +118,6 @@ export default function StudentHome() {
             </div>
           </div>
 
-          {/* Assignments */}
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-foreground mb-3">Assignments</h2>
-            <div className="space-y-3">
-              {(studentAssignments[CURRENT_STUDENT_ID] ?? []).map((hw) => (
-                <div key={hw.id} className="border border-border rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{hw.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <CourseTag course={hw.course} />
-                        <span className="text-[11px] font-mono text-muted-foreground">Due {hw.dueDate}</span>
-                      </div>
-                    </div>
-                    <button className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors">
-                      {hw.status === "not-started" ? "Start" : "Continue"}
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${hw.completion}%` }} />
-                    </div>
-                    <span className="text-[11px] font-mono text-muted-foreground">{hw.completion}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div className="space-y-4">
@@ -173,22 +151,29 @@ export default function StudentHome() {
           {/* Goals Snapshot */}
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-foreground mb-3">Goals</h2>
-            <div className="space-y-3">
-              {studentGoals.slice(0, 3).map((g, i) => {
-                const pct = Math.round((g.current / g.target) * 100);
-                return (
-                  <div key={i}>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-[11px] text-foreground">{g.label}</span>
-                      <span className="text-[11px] font-mono text-muted-foreground">{g.current}/{g.target}</span>
+            {goals.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No goals yet —{" "}
+                <Link to="/student/goals" className="text-primary font-medium hover:underline">set one on the Goals page</Link>.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {goals.slice(0, 3).map((g) => {
+                  const { current, target, pct } = goalProgress(g, { studyDaysThisWeek, sessionsThisWeek });
+                  return (
+                    <div key={g.id}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-[11px] text-foreground">{goalLabel(g)}</span>
+                        <span className="text-[11px] font-mono text-muted-foreground">{current}/{target}</span>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#1B5E4F" }} />
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: g.color }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Achievements */}
@@ -219,7 +204,11 @@ export default function StudentHome() {
           password={todaySession.password ?? ""}
           userName={sofia.name}
           course={todaySession.course}
-          onClose={() => setZoomOpen(false)}
+          onClose={() => {
+            updateSession({ ...todaySession, status: "completed" });
+            logSessionAttended();
+            setZoomOpen(false);
+          }}
         />
       )}
     </div>

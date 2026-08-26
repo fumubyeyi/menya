@@ -14,7 +14,7 @@ import { useStudents } from "../../context/StudentsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { getTutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID } from "../../data";
-import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession } from "../../lib/constants";
+import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, canCancelSession } from "../../lib/constants";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
 import type { AttendanceSession, Student } from "../../types";
 
@@ -97,7 +97,7 @@ export default function TutorSchedule() {
   const { user } = useAuth();
   const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
-  const { sessions } = useSessions();
+  const { sessions, removeSession } = useSessions();
   const { students } = useStudents();
   const { attendanceSessions } = useAttendance();
   const { recurringSlots } = useRecurringSlots();
@@ -205,6 +205,24 @@ export default function TutorSchedule() {
                     Start
                   </button>
                 )}
+                {s.status !== "in-progress" && s.status !== "completed" && (
+                  canCancelSession(s) ? (
+                    <button
+                      onClick={() => removeSession(s.id)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      title="Sessions can only be canceled at least 24 hours in advance"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground border border-border opacity-50 cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                  )
+                )}
               </div>
             ))}
           </div>
@@ -232,7 +250,7 @@ export default function TutorSchedule() {
                   const notes = noteEntries(attendance, students);
                   return (
                     <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-2.5 pr-4">
+                      <td className="py-2.5 pr-4 align-top">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                             <GroupIcon className="w-3.5 h-3.5 text-primary" />

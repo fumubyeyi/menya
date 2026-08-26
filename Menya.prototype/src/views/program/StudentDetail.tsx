@@ -8,8 +8,9 @@ import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
 import ScheduleModal from "../../components/ScheduleModal";
 import { students, studentCourseDetail, studentSessionHistory, tutorNameById } from "../../data";
-import { statusMeta, achievements } from "../../lib/constants";
+import { statusMeta, achievements, nextDateForWeekday, formatSessionTime } from "../../lib/constants";
 import { getEnrolledCourses } from "../../hooks/useEnrollment";
+import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import type { StudentStatus } from "../../types";
 
 const weekActivity = [
@@ -26,6 +27,7 @@ export default function StudentDetail() {
   const { id }     = useParams<{ id: string }>();
   const navigate   = useNavigate();
   const [modal, setModal] = useState(false);
+  const { recurringSlots } = useRecurringSlots();
 
   const student = students.find((s) => s.id === Number(id));
   if (!student) return (
@@ -38,7 +40,18 @@ export default function StudentDetail() {
   const courses    = (studentCourseDetail[student.id] ?? []).filter((sd) => enrolled.includes(sd.course));
   const history     = studentSessionHistory[student.id] ?? [];
   const earned      = achievements.filter((a) => a.condition({ streak: student.streak, progress: student.progress, sessions: student.sessions }));
-  const upcoming    = [{ course: courses[0]?.course ?? "TBD", time: "Tomorrow 3:00 PM", tutorId: 1 }];
+
+  // In-person sessions recur weekly on the student's grade-band slots (Monday/
+  // Wednesday, see RecurringSlotsContext) — always resolve to whichever of
+  // those two comes up next, rather than a fixed placeholder.
+  const upcoming = recurringSlots
+    .filter((slot) => slot.grades.includes(student.grade) && slot.tutorIds.length > 0)
+    .map((slot) => {
+      const date = nextDateForWeekday(slot.day);
+      const { time, clock } = formatSessionTime(date, slot.time);
+      return { course: courses[0]?.course ?? "TBD", tutorId: slot.tutorIds[0], date, time: `${time} · ${clock}` };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
@@ -142,6 +155,9 @@ export default function StudentDetail() {
           {/* Upcoming */}
           <div className="bg-card border border-border rounded-xl p-4">
             <h2 className="text-sm font-semibold text-foreground mb-3">Upcoming Sessions</h2>
+            {upcoming.length === 0 && (
+              <p className="text-xs text-muted-foreground">No upcoming sessions scheduled.</p>
+            )}
             {upcoming.map((u, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />

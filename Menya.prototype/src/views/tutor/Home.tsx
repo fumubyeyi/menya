@@ -21,8 +21,9 @@ import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import {
   getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
-import { statusMeta, formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession } from "../../lib/constants";
+import { statusMeta, formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, PREFERENCE_DAYS } from "../../lib/constants";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
+import { mondayOf, toISODate } from "../program/Schedule";
 
 // The grade band or course an in-person group session was booked for — same
 // reversal used on the Schedule and Attendance pages.
@@ -43,7 +44,7 @@ function timeAgo(iso: string): string {
 export default function TutorHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { tutors } = useTutors();
+  const { tutors, updateTutor } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const { sessions } = useSessions();
   const { attendanceSessions } = useAttendance();
@@ -55,6 +56,17 @@ export default function TutorHome() {
   const mySlots = WEEKDAYS
     .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.tutorIds.includes(tutorId)))
     .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
+
+  // In-person sessions published for the current week (see program/Schedule's
+  // "Notify Tutors", which turns a Recurring Slot into a dated, in-person Session)
+  // — the real weekly in-person volume, not the old static mock figure.
+  const weekStartISO = toISODate(mondayOf(new Date()));
+  const weekEnd = mondayOf(new Date());
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndISO = toISODate(weekEnd);
+  const inPersonThisWeek = tutorSessions.filter(
+    (s) => s.location === "in-person" && !!s.date && s.date >= weekStartISO && s.date <= weekEndISO
+  );
 
   // In-person sessions already in the past (or today) with no roll call logged yet —
   // the same "shared across co-tutors" lookup the Schedule/Attendance pages use, so
@@ -69,6 +81,14 @@ export default function TutorHome() {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const currentTutor = getTutorById(tutors, tutorId);
   const tutorStudents = getTutorStudents(tutorId);
+
+  const preferredDays = currentTutor?.preferredDays ?? [];
+  const togglePreferredDay = (day: string) => {
+    if (!currentTutor) return;
+    const next = preferredDays.includes(day) ? preferredDays.filter((d) => d !== day) : [...preferredDays, day];
+    updateTutor({ ...currentTutor, preferredDays: next });
+  };
+
   const avgProgress = tutorStudents.length
     ? Math.round(tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length)
     : 0;
@@ -98,9 +118,11 @@ export default function TutorHome() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-      {/* Profile Banner */}
+      {/* Profile Banner — same identity card Program sees on a tutor's profile
+          (avatar, grade range, courses), plus the day-preference toggle right
+          under the name since this is the tutor's own, editable copy of it. */}
       <div
-        className="rounded-2xl p-6 flex items-center gap-5"
+        className="rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
         style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0f3d32 100%)" }}
       >
         <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold font-display flex-shrink-0">
@@ -108,7 +130,36 @@ export default function TutorHome() {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-display font-semibold text-white leading-none">{currentTutor ? `${currentTutor.firstName} ${currentTutor.lastName}` : ""}</h1>
-          <p className="text-sm text-white/70 mt-1 font-mono">{currentTutor?.courses.join(" · ")} · {tutorStudents.length} students</p>
+          {currentTutor && currentTutor.grades.length > 0 && (
+            <p className="text-sm text-white/60 mt-1 font-mono">Grades {Math.min(...currentTutor.grades)}–{Math.max(...currentTutor.grades)}</p>
+          )}
+
+          {/* Tutoring Day Preference */}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <span className="text-[11px] font-mono text-white/50 uppercase tracking-wide">Prefers to tutor:</span>
+            {PREFERENCE_DAYS.map((day) => (
+              <button
+                key={day}
+                type="button"
+                onClick={() => togglePreferredDay(day)}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                  preferredDays.includes(day)
+                    ? "bg-white text-[#1B5E4F]"
+                    : "border border-white/25 text-white/70 hover:bg-white/10"
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+
+          {currentTutor && currentTutor.courses.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {currentTutor.courses.map((c) => (
+                <span key={c} className="text-[11px] px-2 py-0.5 rounded-md font-mono bg-white/15 text-white">{c}</span>
+              ))}
+            </div>
+          )}
         </div>
         <span className="text-xs font-mono text-white/60 hidden sm:block">Summer 2026 · Week 6</span>
       </div>
@@ -116,7 +167,7 @@ export default function TutorHome() {
       {/* Stat Pillars */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatTile label="Assigned Students" value={currentTutor?.students ?? tutorStudents.length} Icon={Users} color="#1B5E4F" />
-        <StatTile label="Sessions This Week" value={tutorWeeklyData[5].sessions} Icon={CalendarDays} color="#3B82F6" />
+        <StatTile label="In-Person This Week" value={inPersonThisWeek.length} Icon={CalendarDays} color="#3B82F6" />
         <StatTile label="Avg Student Score" value={`${avgProgress}%`} Icon={TrendingUp} color="#F0981E" />
         <StatTile label="Pending Roll Calls" value={pendingRollCalls.length} Icon={ClipboardCheck} color="#DC2626" />
       </div>

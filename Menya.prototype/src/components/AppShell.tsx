@@ -9,7 +9,8 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useTutors } from "../context/TutorsContext";
 import { useScheduleNotices } from "../context/ScheduleNoticesContext";
-import { getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID } from "../data";
+import { useStudentActivity } from "../context/StudentActivityContext";
+import { getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID, sofia } from "../data";
 import { statusMeta } from "../lib/constants";
 import Avatar from "./Avatar";
 import ScheduleModal from "./ScheduleModal";
@@ -47,16 +48,20 @@ const ROLE_META: Record<Role, { Icon: React.ElementType; tagline: string }> = {
   student: { Icon: GraduationCap, tagline: "Student" },
 };
 
-const STATS: Record<Role, [string, string][]> = {
+// Student is intentionally absent here — its three values (score, streak,
+// sessions) all come from live data (sofia + useStudentActivity) below,
+// rather than a hardcoded tuple that could silently drift from the real
+// numbers everywhere else in the app now shows.
+const STATS: Record<Exclude<Role, "student">, [string, string][]> = {
   program: [["84","sessions"],["247","students"],["73%","avg"]],
   tutor:   [["20","students"],["25","sessions"]],
-  student: [["91%","score"],["8d","streak"],["15","sessions"]],
 };
 
 export default function AppShell({ onSchedule }: { onSchedule?: (student?: string) => void }) {
   const { user, logout } = useAuth();
   const { tutors } = useTutors();
   const { scheduleNotices, markScheduleNoticeSeen } = useScheduleNotices();
+  const { streak } = useStudentActivity();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -78,6 +83,8 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   const tutorRecord = role === "tutor" ? getTutorById(tutors, tutorId) : undefined;
   const stats: [string, string][] = tutorRecord
     ? [[String(tutorRecord.students), "students"], [String(tutorRecord.sessions), "sessions"]]
+    : role === "student"
+    ? [[`${sofia.progress}%`, "score"], [`${streak}d`, "streak"], [String(sofia.sessions), "sessions"]]
     : STATS[role];
   const alertRows: { student: (typeof atRiskAlerts)[number]["student"]; courses: string[] }[] = [];
   atRiskAlerts.forEach(({ student, course }) => {
@@ -102,6 +109,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/program/curriculum": "Curriculum",
     "/program/sessions":   "Attendance",
     "/program/schedule":   "Schedule",
+    "/program/tutors":     "Tutors",
     "/program/analytics":  "Analytics",
     "/program/alumni":     "Alumni Tracking",
     "/tutor/home":         "My Home",

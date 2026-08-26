@@ -1,4 +1,4 @@
-import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, CourseDetail, SessionRecord, AIProject, HomeworkItem, AlumniRecord, AttendanceSession, AttendanceScope, AttendanceEntry, LibrarySearchQuery } from "../types";
+import type { Student, Session, CurriculumCourse, CurriculumChapter, Tutor, CourseDetail, SessionRecord, AlumniRecord, AttendanceSession, AttendanceScope, AttendanceEntry, LibrarySearchQuery } from "../types";
 
 export const CURRENT_STUDENT_ID = 3;
 // Fallback used only if a logged-in tutor's AuthUser.tutorId is somehow missing —
@@ -1429,13 +1429,6 @@ export const tutorWeeklyData = [
   { week: "Wk 6", sessions: 5, avgScore: 72 },
 ];
 
-export const studentGoals = [
-  { label: "Reach 95% in Geometry",         current: 94, target: 95,  unit: "%",        color: "#3B82F6" },
-  { label: "Complete 20 sessions",          current: 15, target: 20,  unit: "sessions", color: "#8B5CF6" },
-  { label: "10-Day Streak",                 current: 8,  target: 10,  unit: "days",     color: "#F59E0B" },
-  { label: "Finish Geometry Essentials module", current: 55, target: 100, unit: "%",    color: "#3B82F6" },
-];
-
 export const studentModules = [
   { course: "Pre-Alg",       title: "Pre-Algebra Foundations", completion: 80, totalModules: 6, currentModule: 5, active: false },
   { course: "Pre-Alg",       title: "Linear Equations (next)", completion: 0,  totalModules: 5, currentModule: 0, active: false },
@@ -1451,19 +1444,10 @@ export const studentModules = [
   { course: "Calculus",      title: "Limits & Continuity",                completion: 68, totalModules: 6, currentModule: 4, active: true  },
 ];
 
-export const aiProjects: AIProject[] = [
-  { id: 1, title: "Polynomial Expressions Practice", course: "Pre-Alg",       module: "Pre-Algebra Foundations",  student: "Sofia Patel",      difficulty: "Intermediate", estimatedMins: 25, status: "pending",  generatedAt: "Jun 20", aiNote: "Sofia (Chicago, IL) is scoring 88% in Pre-Alg with a gap in polynomial manipulation. These 6 problems target that weakness using a garden plot near her neighborhood.", tasks: ["Simplify: 3x² + 2x − 5x² + 4x", "Expand: (x + 3)(x − 2)", "Factor: x² + 5x + 6", "Solve for x: 2x² − 8 = 0", "Write in standard form: 4 + 3x − x²", "Word problem: A raised garden bed at the Peterson Garden Project in Chicago has area x² + 7x + 12 (in square feet). Find its dimensions in terms of x."] },
-  { id: 2, title: "Limits & Continuity — Intro Set",  course: "Calculus",     module: "Differential Equations",   student: "Noah Fitzgerald",  difficulty: "Advanced",     estimatedMins: 40, status: "pending",  generatedAt: "Jun 20", aiNote: "Noah (Boston, MA) improved from 63% to 68% in Calculus. These problems introduce limit notation to bridge to derivatives, framed around the MBTA he rides to sessions.", tasks: ["Evaluate: lim(x→2) of (x²−4)/(x−2)", "Determine continuity of f(x) = 1/(x−3) at x = 3", "Use the squeeze theorem for lim(x→0) x·sin(1/x)", "The MBTA Green Line's fare structure changes after Kenmore Station — model total fare as a piecewise function of stops traveled and identify any discontinuities", "Find the limit at infinity: lim(x→∞) (3x²+1)/(x²−5)"] },
-  { id: 3, title: "Pre-Calculus Function Review",      course: "Pre-Calculus", module: "Trigonometry",             student: "DeShawn Williams", difficulty: "Intermediate", estimatedMins: 30, status: "approved", generatedAt: "Jun 17", assignedAt: "Jun 18", dueDate: "Jun 24", aiNote: "Covers function notation, composition, and inverse functions — areas where DeShawn (Detroit, MI) needs reinforcement, grounded in a market stall he knows from Eastern Market.", tasks: ["Evaluate f(g(x)) where f(x) = x+2 and g(x) = 3x", "Find the inverse of f(x) = 2x − 5", "A produce vendor at Eastern Market in Detroit prices apples by weight — use the vertical line test on a graph of price vs. weight to confirm this relationship is a function", "Graph y = |x−2|+1 and describe transformations", "Solve: if f(x)=x² and g(x)=√x, find f(g(16))"] },
-  { id: 4, title: "Simplifying Radicals — Basic Set",  course: "Pre-Alg",     module: "Pre-Algebra Foundations",  student: "Sofia Patel",      difficulty: "Beginner",     estimatedMins: 15, status: "revision", generatedAt: "Jun 18", tutorNote: "Sofia is already at 88%+ — these are too easy. Please regenerate at Intermediate difficulty.", aiNote: "Generated to reinforce radical basics following session on exponents.", tasks: ["Simplify: √36", "Simplify: √72", "Simplify: 3√8 + 2√2", "Evaluate: (√5)²", "Simplify: √(16/25)"] },
-  { id: 5, title: "Rate of Change Word Problems",      course: "Calculus",     module: "Differential Equations",   student: "Noah Fitzgerald",  difficulty: "Advanced",     estimatedMins: 45, status: "pending",  generatedAt: "Jun 20", aiNote: "Builds on limit work. Real-world rate-of-change scenarios drawn from spots around Noah's home in Boston, MA to prepare for derivatives.", tasks: ["A ball drops from the top of the Bunker Hill Monument (100m) — find velocity at t=3s using limits", "The Frog Pond on Boston Common drains for cleaning at V(t)=50−2t² gallons remaining after t minutes. Find the drainage rate at t=4", "Sketch the tangent to y=x² at x=3 and find its slope", "Compare average vs instantaneous rate for f(x)=x³ on [1,2]"] },
-  { id: 6, title: "Pre-Algebra Word Problems",         course: "Pre-Alg",     module: "Pre-Algebra Foundations",  student: "Sofia Patel",      difficulty: "Intermediate", estimatedMins: 20, status: "approved", generatedAt: "Jun 15", assignedAt: "Jun 16", dueDate: "Jun 22", aiNote: "Applied problems targeting equation setup and variable isolation, aligned with Sofia's current module progress and set around her Chicago, IL neighborhood.", tasks: ["Maria and Jake are trading Chicago Cubs pins at a swap meet in Wrigleyville — Maria has 3× more pins than Jake, and together they have 48. How many does each have?", "A community mural painted along Chicago's 606 Trail is a rectangle with length 5 ft more than its width and a perimeter of 42 ft. Find its dimensions.", "Solve: 4(x−2) = 3x + 5", "A Metra train leaves Union Station in Chicago at 60 mph and needs to cover 210 miles to reach its final stop. Find the travel time."] },
-];
-
 // Tutor-initiated Curriculum Library search history (see Curriculum Library Tutor
 // Search Feature.md) — seeded with a couple of past searches so the history panel
-// isn't empty on first load. Unlike the old aiProjects queue, nothing here is
-// system-generated; every entry originates from a tutor typing a prompt.
+// isn't empty on first load. Nothing here is system-generated; every entry
+// originates from a tutor typing a prompt.
 export const libraryQueries: LibrarySearchQuery[] = [
   {
     id: 1,
@@ -1508,16 +1492,6 @@ export const libraryQueries: LibrarySearchQuery[] = [
     },
   },
 ];
-
-export const studentAssignments: Record<number, HomeworkItem[]> = {
-  3: [
-    { id: 6, studentId: 3, title: "Pre-Algebra Word Problems",        course: "Pre-Alg",    assignedByTutorId: 5, assignedAt: "Jun 16", dueDate: "Jun 22", status: "in-progress", completion: 65 },
-  ],
-  8: [
-    { id: 7, studentId: 8, title: "Limits & Continuity — Intro Set",  course: "Calculus",   assignedByTutorId: 5, assignedAt: "Jun 18", dueDate: "Jun 25", status: "not-started", completion: 0  },
-    { id: 8, studentId: 8, title: "Rate of Change Word Problems",      course: "Calculus",   assignedByTutorId: 5, assignedAt: "Jun 20", dueDate: "Jun 27", status: "not-started", completion: 0  },
-  ],
-};
 
 // A tutor's roster — students they've had at least one session with. Takes
 // tutorId as a parameter (rather than a fixed export) so it reflects whichever

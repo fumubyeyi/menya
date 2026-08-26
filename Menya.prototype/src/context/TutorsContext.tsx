@@ -22,6 +22,7 @@ interface TutorsContextValue {
   tutors: Tutor[];
   addTutor: (tutor: NewTutor) => void;
   addTutors: (tutors: NewTutor[]) => void;
+  updateTutor: (tutor: Tutor) => void;
 }
 
 const TutorsContext = createContext<TutorsContextValue | null>(null);
@@ -42,8 +43,14 @@ export function TutorsProvider({ children }: { children: ReactNode }) {
     setRecords(next);
   };
 
+  const updateTutor = (tutor: Tutor) => {
+    const next = records.map((t) => (t.id === tutor.id ? tutor : t));
+    localStorage.setItem(TUTORS_KEY, JSON.stringify(next));
+    setRecords(next);
+  };
+
   return (
-    <TutorsContext.Provider value={{ tutors: records, addTutor, addTutors }}>
+    <TutorsContext.Provider value={{ tutors: records, addTutor, addTutors, updateTutor }}>
       {children}
     </TutorsContext.Provider>
   );

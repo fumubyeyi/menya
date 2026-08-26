@@ -3,7 +3,7 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
   GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, ProjectStatus, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor, Session, AttendanceSession, MatchStrength, SearchDecision, LibrarySearchResult } from "../types";
+import type { StudentStatus, Difficulty, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor, Session, AttendanceSession, MatchStrength, SearchDecision, LibrarySearchResult, StudentGoal } from "../types";
 
 // Math courses only, matching the Program > Curriculum library. Each gets a distinct color/icon.
 export const courseColor: Record<string, string> = {
@@ -13,11 +13,23 @@ export const courseColor: Record<string, string> = {
 
 export const ALL_COURSES = Object.keys(courseColor);
 export const TUTOR_GRADES = [6, 7, 8, 9, 10, 11, 12];
+// The only two days a tutor can set a tutoring-day preference for, whether
+// entered by Program at registration (AddTutorModal) or self-service on the
+// tutor's own Home page.
+export const PREFERENCE_DAYS = ["Monday", "Tuesday"];
 
 // In-person sessions are planned and rolled up by grade band, not individual grade —
 // see the Recurring Slots table under Program > Schedule. Anything filtering or
 // grouping session/attendance data by grade should use these same three bands.
 export const GRADE_GROUPS: number[][] = [[6, 7], [8, 9], [10, 11, 12]];
+
+// Maps an individual grade to its containing band, e.g. grade 7 -> [6, 7] —
+// for anywhere that needs to go from a single student's grade to the band
+// Program's Recurring Slots are actually scheduled against. Falls back to a
+// single-grade band so callers never have to null-check.
+export function gradeGroupFor(grade: number): number[] {
+  return GRADE_GROUPS.find((band) => band.includes(grade)) ?? [grade];
+}
 
 // Shared tutor-matching score used by both the booking flow and session
 // reassignment, so "best match" means the same thing in both places:
@@ -265,6 +277,20 @@ export function formatTime12h(time: string): string {
   return `${h}:${mStr} ${period}`;
 }
 
+const WEEKDAY_INDEX: Record<string, number> = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+
+// The next calendar date (today counts) landing on the given weekday, as
+// YYYY-MM-DD — turns a standing Recurring Slot's day name (in-person sessions
+// always recur on Monday/Wednesday, see RecurringSlotsContext) into a real
+// upcoming session date, e.g. for Program's per-student "Upcoming Sessions".
+export function nextDateForWeekday(day: string, from: Date = new Date()): string {
+  const target = WEEKDAY_INDEX[day] ?? from.getDay();
+  const d = new Date(from);
+  d.setDate(d.getDate() + ((target - d.getDay() + 7) % 7));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function formatSessionTime(dateStr: string, timeStr: string): { time: string; clock: string } {
   const target = new Date(`${dateStr}T${timeStr}`);
   const today = new Date();
@@ -281,6 +307,42 @@ export function formatSessionTime(dateStr: string, timeStr: string): { time: str
   const clock = target.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   return { time, clock };
+}
+
+// Reverses formatSessionTime — a session usually only carries display labels
+// ("Today"/"Tomorrow"/"Jun 22" + a 12h clock string), not a full datetime, so
+// reconstructing when it actually starts (for the 24h cancel cutoff below)
+// means parsing those labels back into a real Date. Returns null when there's
+// not enough information to do that reliably.
+export function sessionStartsAt(session: Session): Date | null {
+  const match = session.clock?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+  const [, hStr, mStr, period] = match;
+  let h = parseInt(hStr, 10) % 12;
+  if (period.toUpperCase() === "PM") h += 12;
+  const m = parseInt(mStr, 10);
+
+  let day: Date;
+  if (session.date) {
+    day = new Date(`${session.date}T00:00:00`);
+  } else if (session.time === "Today") {
+    day = new Date();
+  } else if (session.time === "Tomorrow") {
+    day = new Date();
+    day.setDate(day.getDate() + 1);
+  } else {
+    day = new Date(`${session.time} ${new Date().getFullYear()}`);
+  }
+  if (Number.isNaN(day.getTime())) return null;
+
+  day.setHours(h, m, 0, 0);
+  return day;
+}
+
+// A session can only be canceled at least 24 hours before it starts.
+export function canCancelSession(session: Session): boolean {
+  const start = sessionStartsAt(session);
+  return start !== null && start.getTime() - Date.now() >= 24 * 60 * 60 * 1000;
 }
 
 // An in-person group booking publishes one Session record per assigned tutor —
@@ -315,20 +377,6 @@ export const diffCls: Record<Difficulty, string> = {
   Advanced:     "text-red-700 bg-red-50",
 };
 
-export const projectStatusCls: Record<ProjectStatus, string> = {
-  pending:  "bg-amber-100 text-amber-700",
-  approved: "bg-emerald-100 text-emerald-700",
-  revision: "bg-blue-100 text-blue-700",
-  rejected: "bg-red-100 text-red-700",
-};
-
-export const projectStatusLabel: Record<ProjectStatus, string> = {
-  pending:  "Pending Review",
-  approved: "Approved",
-  revision: "Needs Revision",
-  rejected: "Rejected",
-};
-
 export const alumniOutcomeMeta: Record<AlumniOutcome, { label: string; cls: string; Icon: React.ElementType; isStem: boolean }> = {
   "stem-college":     { label: "STEM Major",     cls: "text-emerald-700 bg-emerald-50", Icon: GraduationCap, isStem: true  },
   "non-stem-college": { label: "Non-STEM Major", cls: "text-blue-700 bg-blue-50",       Icon: GraduationCap, isStem: false },
@@ -355,11 +403,34 @@ export const verificationMeta: Record<VerificationSource, { label: string; cls: 
   "self-reported": { label: "Self-Reported",  cls: "text-gray-600 bg-gray-100",      Icon: MessageCircleMore },
 };
 
+type AchievementInput = { streak: number; progress: number; sessions: number; sessionsAttended?: number };
+
 export const achievements = [
-  { id: "streak-5",    label: "5-Day Streak",     Icon: Flame,        color: "#F59E0B", condition: (s: { streak: number; progress: number; sessions: number }) => s.streak >= 5   },
-  { id: "streak-7",    label: "Week Warrior",      Icon: Trophy,       color: "#F0981E", condition: (s: { streak: number; progress: number; sessions: number }) => s.streak >= 7   },
-  { id: "score-80",    label: "80+ Score",         Icon: Target,       color: "#1B5E4F", condition: (s: { streak: number; progress: number; sessions: number }) => s.progress >= 80},
-  { id: "score-90",    label: "Top Performer",     Icon: Star,         color: "#059669", condition: (s: { streak: number; progress: number; sessions: number }) => s.progress >= 90},
-  { id: "sessions-10", label: "10 Sessions",       Icon: CheckCircle2, color: "#3B82F6", condition: (s: { streak: number; progress: number; sessions: number }) => s.sessions >= 10},
-  { id: "sessions-15", label: "Dedicated Learner", Icon: BookMarked,   color: "#8B5CF6", condition: (s: { streak: number; progress: number; sessions: number }) => s.sessions >= 15},
+  { id: "streak-5",    label: "5-Day Streak",     Icon: Flame,        color: "#F59E0B", condition: (s: AchievementInput) => s.streak >= 5   },
+  { id: "streak-7",    label: "Week Warrior",      Icon: Trophy,       color: "#F0981E", condition: (s: AchievementInput) => s.streak >= 7   },
+  { id: "score-80",    label: "80+ Score",         Icon: Target,       color: "#1B5E4F", condition: (s: AchievementInput) => s.progress >= 80},
+  { id: "score-90",    label: "Top Performer",     Icon: Star,         color: "#059669", condition: (s: AchievementInput) => s.progress >= 90},
+  { id: "sessions-10", label: "10 Sessions",       Icon: CheckCircle2, color: "#3B82F6", condition: (s: AchievementInput) => s.sessions >= 10},
+  { id: "sessions-15", label: "Dedicated Learner", Icon: BookMarked,   color: "#8B5CF6", condition: (s: AchievementInput) => s.sessions >= 15},
+  { id: "showed-up",   label: "Showed Up",         Icon: BadgeCheck,   color: "#1B5E4F", condition: (s: AchievementInput) => (s.sessionsAttended ?? 0) >= 1 },
 ];
+
+// Human-readable label + live progress for a student-created goal (see
+// useStudentGoals/useStudentActivity) — shared by the Home snapshot and the
+// Goals page so both render goal cards identically.
+export function goalLabel(goal: StudentGoal): string {
+  if (goal.type === "study-time") {
+    return `Study ${goal.minutesPerSession} min, ${goal.timesPerWeek}x/week`;
+  }
+  return `Attend ${goal.targetPerWeek} session${goal.targetPerWeek === 1 ? "" : "s"}/week`;
+}
+
+export function goalProgress(
+  goal: StudentGoal,
+  activity: { studyDaysThisWeek: number; sessionsThisWeek: number }
+): { current: number; target: number; pct: number } {
+  const [current, target] = goal.type === "study-time"
+    ? [Math.min(activity.studyDaysThisWeek, goal.timesPerWeek), goal.timesPerWeek]
+    : [Math.min(activity.sessionsThisWeek, goal.targetPerWeek), goal.targetPerWeek];
+  return { current, target, pct: Math.min(100, Math.round((current / target) * 100)) };
+}

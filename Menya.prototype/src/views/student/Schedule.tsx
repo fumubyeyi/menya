@@ -1,31 +1,41 @@
 import { useState } from "react";
-import { Clock, Plus } from "lucide-react";
+import { Clock, Plus, CalendarClock } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
-import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
 import { useSessions } from "../../context/SessionsContext";
+import { useStudentActivity } from "../../context/StudentActivityContext";
+import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import {
-  sofia, studentSessionHistory, studentAssignments, CURRENT_STUDENT_ID, aiProjects, tutorNameById,
+  sofia, studentSessionHistory, tutorNameById,
 } from "../../data";
-import { getCourseIcon, courseColor } from "../../lib/constants";
+import { getCourseIcon, courseColor, formatTime12h, gradesSummary, gradeGroupFor } from "../../lib/constants";
+import { WEEKDAYS } from "../program/RecurringSlotModal";
 
 const sessionHistory = studentSessionHistory[sofia.id] ?? [];
 
 export default function StudentSchedule() {
-  const { sessions } = useSessions();
+  const { sessions, updateSession } = useSessions();
+  const { logSessionAttended } = useStudentActivity();
+  const { recurringSlots } = useRecurringSlots();
   const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
+
+  // Same in-person schedule Program plans under Program > Schedule, narrowed
+  // to the grade band that actually covers this student.
+  const myGradeSlots = WEEKDAYS
+    .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.grades.includes(sofia.grade)))
+    .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-semibold text-foreground">Schedule</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Upcoming sessions &amp; assignments</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Upcoming sessions</p>
         </div>
         <button
           onClick={() => setModal(true)}
@@ -75,6 +85,26 @@ export default function StudentSchedule() {
         )}
       </div>
 
+      {/* In-Person Schedule — read-only view of the same Recurring Slots
+          Program plans under Program > Schedule, narrowed to this student's
+          grade band. */}
+      {myGradeSlots.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
+            <CalendarClock className="w-4 h-4 text-primary" /> In-Person Schedule
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">Standing weekly sessions for {gradesSummary(gradeGroupFor(sofia.grade))} — set by program staff.</p>
+          <div className="flex flex-wrap gap-2">
+            {myGradeSlots.map((slot) => (
+              <span key={slot.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-muted text-foreground border border-border">
+                {slot.day} · {formatTime12h(slot.time)}
+                {slot.tutorIds.length > 0 && ` · ${slot.tutorIds.map((id) => tutorNameById(id)).join(", ")}`}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Past Sessions */}
       <div className="bg-card border border-border rounded-xl p-5">
         <h2 className="text-sm font-semibold text-foreground mb-4">Past Sessions</h2>
@@ -109,55 +139,6 @@ export default function StudentSchedule() {
         </div>
       </div>
 
-      {/* Assignments */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Assignments</h2>
-        <div className="space-y-4">
-          {(studentAssignments[CURRENT_STUDENT_ID] ?? []).map((hw) => {
-            const project = aiProjects.find((p) => p.id === hw.id);
-            const previewTasks = project?.tasks.slice(0, 2) ?? [];
-
-            return (
-              <div key={hw.id} className="border border-border rounded-xl p-4">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{hw.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <CourseTag course={hw.course} />
-                      <span className="text-[11px] font-mono text-muted-foreground">Due {hw.dueDate}</span>
-                    </div>
-                  </div>
-                  <button className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors flex-shrink-0">
-                    {hw.status === "not-started" ? "Start" : "Continue"}
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: `${hw.completion}%` }} />
-                  </div>
-                  <span className="text-[11px] font-mono text-muted-foreground">{hw.completion}%</span>
-                </div>
-
-                {previewTasks.length > 0 && (
-                  <div className="space-y-1">
-                    {previewTasks.map((task, i) => (
-                      <div key={i} className="flex gap-2 text-[11px] text-muted-foreground">
-                        <span className="font-mono">{i + 1}.</span>
-                        <span className="line-clamp-1">{task}</span>
-                      </div>
-                    ))}
-                    {(project?.tasks.length ?? 0) > 2 && (
-                      <p className="text-[11px] font-mono text-muted-foreground">+{(project?.tasks.length ?? 0) - 2} more tasks</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {modal && <ScheduleModal defaultStudent={sofia.name} onClose={() => setModal(false)} />}
       {activeSession?.meetingId && (
         <ZoomModal
@@ -166,7 +147,11 @@ export default function StudentSchedule() {
           password={activeSession.password ?? ""}
           userName={sofia.name}
           course={activeSession.course}
-          onClose={() => setActiveSession(null)}
+          onClose={() => {
+            updateSession({ ...activeSession, status: "completed" });
+            logSessionAttended();
+            setActiveSession(null);
+          }}
         />
       )}
     </div>

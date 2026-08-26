@@ -1,7 +1,6 @@
 export type Role = "program" | "tutor" | "student";
 export type StudentStatus = "exceeding" | "on-track" | "needs-support" | "at-risk";
-export type ProjectStatus = "pending" | "approved" | "revision" | "rejected";
-export type SessionStatus = "upcoming" | "in-progress" | "scheduled";
+export type SessionStatus = "upcoming" | "in-progress" | "scheduled" | "completed";
 export type SessionType = "tutoring" | "check-in";
 export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
 export type TrendDirection = "up" | "flat" | "down";
@@ -24,6 +23,19 @@ export interface Student {
   status: StudentStatus;
   location: string;
 }
+
+// A student-created goal (see useStudentGoals) — either a self-study time
+// commitment or a tutor-session attendance target. Progress is computed live
+// from useStudentActivity, not stored on the goal itself.
+export type StudentGoal =
+  | { id: number; type: "study-time"; minutesPerSession: number; timesPerWeek: number; createdAt: string }
+  | { id: number; type: "session-attendance"; targetPerWeek: number; createdAt: string };
+
+// Plain Omit collapses a union to its shared keys, dropping the type-specific
+// fields — distribute it over each union member so callers building a new
+// goal (before id/createdAt are assigned) still get a discriminated type.
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+export type NewStudentGoal = DistributiveOmit<StudentGoal, "id" | "createdAt">;
 
 export type AttendanceScope = "grade" | "course";
 export type AttendanceMark = "present" | "absent";
@@ -252,6 +264,9 @@ export interface Tutor {
   students: number;
   sessions: number;
   description: string;
+  // Which day(s) this tutor prefers to run in-person sessions — self-service,
+  // set by the tutor on their own Schedule page. Absent until they set it.
+  preferredDays?: string[];
 }
 
 export interface CourseDetail {
@@ -278,28 +293,10 @@ export interface SessionRecord {
   artifacts?: SessionArtifact[];
 }
 
-export interface AIProject {
-  id: number;
-  title: string;
-  course: string;
-  module: string;
-  student: string;
-  difficulty: Difficulty;
-  estimatedMins: number;
-  status: ProjectStatus;
-  generatedAt: string;
-  aiNote: string;
-  tasks: string[];
-  assignedAt?: string;
-  dueDate?: string;
-  tutorNote?: string;
-}
-
 // Tutor-initiated Curriculum Library search (see Curriculum Library Tutor Search
-// Feature.md) — distinct from AIProject above, which is the older diagnostic-
-// initiated per-student generation flow. A search either surfaces a real,
-// authored library module ("strong") or, when nothing close enough exists yet,
-// drafts new practice questions and doubles as a library-gap signal ("weak"/"none").
+// Feature.md). A search either surfaces a real, authored library module
+// ("strong") or, when nothing close enough exists yet, drafts new practice
+// questions and doubles as a library-gap signal ("weak"/"none").
 export type MatchStrength = "strong" | "weak" | "none";
 export type SearchDecision = "pending" | "approved" | "rejected";
 
@@ -324,18 +321,6 @@ export interface LibrarySearchQuery {
   result: LibrarySearchResult;
   decision: SearchDecision;
   rejectNote?: string;
-}
-
-export interface HomeworkItem {
-  id: number;
-  studentId: number;
-  title: string;
-  course: string;
-  assignedByTutorId: number;
-  assignedAt: string;
-  dueDate: string;
-  status: "not-started" | "in-progress" | "submitted";
-  completion: number;
 }
 
 // A single dated follow-up snapshot (e.g. the 6-month or 1-year check-in),

@@ -14,7 +14,7 @@ import type { Session } from "../../types";
 
 export type { RecurringSlot };
 
-function toISODate(d: Date): string {
+export function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
@@ -24,8 +24,10 @@ function parseISODate(iso: string): Date {
 }
 
 // The Monday of the week containing `d` — so "this week" always means the week
-// today falls in, however far into it we already are.
-function mondayOf(d: Date): Date {
+// today falls in, however far into it we already are. Exported so other tutor-
+// facing views (e.g. tutor Home's "In-Person This Week" stat) count published
+// in-person sessions against the same week boundary Program uses to publish them.
+export function mondayOf(d: Date): Date {
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   const monday = new Date(d);

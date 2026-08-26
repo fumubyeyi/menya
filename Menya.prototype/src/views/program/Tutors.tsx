@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Search, UserPlus, CalendarRange, Clock, Upload } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
@@ -35,6 +35,7 @@ const TUTOR_IMPORT_COLUMNS: ImportColumn<TutorImportRow>[] = [
 ];
 
 export default function Tutors() {
+  const navigate = useNavigate();
   const { tutors, addTutors } = useTutors();
   const { sessions } = useSessions();
   const [query, setQuery] = useState("");
@@ -86,7 +87,8 @@ export default function Tutors() {
           {filtered.map((t) => {
             const upcoming = sessions.filter((s) => s.tutorId === t.id).sort((a, b) => dayRank(a.time) - dayRank(b.time));
             return (
-              <div key={t.id} className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3">
+              <div key={t.id} onClick={() => navigate(`/program/tutors/${t.id}`)}
+                className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <Avatar name={`${t.firstName} ${t.lastName}`} size={10} />
                   <div className="min-w-0">
@@ -102,8 +104,6 @@ export default function Tutors() {
                 {t.description && <p className="text-xs text-muted-foreground leading-snug">{t.description}</p>}
 
                 <div className="flex gap-3 text-xs text-muted-foreground font-mono">
-                  <span>{t.students} students</span>
-                  <span>·</span>
                   <span>{t.sessions} sessions</span>
                 </div>
 

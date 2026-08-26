@@ -12,6 +12,7 @@ import ContentDrawer, { ModuleContentBody } from "../../components/ContentDrawer
 import RequestHelpModal from "../../components/RequestHelpModal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../app/components/ui/tabs";
 import { useCurriculum } from "../../context/CurriculumContext";
+import { useStudentActivity } from "../../context/StudentActivityContext";
 import { getCourseIcon, courseColor, diffCls, getModuleContent, getChapterTest, isNumericAnswerCorrect } from "../../lib/constants";
 import { sofia } from "../../data";
 import type { PracticeItem } from "../../types";
@@ -218,6 +219,7 @@ function PracticeCard({ question, item, onAttemptChange, onReveal, onMark, onAns
 export default function ModuleWorkspace() {
   const { chapterId, moduleIndex } = useParams();
   const { findChapterById } = useCurriculum();
+  const { logStudy } = useStudentActivity();
   const found = findChapterById(Number(chapterId));
   const index = Number(moduleIndex);
   const courseModule = found?.chapter.modules[index];
@@ -274,6 +276,7 @@ export default function ModuleWorkspace() {
   const persistPractice = (next: PracticeState) => {
     localStorage.setItem(practiceKey, JSON.stringify(next));
     setPractice(next);
+    logStudy();
   };
   const updateItem = (i: number, patch: Partial<ItemState>) =>
     persistPractice({ exercises: practice.exercises.map((it, idx) => (idx === i ? { ...it, ...patch } : it)) });
@@ -293,6 +296,7 @@ export default function ModuleWorkspace() {
   const persistChapterTest = (next: ChapterTestState) => {
     localStorage.setItem(chapterTestKey, JSON.stringify(next));
     setChapterTest(next);
+    logStudy();
   };
   const patchChapterTest = (patch: Partial<ChapterTestState>) => persistChapterTest({ ...chapterTest, ...patch });
   const updateChapterTestItem = (i: number, patch: Partial<ItemState>) =>

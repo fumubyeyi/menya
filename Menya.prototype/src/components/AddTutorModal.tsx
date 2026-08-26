@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, Save } from "lucide-react";
 import Avatar from "./Avatar";
-import { ALL_COURSES, TUTOR_GRADES } from "../lib/constants";
+import { ALL_COURSES, TUTOR_GRADES, PREFERENCE_DAYS } from "../lib/constants";
 import { useTutors } from "../context/TutorsContext";
 
 interface Props {
@@ -15,16 +15,18 @@ export default function AddTutorModal({ onClose }: Props) {
   const [description, setDescription] = useState("");
   const [courses, setCourses] = useState<string[]>([]);
   const [grades, setGrades] = useState<number[]>([]);
+  const [preferredDays, setPreferredDays] = useState<string[]>([]);
 
   const toggleCourse = (c: string) => setCourses((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
   const toggleGrade = (g: number) => setGrades((gs) => (gs.includes(g) ? gs.filter((x) => x !== g) : [...gs, g]));
+  const toggleDay = (d: string) => setPreferredDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d]));
 
   const canSubmit = firstName.trim() && lastName.trim() && courses.length > 0 && grades.length > 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    addTutor({ firstName: firstName.trim(), lastName: lastName.trim(), description: description.trim(), courses, grades: [...grades].sort((a, b) => a - b) });
+    addTutor({ firstName: firstName.trim(), lastName: lastName.trim(), description: description.trim(), courses, grades: [...grades].sort((a, b) => a - b), preferredDays });
     onClose();
   };
 
@@ -86,6 +88,18 @@ export default function AddTutorModal({ onClose }: Props) {
                   <button key={g} type="button" onClick={() => toggleGrade(g)}
                     className={`w-10 py-1.5 rounded-lg text-sm font-mono font-medium border transition-colors ${grades.includes(g) ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-muted"}`}>
                     {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Days They Would Tutor</span>
+              <div className="flex flex-wrap gap-2">
+                {PREFERENCE_DAYS.map((d) => (
+                  <button key={d} type="button" onClick={() => toggleDay(d)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${preferredDays.includes(d) ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-muted"}`}>
+                    {d}
                   </button>
                 ))}
               </div>
