@@ -1,11 +1,10 @@
-import { useNavigate } from "react-router";
-import { Atom, LogIn, Sparkles, TrendingUp, Users } from "lucide-react";
+import { Sparkles, TrendingUp, Users } from "lucide-react";
 import Avatar from "../../components/Avatar";
+import PublicHeader from "../../components/PublicHeader";
 import { useAlumni } from "../../context/AlumniContext";
 import { alumniOutcomeMeta } from "../../lib/constants";
 
 export default function SuccessStories() {
-  const navigate = useNavigate();
   const { alumni } = useAlumni();
 
   const stories = alumni.filter((a) => a.isSuccessStory && a.testimonial);
@@ -14,21 +13,7 @@ export default function SuccessStories() {
 
   return (
     <div className="min-h-screen bg-[#F4F3EF]" style={{ fontFamily: "Manrope, sans-serif" }}>
-      {/* Top nav */}
-      <div className="flex items-center justify-between px-6 sm:px-10 py-5">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#1B5E4F] flex items-center justify-center">
-            <Atom className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-bold text-foreground text-lg">MENYA</span>
-        </div>
-        <button
-          onClick={() => navigate("/login")}
-          className="flex items-center gap-1.5 text-sm font-medium text-foreground border border-border px-4 py-2 rounded-lg hover:bg-white transition-colors"
-        >
-          <LogIn className="w-3.5 h-3.5" />Staff Sign In
-        </button>
-      </div>
+      <PublicHeader />
 
       {/* Hero */}
       <div

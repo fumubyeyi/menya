@@ -3,6 +3,7 @@ import AppShell from "../components/AppShell";
 import { AppErrorBoundary, SectionErrorBoundary } from "../components/ErrorBoundary";
 import LoginView from "../views/auth/LoginView";
 import SuccessStories from "../views/public/SuccessStories";
+import About from "../views/public/About";
 
 // Program views
 import ProgramDashboard  from "../views/program/Dashboard";
@@ -23,7 +24,6 @@ import TutorStudents    from "../views/tutor/MyStudents";
 import TutorSchedule    from "../views/tutor/Schedule";
 import TutorAttendance  from "../views/tutor/Attendance";
 import TutorSearch      from "../views/tutor/Search";
-import TutorPerformance from "../views/tutor/Performance";
 
 // Student views
 import StudentHome       from "../views/student/Home";
@@ -45,6 +45,7 @@ export const router = createBrowserRouter([
     children: [
       { path: "/login",            Component: LoginView },
       { path: "/success-stories",  Component: SuccessStories },
+      { path: "/about",            Component: About },
       { path: "/",                 element: <Navigate to="/login" replace /> },
 
       // Program Director routes
@@ -90,7 +91,6 @@ export const router = createBrowserRouter([
               { path: "schedule",   Component: TutorSchedule    },
               { path: "attendance", Component: TutorAttendance  },
               { path: "search",     Component: TutorSearch      },
-              { path: "performance",Component: TutorPerformance },
             ],
           },
         ],

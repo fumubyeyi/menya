@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
+import PublicHeader from "../../components/PublicHeader";
 import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
 import { students } from "../../data";
@@ -360,13 +361,23 @@ export default function LoginView() {
           }}
         />
         <div className="relative z-10 flex flex-col flex-1 px-10 py-12">
-          <div className="flex items-center gap-3 mb-auto">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-              <Atom className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between mb-auto">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <Atom className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-display font-bold text-white text-xl">
+                MENYA
+              </span>
             </div>
-            <span className="font-display font-bold text-white text-xl">
-              MENYA
-            </span>
+            <div className="flex items-center gap-4">
+              <Link to="/about" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+                About
+              </Link>
+              <Link to="/success-stories" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+                Alumni Stories
+              </Link>
+            </div>
           </div>
 
           <div className="my-12">
@@ -402,16 +413,14 @@ export default function LoginView() {
       </div>
 
       {/* Right — sign-in panel */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#F4F3EF]">
-        {/* Mobile logo */}
-        <div className="flex items-center gap-2 mb-8 lg:hidden">
-          <div className="w-8 h-8 rounded-lg bg-[#1B5E4F] flex items-center justify-center">
-            <Atom className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-bold text-foreground text-lg">
-            StemBridge
-          </span>
+      <div className="flex-1 flex flex-col items-center bg-[#F4F3EF] overflow-y-auto">
+        {/* Mobile header — the left branding panel above already covers this on desktop */}
+        <div className="w-full lg:hidden">
+          <PublicHeader />
         </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 w-full">
+
 
         <div className="w-full max-w-md">
           <h1 className="font-display font-bold text-foreground text-2xl leading-none mb-1">
@@ -598,11 +607,7 @@ export default function LoginView() {
           <p className="text-center text-xs text-muted-foreground mt-6">
             Demo app — any password accepted for sign-in
           </p>
-          <p className="text-center text-xs mt-2">
-            <Link to="/success-stories" className="text-primary hover:underline font-medium">
-              See our alumni success stories →
-            </Link>
-          </p>
+        </div>
         </div>
       </div>
     </div>
