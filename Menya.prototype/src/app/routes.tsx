@@ -46,7 +46,7 @@ export const router = createBrowserRouter([
       { path: "/login",            Component: LoginView },
       { path: "/success-stories",  Component: SuccessStories },
       { path: "/about",            Component: About },
-      { path: "/",                 element: <Navigate to="/login" replace /> },
+      { path: "/",                 element: <Navigate to="/about" replace /> },
 
       // Program Director routes
       {
@@ -116,7 +116,7 @@ export const router = createBrowserRouter([
         ],
       },
 
-      { path: "*", element: <Navigate to="/login" replace /> },
+      { path: "*", element: <Navigate to="/about" replace /> },
     ],
   },
 ]);

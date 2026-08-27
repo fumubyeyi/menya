@@ -1,6 +1,7 @@
-import { Link } from "react-router";
-import { Sparkles, Users, TrendingUp, ClipboardCheck, GraduationCap, HeartHandshake } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { Sparkles, Users, TrendingUp, ClipboardCheck, GraduationCap, HeartHandshake, LogIn } from "lucide-react";
 import PublicHeader from "../../components/PublicHeader";
+import Avatar from "../../components/Avatar";
 import { useAlumni } from "../../context/AlumniContext";
 import { useStudents } from "../../context/StudentsContext";
 import { useTutors } from "../../context/TutorsContext";
@@ -30,12 +31,14 @@ const HOW_IT_WORKS = [
 ];
 
 export default function About() {
+  const navigate = useNavigate();
   const { alumni } = useAlumni();
   const { students } = useStudents();
   const { tutors } = useTutors();
 
   const stemCount = alumni.filter((a) => alumniOutcomeMeta[a.outcome].isStem).length;
   const stemRate = alumni.length ? Math.round((stemCount / alumni.length) * 100) : 0;
+  const featuredStory = alumni.find((a) => a.isSuccessStory && a.testimonial);
 
   return (
     <div className="min-h-screen bg-[#F4F3EF]" style={{ fontFamily: "Manrope, sans-serif" }}>
@@ -51,12 +54,29 @@ export default function About() {
           style={{ backgroundImage: "radial-gradient(circle at 30% 20%, #4ADE80 0%, transparent 60%), radial-gradient(circle at 80% 80%, #F0981E 0%, transparent 50%)" }}
         />
         <div className="relative z-10 px-6 sm:px-12 py-14 sm:py-16 text-center max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-1.5 text-white/70 text-xs font-medium bg-white/10 border border-white/15 rounded-full px-3 py-1 mb-5">
+            <Sparkles className="w-3 h-3" />Welcome to Menya
+          </div>
           <h1 className="font-display font-bold text-white text-3xl sm:text-4xl leading-tight mb-4">
             Build learners' confidence toward STEM pathways.
           </h1>
-          <p className="text-white/60 text-base leading-relaxed">
+          <p className="text-white/60 text-base leading-relaxed mb-8">
             Built for tutoring programs supporting underserved K-12 learners, Menya connects students with dedicated tutors, tracks every session, and follows their progress well past graduation.
           </p>
+          <div className="flex items-center gap-3 justify-center flex-wrap">
+            <button
+              onClick={() => navigate("/login")}
+              className="flex items-center gap-1.5 text-sm font-medium bg-white text-[#1B5E4F] px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />Sign In
+            </button>
+            <Link
+              to="/success-stories"
+              className="flex items-center gap-1.5 text-sm font-medium text-white border border-white/25 px-5 py-2.5 rounded-lg hover:bg-white/10 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />Meet Our Alumni
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -64,7 +84,7 @@ export default function About() {
       <div className="max-w-3xl mx-auto px-6 sm:px-10 py-14 text-center">
         <h2 className="font-display font-semibold text-foreground text-xl mb-3">Our Mission</h2>
         <p className="text-foreground/70 text-base leading-relaxed">
-          Math is one of the biggest gatekeepers to STEM opportunity — and one of the subjects underserved students are least likely to get consistent, personalized help with. Menya exists to close that gap: giving tutoring programs the tools to match students with dedicated tutors, keep every session on record, and make sure that support never quietly lapses.
+          Math is one of the biggest gatekeepers to STEM opportunity — and too many underserved students never get the consistent, personalized help they need to get through it. Menya exists to close that gap: giving tutoring programs the tools to match students with tutors who stick with them, keep every session on record, and make sure that support never quietly lapses.
         </p>
       </div>
 
@@ -83,6 +103,26 @@ export default function About() {
           ))}
         </div>
       </div>
+
+      {/* Featured story */}
+      {featuredStory && (
+        <div className="max-w-3xl mx-auto px-6 sm:px-10 py-6">
+          <div className="bg-white border border-border rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+            <Avatar name={featuredStory.name} size={14} />
+            <div className="flex-1">
+              <p className="text-foreground/80 italic leading-relaxed mb-3">&ldquo;{featuredStory.testimonial}&rdquo;</p>
+              <p className="text-sm font-display font-semibold text-foreground">{featuredStory.name}</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {alumniOutcomeMeta[featuredStory.outcome].label}
+                {featuredStory.institution ? ` · ${featuredStory.institution}` : ""}
+              </p>
+              <Link to="/success-stories" className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />Read more alumni stories
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* By the numbers */}
       <div className="mx-4 sm:mx-10 my-14 bg-[#1B5E4F] rounded-2xl px-6 sm:px-12 py-10">
@@ -107,7 +147,7 @@ export default function About() {
             <HeartHandshake className="w-4 h-4" />For Tutoring Programs
           </div>
           <p className="text-foreground/70 text-sm max-w-md leading-relaxed">
-            Run a tutoring program supporting underserved students? Menya gives your team the tools to schedule sessions, track attendance and notes, and follow outcomes well past graduation — reach out to see if it's a fit.
+            Run a tutoring program supporting underserved students? We'd love to hear from you. Menya gives your team the tools to schedule sessions, track attendance and notes, and follow outcomes well past graduation.
           </p>
           <div className="flex items-center gap-4 flex-wrap justify-center">
             <Link to="/success-stories" className="text-sm font-medium text-primary hover:underline flex items-center gap-1.5">
