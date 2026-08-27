@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import {
-  Atom,
   GraduationCap,
   UserCheck,
   Briefcase,
@@ -363,11 +362,11 @@ export default function LoginView() {
         <div className="relative z-10 flex flex-col flex-1 px-10 py-12">
           <div className="flex items-center justify-between mb-auto">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                <Atom className="w-5 h-5 text-white" />
+              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                <img src="/menya-mark-reverse.svg" alt="" className="w-9 h-9" />
               </div>
               <span className="font-display font-bold text-white text-xl">
-                MENYA
+                Menya
               </span>
             </div>
             <div className="flex items-center gap-4">

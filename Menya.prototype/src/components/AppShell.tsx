@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, Navigate, useNavigate, useLocation } from "react-router";
 import {
   LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
-  Bell, Plus, Menu, X, Settings, Atom, Trophy,
+  Bell, Plus, Menu, X, Settings, Trophy,
   Briefcase, UserCheck, GraduationCap, Search, LogOut,
   Award, AlertTriangle, UserCog, CalendarRange,
 } from "lucide-react";
@@ -138,9 +138,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
         {/* Logo */}
         <div className="px-5 pt-5 pb-4 border-b flex items-center justify-between" style={{ borderColor: "var(--sidebar-border)" }}>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-              <Atom className="w-4 h-4 text-white" />
-            </div>
+            <img src="/menya-mark-reverse.svg" alt="" className="w-9 h-9 flex-shrink-0" />
             <span className="font-display font-bold text-white text-base leading-none">Menya</span>
           </div>
           <button onClick={() => setMobileOpen(false)} className="lg:hidden text-white/60 hover:text-white">
