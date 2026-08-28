@@ -7,6 +7,10 @@ import AddTutorModal from "../../components/AddTutorModal";
 import ImportModal, { type ImportColumn } from "../../components/ImportModal";
 import { useTutors } from "../../context/TutorsContext";
 import { useSessions } from "../../context/SessionsContext";
+import { useRecurringSlots } from "../../context/RecurringSlotsContext";
+
+// Mon-first ordering for a tutor's recurring days, so "Mon, Wed" never renders "Wed, Mon".
+const WEEKDAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 // Today/Tomorrow first, then everything else in the order it appears — the Session
 // model only stores display labels ("Today"/"Tomorrow"/"Jun 22"), not sortable dates.
@@ -38,6 +42,7 @@ export default function Tutors() {
   const navigate = useNavigate();
   const { tutors, addTutors } = useTutors();
   const { sessions } = useSessions();
+  const { recurringSlots } = useRecurringSlots();
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -52,10 +57,6 @@ export default function Tutors() {
           <p className="text-sm text-muted-foreground mt-0.5">{tutors.length} tutors on the roster</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/program/schedule"
-            className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
-            <CalendarRange className="w-4 h-4" /> Schedule
-          </Link>
           <button onClick={() => setImporting(true)}
             className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
             <Upload className="w-4 h-4" /> Import from Excel
@@ -86,6 +87,11 @@ export default function Tutors() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((t) => {
             const upcoming = sessions.filter((s) => s.tutorId === t.id).sort((a, b) => dayRank(a.time) - dayRank(b.time));
+            // Preferred days = the recurring weekly slots this tutor is actually
+            // assigned to on Program > Schedule, deduped and ordered Mon-first.
+            const preferredDays = Array.from(
+              new Set(recurringSlots.filter((s) => s.tutorIds.includes(t.id)).map((s) => s.day))
+            ).sort((a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b));
             return (
               <div key={t.id} onClick={() => navigate(`/program/tutors/${t.id}`)}
                 className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/30 transition-colors">
@@ -93,39 +99,21 @@ export default function Tutors() {
                   <Avatar name={`${t.firstName} ${t.lastName}`} size={10} />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground leading-tight truncate">{t.firstName} {t.lastName}</p>
-                    <p className="text-[11px] font-mono text-muted-foreground">Grades {Math.min(...t.grades)}–{Math.max(...t.grades)}</p>
+                    <p className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                      <CalendarRange className="w-3 h-3 flex-shrink-0" />
+                      {preferredDays.length > 0 ? preferredDays.map((d) => d.slice(0, 3)).join(", ") : "No preferred days"}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-mono text-muted-foreground">Grades {Math.min(...t.grades)}–{Math.max(...t.grades)}</span>
+                  <span className="text-border">·</span>
                   {t.courses.map((c) => <CourseTag key={c} course={c} />)}
                 </div>
 
                 {t.description && <p className="text-xs text-muted-foreground leading-snug">{t.description}</p>}
 
-                <div className="flex gap-3 text-xs text-muted-foreground font-mono">
-                  <span>{t.sessions} sessions</span>
-                </div>
-
-                <div className="border-t border-border pt-2.5 mt-auto">
-                  <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1.5">Scheduled ({upcoming.length})</p>
-                  {upcoming.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No sessions scheduled.</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {upcoming.slice(0, 3).map((s) => (
-                        <div key={s.id} className="flex items-center gap-1.5 text-xs">
-                          <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                          <span className="text-foreground truncate flex-1 min-w-0">{s.student}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0">{s.time} {s.clock}</span>
-                        </div>
-                      ))}
-                      {upcoming.length > 3 && (
-                        <p className="text-[10px] font-mono text-muted-foreground">+{upcoming.length - 3} more</p>
-                      )}
-                    </div>
-                  )}
-                </div>
               </div>
             );
           })}

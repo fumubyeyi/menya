@@ -4,6 +4,7 @@ import { AppErrorBoundary, SectionErrorBoundary } from "../components/ErrorBound
 import LoginView from "../views/auth/LoginView";
 import SuccessStories from "../views/public/SuccessStories";
 import About from "../views/public/About";
+import Contact from "../views/public/Contact";
 
 // Program views
 import ProgramDashboard  from "../views/program/Dashboard";
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
       { path: "/login",            Component: LoginView },
       { path: "/success-stories",  Component: SuccessStories },
       { path: "/about",            Component: About },
+      { path: "/contact",          Component: Contact },
       { path: "/",                 element: <Navigate to="/about" replace /> },
 
       // Program Director routes

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate } from "react-router";
 import {
   GraduationCap,
   UserCheck,
@@ -11,8 +11,10 @@ import {
   X,
 } from "lucide-react";
 import PublicHeader from "../../components/PublicHeader";
+import GradientBanner from "../../components/GradientBanner";
 import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
+import { useStudents } from "../../context/StudentsContext";
 import { students } from "../../data";
 import type { Role } from "../../types";
 
@@ -282,7 +284,17 @@ function CreateAccountModal({
 export default function LoginView() {
   const { login } = useAuth();
   const { tutors } = useTutors();
+  const { students: roster } = useStudents();
   const navigate = useNavigate();
+
+  const avgProgress = roster.length
+    ? Math.round(roster.reduce((sum, s) => sum + s.progress, 0) / roster.length)
+    : 0;
+  const STATS: [string, string][] = [
+    [String(roster.length), "Students"],
+    [String(tutors.length), "Tutors"],
+    [`${avgProgress}%`, "Avg Score"],
+  ];
   const [selectedRole, setSelectedRole] = useState<Role | null>(
     null,
   );
@@ -335,7 +347,7 @@ export default function LoginView() {
 
   return (
     <div
-      className="min-h-screen flex"
+      className="min-h-screen bg-[#F4F3EF]"
       style={{ fontFamily: "Manrope, sans-serif" }}
     >
       {showCreateModal && (
@@ -344,105 +356,49 @@ export default function LoginView() {
         />
       )}
 
-      {/* Left — branding panel */}
-      <div
-        className="hidden lg:flex flex-col w-[420px] flex-shrink-0 relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(160deg, #1B5E4F 0%, #0d3b30 60%, #0a2d24 100%)",
-        }}
-      >
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 30% 20%, #4ADE80 0%, transparent 60%), radial-gradient(circle at 80% 80%, #F0981E 0%, transparent 50%)",
-          }}
-        />
-        <div className="relative z-10 flex flex-col flex-1 px-10 py-12">
-          <div className="flex items-center justify-between mb-auto">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                <img src="/menya-mark-reverse.svg" alt="" className="w-9 h-9" />
-              </div>
-              <span className="font-display font-bold text-white text-xl">
-                Menya
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link to="/about" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
-                About
-              </Link>
-              <Link to="/success-stories" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
-                Alumni Stories
-              </Link>
-            </div>
-          </div>
+      <PublicHeader />
 
-          <div className="my-12">
-            <h2 className="font-display font-bold text-white text-4xl leading-tight mb-4">
-              Adaptive STEM
-              <br />
-              learning for all.
-            </h2>
-            <p className="text-white/60 text-base leading-relaxed">
-              Connecting students, tutors, and program staff
-              through a unified platform built for nonprofit
-              tutoring organizations.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 pb-4">
-            {[
-              ["247", "Students"],
-              ["18", "Tutors"],
-              ["73%", "Avg Score"],
-            ].map(([v, l]) => (
-              <div key={l}>
-                <p className="font-display font-bold text-white text-2xl leading-none">
-                  {v}
-                </p>
-                <p className="text-white/50 text-xs mt-1">
-                  {l}
-                </p>
-              </div>
-            ))}
-          </div>
+      {/* Branding banner */}
+      <GradientBanner>
+        <div className="inline-flex items-center gap-1.5 text-white/70 text-xs font-medium bg-white/10 border border-white/15 rounded-full px-3 py-1 mb-5">
+          Tutoring infrastructure
         </div>
-      </div>
+        <h1 className="font-display font-bold text-white text-3xl sm:text-4xl leading-tight mb-4">
+          STEM learning for all.
+        </h1>
+        <p className="text-white/60 text-base leading-relaxed mb-8">
+          Connecting students, tutors, and program staff through a unified platform built for nonprofit tutoring organizations.
+        </p>
+        {/* Overlap spacer — keep this height equal to the negative margin on the
+            sign-in card below, so the card always lands in this empty zone and
+            never on the hero text, regardless of GradientBanner padding. */}
+        <div className="h-16 sm:h-24" />
+      </GradientBanner>
 
-      {/* Right — sign-in panel */}
-      <div className="flex-1 flex flex-col items-center bg-[#F4F3EF] overflow-y-auto">
-        {/* Mobile header — the left branding panel above already covers this on desktop */}
-        <div className="w-full lg:hidden">
-          <PublicHeader />
-        </div>
-
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 w-full">
-
-
-        <div className="w-full max-w-md">
-          <h1 className="font-display font-bold text-foreground text-2xl leading-none mb-1">
+      {/* Sign-in card, overlapping the banner */}
+      <div className="px-4 sm:px-10 -mt-16 sm:-mt-36 relative z-20 pb-16">
+        <div className="w-full max-w-md mx-auto bg-white rounded-2xl border border-border shadow-xl p-6 sm:p-8">
+          <h2 className="font-display font-bold text-foreground text-2xl leading-none mb-1">
             Sign in
-          </h1>
-          <p className="text-sm text-muted-foreground mb-8">
+          </h2>
+          <p className="text-sm text-muted-foreground mb-7">
             Choose your role to get started
           </p>
 
           {/* Role cards */}
-          <div className="grid grid-cols-3 gap-3 mb-7">
+          <div className="grid grid-cols-3 gap-3 mb-6">
             {ROLE_OPTIONS.map(
-              ({ role, label, Icon, description, color }) => (
+              ({ role, label, Icon, color }) => (
                 <button
                   key={role}
                   onClick={() => {
                     setSelectedRole(role);
                     setError("");
                   }}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-center transition-all ${selectedRole === role ? "border-[#1B5E4F] bg-white shadow-sm" : "border-transparent bg-white/60 hover:bg-white hover:border-gray-200"}`}
+                  className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 text-center transition-all ${selectedRole === role ? "border-primary bg-[#F4F3EF] shadow-sm" : "border-transparent bg-[#F4F3EF] hover:border-border"}`}
                 >
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    className="w-5 h-5 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${color}18` }}
                   >
                     <Icon
@@ -462,16 +418,7 @@ export default function LoginView() {
           {selectedRole && (
             <form
               onSubmit={handleSignIn}
-              className="bg-white rounded-2xl border border-border p-6 shadow-sm space-y-4"
-            >
-              <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-                {
-                  ROLE_OPTIONS.find(
-                    (r) => r.role === selectedRole,
-                  )?.description
-                }
-              </p>
-
+              className="space-y-4 border-t border-border pt-5">
               {selectedRole === "student" && (
                 <label className="flex flex-col gap-1.5">
                   <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
@@ -606,7 +553,6 @@ export default function LoginView() {
           <p className="text-center text-xs text-muted-foreground mt-6">
             Demo app — any password accepted for sign-in
           </p>
-        </div>
         </div>
       </div>
     </div>

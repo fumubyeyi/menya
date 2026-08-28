@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Search, GraduationCap, TrendingUp, AlertTriangle, Pencil, ExternalLink, Download, BadgeCheck, Sparkles, HeartHandshake, Building2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Avatar from "../../components/Avatar";
@@ -25,6 +25,17 @@ const FOLLOWUP_OPTIONS: { value: string; label: string }[] = [
   ...(Object.keys(followUpStatusMeta) as FollowUpStatus[]).map((f) => ({ value: f, label: followUpStatusMeta[f].label })),
 ];
 
+// Right-side nav targets for the Insights tab — the Directory tab is a single
+// view (filters + table) and doesn't need in-page navigation.
+const SECTIONS: { id: string; label: string }[] = [
+  { id: "overview",   label: "Overview"     },
+  { id: "engagement", label: "Engagement"   },
+  { id: "cohort",     label: "Cohort Trend" },
+  { id: "outcomes",   label: "Outcomes"     },
+];
+
+type Tab = "insights" | "directory";
+
 function csvEscape(value: string | number): string {
   const s = String(value);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -38,6 +49,36 @@ export default function AlumniTracking() {
   const [outcome, setOutcome] = useState("all");
   const [followUp, setFollowUp] = useState("all");
   const [editing, setEditing] = useState<AlumniRecord | null>(null);
+  // Tab lives in the URL (?view=directory) so it's linkable and back-button aware —
+  // switched via <Link>, not a button-driven state toggle.
+  const [searchParams] = useSearchParams();
+  const tab: Tab = searchParams.get("view") === "directory" ? "directory" : "insights";
+  const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
+
+  // Scrollspy for the right-side page nav — highlights whichever section is
+  // currently near the top of the scroll area as the user moves through the page.
+  // Re-runs on tab change since the Insights sections only mount on that tab.
+  useEffect(() => {
+    if (tab !== "insights") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActiveSection(visible[0].target.id);
+      },
+      { rootMargin: "-15% 0px -75% 0px", threshold: 0 }
+    );
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [tab]);
+
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const filtered = alumni.filter((a) => {
     const matchName     = a.name.toLowerCase().includes(query.toLowerCase());
@@ -131,30 +172,43 @@ export default function AlumniTracking() {
   };
 
   return (
-    <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
+    <div className="p-6 max-w-screen-xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div>
           <h1 className="text-2xl font-display font-semibold text-foreground">Alumni Tracking</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {alumni.length} alumni tracked · students who completed or left the program, followed up on their path after high school
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <a href="/success-stories" target="_blank" rel="noreferrer"
-            className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
-            <Sparkles className="w-4 h-4" />
-            View Public Page
-          </a>
-          <button onClick={exportCsv} className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
-        </div>
       </div>
 
+      {/* Tabs — navigation, not state: each is a link to ?view=… */}
+      <nav className="flex gap-1 border-b border-border mb-5">
+        {([["insights", "Insights"], ["directory", "Directory"]] as [Tab, string][]).map(([value, label]) => (
+          <Link
+            key={value}
+            to={`?view=${value}`}
+            replace
+            aria-current={tab === value ? "page" : undefined}
+            className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors -mb-px border-b-2 ${
+              tab === value
+                ? "border-primary text-primary bg-primary/5"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      {tab === "insights" && (
+      <div className="flex gap-8 items-start">
+        {/* Main column */}
+        <div className="flex-1 min-w-0 space-y-5">
+
       {/* Summary stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div id="overview" className="scroll-mt-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-1.5">
             <TrendingUp className="w-4 h-4" />
@@ -192,10 +246,10 @@ export default function AlumniTracking() {
       </div>
 
       {/* Success stories & mentorship stats */}
-      <div className="grid grid-cols-2 gap-4">
+      <div id="engagement" className="scroll-mt-4 grid grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-1.5">
-            <Sparkles className="w-4 h-4" />
+            <GraduationCap className="w-4 h-4" />
             <span className="text-xs font-mono">Success Stories</span>
           </div>
           <p className="text-2xl font-display font-bold text-foreground">{successStoryCount}</p>
@@ -212,7 +266,7 @@ export default function AlumniTracking() {
       </div>
 
       {/* Cohort trend chart */}
-      <div className="bg-card border border-border rounded-xl p-4">
+      <div id="cohort" className="scroll-mt-4 bg-card border border-border rounded-xl p-4">
         <h2 className="text-sm font-semibold text-foreground mb-1">STEM Outcome Rate by Exit Cohort</h2>
         <p className="text-xs text-muted-foreground mb-4">Share of each cohort in a STEM major or career, so progress across years is visible — not just the current snapshot.</p>
         <ResponsiveContainer width="100%" height={180}>
@@ -229,7 +283,7 @@ export default function AlumniTracking() {
         </ResponsiveContainer>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div id="outcomes" className="scroll-mt-4 grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Full outcome breakdown */}
         <div className="bg-card border border-border rounded-xl p-4">
           <h2 className="text-sm font-semibold text-foreground mb-1">Outcome Breakdown</h2>
@@ -264,8 +318,32 @@ export default function AlumniTracking() {
           )}
         </div>
       </div>
+        </div>
 
-      {/* Filters */}
+        {/* Right-side page nav */}
+        <nav className="hidden xl:block w-52 flex-shrink-0 sticky top-4 self-start bg-card border border-border rounded-xl p-3">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground px-2 pb-2 mb-2 border-b border-border">On this page</p>
+          <div className="flex flex-col gap-0.5">
+            {SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => scrollToSection(s.id)}
+                className={`text-left text-sm px-3 py-1.5 rounded-lg border-l-2 transition-colors ${
+                  activeSection === s.id
+                    ? "border-primary text-primary font-medium bg-primary/5"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+      </div>
+      )}
+
+      {tab === "directory" && (
+      <div className="space-y-5">
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -287,8 +365,12 @@ export default function AlumniTracking() {
         <select value={followUp} onChange={(e) => setFollowUp(e.target.value)}
           className="text-sm bg-card border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
           {FOLLOWUP_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
+        </select>   
+        <button onClick={exportCsv} className="flex items-center gap-2 border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
+          <Download className="w-4 h-4" />
+          Export CSV
+        </button>
+        </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
@@ -388,6 +470,8 @@ export default function AlumniTracking() {
             </table>
           </div>
         </div>
+      )}
+      </div>
       )}
 
       {editing && (

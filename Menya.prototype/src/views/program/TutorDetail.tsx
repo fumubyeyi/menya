@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, BookOpen, CalendarClock, Clock, GraduationCap } from "lucide-react";
-import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
+import ProfileBanner from "../../components/ProfileBanner";
 import { useTutors } from "../../context/TutorsContext";
 import { useSessions } from "../../context/SessionsContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
@@ -38,38 +38,21 @@ export default function TutorDetail() {
       </button>
 
       {/* Hero Banner */}
-      <div className="rounded-xl overflow-hidden border border-border" style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0d3b2e 100%)" }}>
-        <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <Avatar name={`${tutor.firstName} ${tutor.lastName}`} size={16} />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-display font-bold text-white">{tutor.firstName} {tutor.lastName}</h1>
-            <p className="text-sm text-white/60 mt-0.5">Grades {Math.min(...tutor.grades)}–{Math.max(...tutor.grades)}</p>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {tutor.courses.map((c) => (
-                <span key={c} className="text-[11px] px-2 py-0.5 rounded-md font-mono bg-white/15 text-white">{c}</span>
-              ))}
-            </div>
-          </div>
+      <ProfileBanner
+        name={`${tutor.firstName} ${tutor.lastName}`}
+        subtitle={`Grades ${Math.min(...tutor.grades)}–${Math.max(...tutor.grades)}`}
+        tags={tutor.courses}
+        actions={
           <span className="text-xs font-mono text-white/70 bg-white/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
             <CalendarClock className="w-3.5 h-3.5" />
             {preferredDays.length > 0 ? `Prefers: ${preferredDays.join(", ")}` : "No day preference set"}
           </span>
-        </div>
-
-        {/* Stat pillars */}
-        <div className="grid grid-cols-2 border-t border-white/10">
-          {[
-            { label: "Sessions", value: tutor.sessions, Icon: BookOpen },
-            { label: "Grade Range", value: `Gr ${Math.min(...tutor.grades)}–${Math.max(...tutor.grades)}`, Icon: GraduationCap },
-          ].map(({ label, value, Icon }) => (
-            <div key={label} className="flex flex-col items-center py-4 gap-1 border-r border-white/10 last:border-r-0">
-              <Icon className="w-4 h-4 text-white/50" />
-              <p className="text-xl font-display font-bold text-white">{value}</p>
-              <p className="text-[11px] text-white/50 font-mono">{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+        }
+        stats={[
+          { label: "Sessions", value: tutor.sessions, Icon: BookOpen },
+          { label: "Grade Range", value: `Gr ${Math.min(...tutor.grades)}–${Math.max(...tutor.grades)}`, Icon: GraduationCap },
+        ]}
+      />
 
       {tutor.description && (
         <div className="bg-card border border-border rounded-xl p-5">

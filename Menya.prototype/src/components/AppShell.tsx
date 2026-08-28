@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
   Bell, Plus, Menu, X, Settings, Trophy,
   Briefcase, UserCheck, GraduationCap, Search, LogOut,
-  Award, AlertTriangle, UserCog, CalendarRange,
+  Award, AlertTriangle, UserCog, CalendarRange, ExternalLink,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTutors } from "../context/TutorsContext";
@@ -219,6 +219,17 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
             <h1 className="font-display font-semibold text-foreground text-lg leading-none">{pageTitle}</h1>
           </div>
           <div className="flex items-center gap-2 relative">
+            {role !== "student" && (
+              <a
+                href="/about"
+                target="_blank"
+                rel="noreferrer"
+                className="hidden sm:flex items-center gap-2 border border-border text-foreground text-sm font-medium px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                View Public Page
+              </a>
+            )}
             <button
               onClick={() => setNotifOpen((o) => !o)}
               className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

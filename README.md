@@ -27,17 +27,17 @@ session data underneath.
 - **Dashboard** — program-wide snapshot: this term's sessions, students, and average performance.
 - **Students** — full student roster with status (exceeding / on-track / needs-support / at-risk), progress, and drill-down student detail pages.
 - **Curriculum** — the course/chapter/module library, with content-completeness tracking, plus AI-assisted curriculum import (structuring an already-curated course) and AI bootstrap (generating a first draft of a course to be reviewed) modes.
-- **Attendance** — one page, split into Online and In-Person tabs. Online covers every scheduled/live/completed virtual (Zoom) session with tutor reassignment; In-Person adds in-person 1:1 sessions plus a roll-call attendance report (totals, attendance rate, per-student breakdown, CSV export filterable by grade/course/date range) rolling up what tutors log.
-- **Tutors** — tutor roster with course/grade coverage and caseload, each tutor's own upcoming sessions, and a "Plan Week" builder for staff to batch-schedule a week's sessions across students/tutors and publish them all at once, notifying every affected tutor.
+- **Attendance** — one page, split into Online and In-Person tabs. Online covers every scheduled/live/completed virtual (Zoom) session with tutor reassignment; In-Person adds in-person group sessions plus a roll-call attendance report (totals, attendance rate, per-student breakdown, CSV export filterable by grade/course/date range) rolling up what tutors log, and flags recurring slots that are scheduled but haven't had a roll call taken yet.
+- **Schedule** — the recurring weekly slot grid (grade band, day, time, assigned tutors) that both program staff and tutors read from, plus a "Plan Week" builder for staff to batch-schedule a week's sessions across students/tutors and publish them all at once, notifying every affected tutor.
+- **Tutors** — tutor roster with course/grade coverage and caseload, each tutor's own upcoming sessions.
 - **Analytics** — program performance trends over time (scores, session volume, course breakdown).
 - **Alumni Tracking** — post-program outcomes (college/career/military/etc.) with dated follow-up check-ins and a public success-stories page for verified alumni.
 
 ### Tutor
-- **My Home** — this tutor's day at a glance, plus at-risk alerts for students in their grades/courses.
-- **My Students** — roster of students they've actually worked with, with per-course score trends.
-- **Attendance** — one page, split into Online and In-Person tabs, with a "Take Roll Call" action always available next to "Schedule Session" to mark an entire grade or course present/not-present at once. Online shows upcoming virtual sessions; In-Person shows upcoming in-person sessions plus roll-call history and rates. Full session history and materials sit below both tabs.
-- **Review** — approve, request revisions on, or reject AI-generated practice before it reaches a student.
-- **Performance** — this tutor's own outcomes over the term.
+- **My Home** — this tutor's day at a glance: pending roll calls, a "needs attendance" banner for logged-but-unrecorded sessions, this tutor's recurring slots, and at-risk alerts for students in their grades/courses.
+- **Schedule** — this tutor's recurring weekly slots, upcoming sessions (Online/In-Person tabs), and session history — in-person history shows grade group, session, and shared notes; online history shows student/course/score.
+- **Attendance** — take roll call per scheduled session (present/absent + per-student notes) or log an ad-hoc roll call outside the regular schedule. Notes and attendance on an in-person group session are shared across every tutor assigned to it, not siloed to whoever logged it first.
+- **Curriculum Search** — search the shared course/chapter/module library for material to pull into a session.
 
 ### Student
 - **My Home** — progress snapshot, streak, and achievements.
@@ -45,6 +45,11 @@ session data underneath.
 - **Module Workspace** — self-directed lessons with worked examples, auto-graded and free-response practice, inline diagrams (graphs, number lines, shapes, etc.), hints, and an in-module "I'm stuck" flag that raises a help request to their tutor.
 - **My Schedule** — upcoming sessions and assigned homework.
 - **Goals & Achievements** — progress toward personal goals and earned badges.
+
+### Public site
+- **About** — the public landing page: mission, how Menya works, a featured alumni story, program stats, and a "Sign In" call to action into the app.
+- **Alumni Stories** — full wall of verified alumni success stories and outcomes.
+- Both share one header (logo, About, Alumni Stories, Sign In) so navigation stays consistent across every unauthenticated page, including the mobile view of the sign-in screen itself.
 
 ### Cross-cutting
 - A notification bell (tutor role) surfaces newly-published weekly schedules ("N new sessions scheduled") alongside at-risk student alerts.

@@ -19,8 +19,8 @@ export default function PublicHeader() {
         <Link to="/about" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
           About
         </Link>
-        <Link to="/success-stories" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-          Alumni Stories
+        <Link to="/contact" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          Contact
         </Link>
         <button
           onClick={() => navigate("/login")}

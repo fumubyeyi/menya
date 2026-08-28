@@ -4,8 +4,8 @@ import { ArrowLeft, CalendarPlus, TrendingUp, TrendingDown, Minus, Clock, Flame,
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
+import ProfileBanner from "../../components/ProfileBanner";
 import ScheduleModal from "../../components/ScheduleModal";
 import { students, studentCourseDetail, studentSessionHistory, tutorNameById } from "../../data";
 import { statusMeta, achievements, nextDateForWeekday, formatSessionTime } from "../../lib/constants";
@@ -61,44 +61,27 @@ export default function StudentDetail() {
       </button>
 
       {/* Hero Banner */}
-      <div className="rounded-xl overflow-hidden border border-border" style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0d3b2e 100%)" }}>
-        <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <Avatar name={student.name} size={16} />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-display font-bold text-white">{student.name}</h1>
-            <p className="text-sm text-white/60 mt-0.5">Grade {student.grade}</p>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {enrolled.map((subj) => (
-                <span key={subj} className="text-[11px] px-2 py-0.5 rounded-md font-mono bg-white/15 text-white">{subj}</span>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-2">
+      <ProfileBanner
+        name={student.name}
+        subtitle={`Grade ${student.grade}`}
+        tags={enrolled}
+        actions={
+          <>
             <span className={`text-xs px-2.5 py-1 rounded-full font-mono flex items-center gap-1 ${meta.cls}`}>
               <meta.Icon className="w-3 h-3" />{meta.label}
             </span>
             <button onClick={() => setModal(true)} className={`flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity ${needsAttention ? "bg-amber-600" : "bg-[#F0981E]"}`}>
               <CalendarPlus className="w-4 h-4" /> {needsAttention ? "Schedule Check-in" : "Schedule Session"}
             </button>
-          </div>
-        </div>
-
-        {/* Stat pillars */}
-        <div className="grid grid-cols-4 border-t border-white/10">
-          {[
-            { label: "Progress",     value: `${student.progress}%`, Icon: TrendingUp },
-            { label: "Streak",       value: `${student.streak}d`,   Icon: Flame      },
-            { label: "Sessions",     value: student.sessions,        Icon: BookOpen   },
-            { label: "Study Hours",  value: `${Math.round(student.sessions * 0.85)}h`, Icon: Clock },
-          ].map(({ label, value, Icon }) => (
-            <div key={label} className="flex flex-col items-center py-4 gap-1 border-r border-white/10 last:border-r-0">
-              <Icon className="w-4 h-4 text-white/50" />
-              <p className="text-xl font-display font-bold text-white">{value}</p>
-              <p className="text-[11px] text-white/50 font-mono">{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+          </>
+        }
+        stats={[
+          { label: "Progress",    value: `${student.progress}%`, Icon: TrendingUp },
+          { label: "Streak",      value: `${student.streak}d`,   Icon: Flame      },
+          { label: "Sessions",    value: student.sessions,        Icon: BookOpen   },
+          { label: "Study Hours", value: `${Math.round(student.sessions * 0.85)}h`, Icon: Clock },
+        ]}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Course Progress */}

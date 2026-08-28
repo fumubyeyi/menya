@@ -1,6 +1,7 @@
 import { Sparkles, TrendingUp, Users } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import PublicHeader from "../../components/PublicHeader";
+import GradientBanner from "../../components/GradientBanner";
 import { useAlumni } from "../../context/AlumniContext";
 import { alumniOutcomeMeta } from "../../lib/constants";
 
@@ -16,35 +17,26 @@ export default function SuccessStories() {
       <PublicHeader />
 
       {/* Hero */}
-      <div
-        className="mx-4 sm:mx-10 rounded-2xl overflow-hidden relative"
-        style={{ background: "linear-gradient(160deg, #1B5E4F 0%, #0d3b30 60%, #0a2d24 100%)" }}
-      >
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{ backgroundImage: "radial-gradient(circle at 30% 20%, #4ADE80 0%, transparent 60%), radial-gradient(circle at 80% 80%, #F0981E 0%, transparent 50%)" }}
-        />
-        <div className="relative z-10 px-6 sm:px-12 py-14 sm:py-16 text-center max-w-3xl mx-auto">
-          <h1 className="font-display font-bold text-white text-3xl sm:text-4xl leading-tight mb-4">
-            Real Students. Real Outcomes.
-          </h1>
-          <p className="text-white/60 text-base leading-relaxed mb-10">
-            Menya connects students to STEM tutoring and follows them well past graduation — here's where some of our alumni landed, in their own words.
-          </p>
-          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
-            {[
-              [String(alumni.length), "Alumni Tracked"],
-              [`${stemRate}%`, "STEM Outcome Rate"],
-              [String(stories.length), "Featured Stories"],
-            ].map(([v, l]) => (
-              <div key={l}>
-                <p className="font-display font-bold text-white text-2xl leading-none">{v}</p>
-                <p className="text-white/50 text-xs mt-1">{l}</p>
-              </div>
-            ))}
-          </div>
+      <GradientBanner>
+        <h1 className="font-display font-bold text-white text-3xl sm:text-4xl leading-tight mb-4">
+          Real Students. Real Outcomes.
+        </h1>
+        <p className="text-white/60 text-base leading-relaxed mb-10">
+          Menya connects students to STEM tutoring and follows them well past graduation — here's where some of our alumni landed, in their own words.
+        </p>
+        <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
+          {[
+            [String(alumni.length), "Alumni Tracked"],
+            [`${stemRate}%`, "STEM Outcome Rate"],
+            [String(stories.length), "Featured Stories"],
+          ].map(([v, l]) => (
+            <div key={l}>
+              <p className="font-display font-bold text-white text-2xl leading-none">{v}</p>
+              <p className="text-white/50 text-xs mt-1">{l}</p>
+            </div>
+          ))}
         </div>
-      </div>
+      </GradientBanner>
 
       {/* Stories */}
       <div className="max-w-5xl mx-auto px-6 sm:px-10 py-14">
