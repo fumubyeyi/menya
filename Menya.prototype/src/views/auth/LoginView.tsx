@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import PublicHeader from "../../components/PublicHeader";
 import GradientBanner from "../../components/GradientBanner";
+import HeroIntro from "../../components/HeroIntro";
 import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
 import { useStudents } from "../../context/StudentsContext";
@@ -360,15 +361,7 @@ export default function LoginView() {
 
       {/* Branding banner */}
       <GradientBanner>
-        <div className="inline-flex items-center gap-1.5 text-white/70 text-xs font-medium bg-white/10 border border-white/15 rounded-full px-3 py-1 mb-5">
-          Tutoring infrastructure
-        </div>
-        <h1 className="font-display font-bold text-white text-3xl sm:text-4xl leading-tight mb-4">
-          STEM learning for all.
-        </h1>
-        <p className="text-white/60 text-base leading-relaxed mb-8">
-          Connecting students, tutors, and program staff through a unified platform built for nonprofit tutoring organizations.
-        </p>
+        <HeroIntro />
         {/* Overlap spacer — keep this height equal to the negative margin on the
             sign-in card below, so the card always lands in this empty zone and
             never on the hero text, regardless of GradientBanner padding. */}

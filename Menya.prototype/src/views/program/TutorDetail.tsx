@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, BookOpen, CalendarClock, Clock, GraduationCap } from "lucide-react";
+import { ArrowLeft, CalendarClock, Clock, GraduationCap } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
 import ProfileBanner from "../../components/ProfileBanner";
 import { useTutors } from "../../context/TutorsContext";
@@ -40,8 +40,7 @@ export default function TutorDetail() {
       {/* Hero Banner */}
       <ProfileBanner
         name={`${tutor.firstName} ${tutor.lastName}`}
-        subtitle={`Grades ${Math.min(...tutor.grades)}–${Math.max(...tutor.grades)}`}
-        tags={tutor.courses}
+        subtitle={tutor.profession}
         actions={
           <span className="text-xs font-mono text-white/70 bg-white/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
             <CalendarClock className="w-3.5 h-3.5" />
@@ -49,7 +48,6 @@ export default function TutorDetail() {
           </span>
         }
         stats={[
-          { label: "Sessions", value: tutor.sessions, Icon: BookOpen },
           { label: "Grade Range", value: `Gr ${Math.min(...tutor.grades)}–${Math.max(...tutor.grades)}`, Icon: GraduationCap },
         ]}
       />

@@ -264,6 +264,9 @@ export interface Tutor {
   students: number;
   sessions: number;
   description: string;
+  // Day-job/background, shown on the tutor profile banner — most of these
+  // tutors are volunteers, not full-time educators.
+  profession?: string;
   // Which day(s) this tutor prefers to run in-person sessions — self-service,
   // set by the tutor on their own Schedule page. Absent until they set it.
   preferredDays?: string[];

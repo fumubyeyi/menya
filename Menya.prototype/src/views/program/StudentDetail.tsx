@@ -64,7 +64,6 @@ export default function StudentDetail() {
       <ProfileBanner
         name={student.name}
         subtitle={`Grade ${student.grade}`}
-        tags={enrolled}
         actions={
           <>
             <span className={`text-xs px-2.5 py-1 rounded-full font-mono flex items-center gap-1 ${meta.cls}`}>

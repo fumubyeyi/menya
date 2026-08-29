@@ -9,7 +9,19 @@ const TUTORS_KEY = "menya:tutors";
 function readTutors(): Tutor[] {
   try {
     const saved = JSON.parse(localStorage.getItem(TUTORS_KEY) ?? "null");
-    if (Array.isArray(saved) && saved.length > 0 && typeof saved[0]?.firstName === "string") return saved;
+    if (Array.isArray(saved) && saved.length > 0 && typeof saved[0]?.firstName === "string") {
+      // Backfill fields added to the seed data after this browser already saved
+      // its own copy (e.g. `profession`) — otherwise they'd silently never show
+      // up for anyone with existing localStorage state. Saved values still win.
+      const seedById = new Map(tutors.map((t) => [t.id, t]));
+      const merged = saved.map((t: Tutor) => {
+        const seed = seedById.get(t.id);
+        return seed ? { ...seed, ...t } : t;
+      });
+      const savedIds = new Set(saved.map((t: Tutor) => t.id));
+      const missingSeed = tutors.filter((t) => !savedIds.has(t.id));
+      return [...merged, ...missingSeed];
+    }
   } catch {
     // fall through to seed data
   }

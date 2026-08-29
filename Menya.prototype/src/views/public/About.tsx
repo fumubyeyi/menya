@@ -1,11 +1,7 @@
 import { Link } from "react-router";
 import {
-  Users,
-  TrendingUp,
-  ClipboardCheck,
   GraduationCap,
   HeartHandshake,
-  LucideBookOpenText,
   Mail,
   UserCheck,
   LayoutDashboard,
@@ -14,34 +10,10 @@ import {
 import type { ReactNode } from "react";
 import PublicHeader from "../../components/PublicHeader";
 import GradientBanner from "../../components/GradientBanner";
+import HeroIntro from "../../components/HeroIntro";
 import Avatar from "../../components/Avatar";
 import { useAlumni } from "../../context/AlumniContext";
-import { useStudents } from "../../context/StudentsContext";
-import { useTutors } from "../../context/TutorsContext";
 import { alumniOutcomeMeta } from "../../lib/constants";
-
-const HOW_IT_WORKS = [
-  {
-    Icon: Users,
-    title: "Small-Group & 1:1 Tutoring",
-    body: "Students meet in-person in small groups organized by grade band, or work one-on-one online with a dedicated tutor — whichever fits their course and schedule.",
-  },
-  {
-    Icon: ClipboardCheck,
-    title: "Consistency, Tracked",
-    body: "Every session — attendance, notes, and progress — is logged, so no student falls through the cracks between one tutor and the next.",
-  },
-  {
-    Icon: LucideBookOpenText,
-    title: "Built Around Real Coursework",
-    body: "Tutoring is tied directly to what students are studying in school — Algebra through Calculus — with curriculum tutors can pull from session to session.",
-  },
-  {
-    Icon: TrendingUp,
-    title: "Outcomes, Followed Long-Term",
-    body: "We don't stop tracking a student at graduation — we follow alumni into college and career to see whether the support actually changed their trajectory.",
-  },
-];
 
 const KEY_FEATURES = [
   {
@@ -95,11 +67,6 @@ function BrowserFrame({ src, alt }: { src: string; alt: string }) {
 
 export default function About() {
   const { alumni } = useAlumni();
-  const { students } = useStudents();
-  const { tutors } = useTutors();
-
-  const stemCount = alumni.filter((a) => alumniOutcomeMeta[a.outcome].isStem).length;
-  const stemRate = alumni.length ? Math.round((stemCount / alumni.length) * 100) : 0;
   const featuredStory = alumni.find((a) => a.isSuccessStory && a.testimonial);
 
   return (
@@ -108,15 +75,7 @@ export default function About() {
 
       {/* Hero */}
       <GradientBanner>
-        <div className="inline-flex items-center gap-1.5 text-white/70 text-xs font-medium bg-white/10 border border-white/15 rounded-full px-3 py-1 mb-5">
-           Tutoring infrastructure
-        </div>
-        <h3 className="font-display font-bold text-white text-4xl sm:text-2xl leading-[1.1] mb-5">
-          One shared system of record for nonprofit STEM tutoring.
-        </h3>
-        <p className="text-white/60 text-base sm:text-md leading-relaxed mb-8">
-          Built for tutoring programs supporting underserved K-12 learners, Menya connects students with dedicated tutors, tracks every session, and follows their progress well past graduation.
-        </p>
+        <HeroIntro />
         <div className="flex items-center gap-3 justify-center flex-wrap">
           <Link
             to="/contact"
@@ -149,69 +108,52 @@ export default function About() {
       <div className="max-w-3xl mx-auto px-6 sm:px-10 py-20 text-center">
         <Eyebrow>Our mission</Eyebrow>
         <h3 className="font-display font-semibold text-foreground text-2xl sm:text-3xl leading-snug mb-4">
-          Math is one of the biggest gatekeepers to STEM opportunity.
+          STEM subjects are some of the biggest gatekeepers to opportunity.
         </h3>
         <p className="text-foreground/70 text-base sm:text-md leading-relaxed">
-          Too many underserved students never get the consistent, personalized help they need to get through it. Menya exists to close that gap: giving tutoring programs the tools to match students with tutors who stick with them, keep every session on record, and make sure that support never quietly lapses.
+          Too many underserved students never get the consistent, personalized help they need to get through them. Menya exists to close that gap: giving tutoring programs the tools to match students with tutors who stick with them, keep every session on record, and make sure that support never quietly lapses.
         </p>
       </div>
 
-      {/* How it works */}
+      {/* How it works — a tailored view per role */}
       <div className="bg-white border-y border-border">
-        <div className="max-w-5xl mx-auto px-6 sm:px-10 py-20 text-center">
+        <div className="max-w-6xl mx-auto px-6 sm:px-10 py-20 text-center">
           <Eyebrow>How it works</Eyebrow>
-          <h3 className="font-display font-semibold text-foreground text-2xl sm:text-3xl mb-10">How Menya Works</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-left">
-            {HOW_IT_WORKS.map(({ Icon, title, body }) => (
-              <div key={title} className="bg-[#F4F3EF] border border-border rounded-2xl p-6 flex flex-col gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Icon className="w-4.5 h-4.5 text-primary" />
+          <h3 className="font-display font-semibold text-foreground text-2xl sm:text-3xl mb-3">One shared system, a tailored view for everyone</h3>
+          <p className="text-foreground/60 text-sm sm:text-base max-w-2xl mx-auto mb-12">
+            Scheduling, curriculum, progress, and outcomes all live in one place — with the right tools surfaced for each person who logs in.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+            {KEY_FEATURES.map(({ Icon, role, img, caption, tags }) => (
+              <div key={role} className="bg-[#F4F3EF] border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white border-b border-border p-4">
+                  <img
+                    src={img}
+                    alt={`Menya ${role.toLowerCase()} view`}
+                    className="w-full rounded-lg border border-border aspect-[16/10] object-cover object-top"
+                  />
                 </div>
-                <p className="font-display font-semibold text-foreground text-sm">{title}</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+                <div className="p-6 flex flex-col gap-3 flex-1">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Icon className="w-4.5 h-4.5 text-primary" />
+                    </div>
+                    <p className="font-display font-semibold text-foreground text-sm">{role}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{caption}</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs text-foreground/70 bg-white border border-border rounded-full px-2.5 py-1">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Key features by role */}
-      <div className="max-w-6xl mx-auto px-6 sm:px-10 py-20 text-center">
-        <Eyebrow>Built for every role</Eyebrow>
-        <h3 className="font-display font-semibold text-foreground text-2xl sm:text-3xl mb-3">A tailored view for everyone</h3>
-        <p className="text-foreground/60 text-sm sm:text-base max-w-2xl mx-auto mb-12">
-          One shared system of record — scheduling, curriculum, progress, and outcomes — with the right tools surfaced for each person who logs in.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-          {KEY_FEATURES.map(({ Icon, role, img, caption, tags }) => (
-            <div key={role} className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
-              <div className="bg-[#F4F3EF] border-b border-border p-4">
-                <img
-                  src={img}
-                  alt={`Menya ${role.toLowerCase()} view`}
-                  className="w-full rounded-lg border border-border aspect-[16/10] object-cover object-top"
-                />
-              </div>
-              <div className="p-6 flex flex-col gap-3 flex-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Icon className="w-4.5 h-4.5 text-primary" />
-                  </div>
-                  <p className="font-display font-semibold text-foreground text-sm">{role}</p>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{caption}</p>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-xs text-foreground/70 bg-primary/5 border border-border rounded-full px-2.5 py-1">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -241,22 +183,6 @@ export default function About() {
           </div>
         </div>
       )}
-
-      {/* By the numbers */}
-      <GradientBanner>
-        <div className="grid grid-cols-3 gap-1 max-w-1xl mx-auto text-center">
-          {[
-            [String(students.length), "Students Served"],
-            [String(tutors.length), "Active Tutors"],
-            [`${stemRate}%`, "Alumni in STEM"],
-          ].map(([v, l]) => (
-            <div key={l}>
-              <p className="font-display font-bold text-white text-2xl sm:text-1xl leading-none">{v}</p>
-              <p className="text-white/60 text-xs mt-1.5">{l}</p>
-            </div>
-          ))}
-        </div>
-      </GradientBanner>
 
       {/* Get involved */}
       <div className="max-w-3xl mx-auto px-6 py-20 text-center flex flex-col items-center gap-4">

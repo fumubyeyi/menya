@@ -21,16 +21,9 @@ import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import {
   getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
-import { statusMeta, formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, PREFERENCE_DAYS } from "../../lib/constants";
+import { statusMeta, formatTime12h, gradesSummary, attendanceForSession, PREFERENCE_DAYS } from "../../lib/constants";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
 import { mondayOf, toISODate } from "../program/Schedule";
-
-// The grade band or course an in-person group session was booked for — same
-// reversal used on the Schedule and Attendance pages.
-function groupLabel(session: Session): string {
-  const parsed = parseGroupLabel(session.student, session.course);
-  return parsed.scope === "grade" ? gradesSummary(parsed.grades) : parsed.courseValue;
-}
 
 function timeAgo(iso: string): string {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -119,8 +112,8 @@ export default function TutorHome() {
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
       {/* Profile Banner — same identity card Program sees on a tutor's profile
-          (avatar, grade range, courses), plus the day-preference toggle right
-          under the name since this is the tutor's own, editable copy of it. */}
+          (avatar, profession, grade range), plus the day-preference toggle on
+          the right since this is the tutor's own, editable copy of it. */}
       <div
         className="rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
         style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0f3d32 100%)" }}
@@ -130,13 +123,17 @@ export default function TutorHome() {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-display font-semibold text-white leading-none">{currentTutor ? `${currentTutor.firstName} ${currentTutor.lastName}` : ""}</h1>
+          {currentTutor?.profession && (
+            <p className="text-sm text-white/60 mt-1">{currentTutor.profession}</p>
+          )}
           {currentTutor && currentTutor.grades.length > 0 && (
             <p className="text-sm text-white/60 mt-1 font-mono">Grades {Math.min(...currentTutor.grades)}–{Math.max(...currentTutor.grades)}</p>
           )}
+        </div>
 
-          {/* Tutoring Day Preference */}
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <span className="text-[11px] font-mono text-white/50 uppercase tracking-wide">Prefers to tutor:</span>
+        {/* Tutoring Day Preference */}
+        <div className="flex flex-col items-start sm:items-end gap-2">
+          <span className="text-[11px] font-mono text-white/50 uppercase tracking-wide">Prefers to tutor:</span>
             {PREFERENCE_DAYS.map((day) => (
               <button
                 key={day}
@@ -151,17 +148,7 @@ export default function TutorHome() {
                 {day}
               </button>
             ))}
-          </div>
-
-          {currentTutor && currentTutor.courses.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {currentTutor.courses.map((c) => (
-                <span key={c} className="text-[11px] px-2 py-0.5 rounded-md font-mono bg-white/15 text-white">{c}</span>
-              ))}
-            </div>
-          )}
         </div>
-        <span className="text-xs font-mono text-white/60 hidden sm:block">Summer 2026 · Week 6</span>
       </div>
 
       {/* Stat Pillars */}
@@ -231,37 +218,6 @@ export default function TutorHome() {
         </div>
       )}
 
-      {/* Needs Attendance — in-person sessions with no roll call logged yet */}
-      {pendingRollCalls.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <ClipboardCheck className="w-4 h-4 text-red-600" />
-            <h2 className="text-sm font-semibold text-foreground">Needs Attendance</h2>
-            <span className="text-[11px] font-mono text-red-700 bg-red-100 px-2 py-0.5 rounded-full ml-auto">
-              {pendingRollCalls.length} session{pendingRollCalls.length === 1 ? "" : "s"}
-            </span>
-          </div>
-          <div className="space-y-2">
-            {pendingRollCalls.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 bg-card border border-border rounded-lg p-3">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Users className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{groupLabel(s)} Group</p>
-                  <p className="text-[11px] font-mono text-muted-foreground">{s.date} · {s.clock}</p>
-                </div>
-                <button
-                  onClick={() => navigate("/tutor/attendance")}
-                  className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
-                >
-                  Log Attendance
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Today's Queue */}

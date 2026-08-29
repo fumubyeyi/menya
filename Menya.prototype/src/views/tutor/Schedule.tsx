@@ -14,8 +14,9 @@ import { useStudents } from "../../context/StudentsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { getTutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID } from "../../data";
-import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, canCancelSession } from "../../lib/constants";
+import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, canCancelSession, nextDateForWeekday, formatSessionTime } from "../../lib/constants";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
+import { mondayOf, toISODate } from "../program/Schedule";
 import type { AttendanceSession, Student } from "../../types";
 
 // The grade band or course an in-person group session was booked for — reversed
@@ -115,6 +116,61 @@ export default function TutorSchedule() {
     .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.tutorIds.includes(tutorId)))
     .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
 
+  // "Upcoming" is bounded to this week + next week and sorted soonest-first, rather
+  // than dumping every session for the mode in whatever order it was created —
+  // older/stale ones belong in Session History below, not here. Sessions carry a
+  // real `date` once scheduled; the handful of older mock sessions that predate that
+  // field fall back to their "Today"/"Tomorrow" label so they still resolve to a
+  // real day instead of being silently dropped.
+  const todayDate = new Date();
+  const todayISOForUpcoming = toISODate(todayDate);
+  const tomorrowISO = toISODate(new Date(todayDate.getTime() + 86400000));
+  const windowEnd = mondayOf(todayDate);
+  windowEnd.setDate(windowEnd.getDate() + 13);
+  const windowEndISO = toISODate(windowEnd);
+
+  const effectiveDate = (s: Session): string =>
+    s.date ?? (s.time === "Today" ? todayISOForUpcoming : s.time === "Tomorrow" ? tomorrowISO : "");
+
+  const upcomingModeSessions = modeSessions
+    .filter((s) => s.status !== "completed")
+    .map((s) => ({ session: s, eff: effectiveDate(s) }))
+    .filter(({ eff }) => eff !== "" && eff >= todayISOForUpcoming && eff <= windowEndISO)
+    .map(({ session, eff }) => ({ session, date: eff }));
+
+  // Project each recurring slot forward to its next one or two calendar occurrences
+  // within the same this-week/next-week window — Program may not have "Notified
+  // Tutors" (turned the slot into a real dated Session) for a future week yet, but
+  // the tutor's standing commitment is still real and worth showing. Skipped for any
+  // date that already has a real Session, so a published slot isn't shown twice.
+  const bookedInPersonDates = new Set(tutorSessions.filter((s) => s.location === "in-person" && s.date).map((s) => s.date));
+  const projectedOccurrences = mode === "in-person"
+    ? mySlots.flatMap((slot) => {
+        const first = nextDateForWeekday(slot.day, todayDate);
+        const [fy, fm, fd] = first.split("-").map(Number);
+        const second = toISODate(new Date(fy, fm - 1, fd + 7));
+        return [first, second]
+          .filter((date) => date <= windowEndISO && !bookedInPersonDates.has(date))
+          .map((date) => ({ slot, date }));
+      })
+    : [];
+
+  const clockMinutes = (clock: string): number => {
+    const match = clock.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return 0;
+    let hours = Number(match[1]) % 12;
+    if (match[3].toUpperCase() === "PM") hours += 12;
+    return hours * 60 + Number(match[2]);
+  };
+
+  const upcomingRows = [
+    ...upcomingModeSessions.map(({ session, date }) => ({ kind: "real" as const, session, date, clock: session.clock })),
+    ...projectedOccurrences.map(({ slot, date }) => {
+      const { clock } = formatSessionTime(date, slot.time);
+      return { kind: "projected" as const, slot, date, clock };
+    }),
+  ].sort((a, b) => a.date.localeCompare(b.date) || clockMinutes(a.clock) - clockMinutes(b.clock));
+
   const history = tutorStudents.flatMap((s) =>
     (studentSessionHistory[s.id] ?? []).map((h) => ({ ...h, studentName: s.name }))
   );
@@ -178,53 +234,77 @@ export default function TutorSchedule() {
       {/* Upcoming Sessions */}
       <div className="bg-card border border-border rounded-xl p-5">
         <h2 className="text-sm font-semibold text-foreground mb-4">Upcoming {mode === "online" ? "Online" : "In-Person"} Sessions</h2>
-        {modeSessions.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">No upcoming {mode === "online" ? "online" : "in-person"} sessions.</p>
+        {upcomingRows.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">No upcoming {mode === "online" ? "online" : "in-person"} sessions this week or next.</p>
         ) : (
           <div className="divide-y divide-border">
-            {modeSessions.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <Avatar name={s.student} size={9} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{s.student}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                    <CourseTag course={s.course} />
-                    <span className="text-[11px] text-muted-foreground font-mono">{s.time}</span>
+            {upcomingRows.map((row) => {
+              if (row.kind === "projected") {
+                const { time } = formatSessionTime(row.date, row.slot.time);
+                return (
+                  <div key={`${row.slot.id}-${row.date}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <GroupIcon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{gradesSummary(row.slot.grades)} Group</p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[11px] text-muted-foreground font-mono">{time}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                      <Clock className="w-3.5 h-3.5" /> {row.clock}
+                    </div>
+                    <span className="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-1 rounded-full">Recurring · Not yet scheduled</span>
                   </div>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-                  <Clock className="w-3.5 h-3.5" /> {s.clock}
-                </div>
-                <span className="text-[11px] font-mono text-muted-foreground hidden sm:block">{s.duration}m</span>
-                <SessionStatusPill status={s.status} />
-                {s.status === "in-progress" && s.meetingId && (
-                  <button
-                    onClick={() => setActiveSession(s)}
-                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
-                  >
-                    Start
-                  </button>
-                )}
-                {s.status !== "in-progress" && s.status !== "completed" && (
-                  canCancelSession(s) ? (
+                );
+              }
+
+              const s = row.session;
+              return (
+                <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <Avatar name={s.student} size={9} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{s.student}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <CourseTag course={s.course} />
+                      <span className="text-[11px] text-muted-foreground font-mono">{s.time}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                    <Clock className="w-3.5 h-3.5" /> {s.clock}
+                  </div>
+                  <span className="text-[11px] font-mono text-muted-foreground hidden sm:block">{s.duration}m</span>
+                  <SessionStatusPill status={s.status} />
+                  {s.status === "in-progress" && s.meetingId && (
                     <button
-                      onClick={() => removeSession(s.id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                      onClick={() => setActiveSession(s)}
+                      className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
                     >
-                      Cancel
+                      Start
                     </button>
-                  ) : (
-                    <button
-                      disabled
-                      title="Sessions can only be canceled at least 24 hours in advance"
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground border border-border opacity-50 cursor-not-allowed"
-                    >
-                      Cancel
-                    </button>
-                  )
-                )}
-              </div>
-            ))}
+                  )}
+                  {s.status !== "in-progress" && s.status !== "completed" && (
+                    canCancelSession(s) ? (
+                      <button
+                        onClick={() => removeSession(s.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        title="Sessions can only be canceled at least 24 hours in advance"
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground border border-border opacity-50 cursor-not-allowed"
+                      >
+                        Cancel
+                      </button>
+                    )
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@ import { NavLink, Outlet, Navigate, useNavigate, useLocation } from "react-route
 import {
   LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
   Bell, Plus, Menu, X, Settings, Trophy,
-  Briefcase, UserCheck, GraduationCap, Search, LogOut,
+  Search, LogOut,
   Award, AlertTriangle, UserCog, CalendarRange, ExternalLink,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -41,10 +41,10 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
   ],
 };
 
-const ROLE_META: Record<Role, { Icon: React.ElementType; tagline: string }> = {
-  program: { Icon: Briefcase,     tagline: "Program Director" },
-  tutor:   { Icon: UserCheck,     tagline: "Tutor" },
-  student: { Icon: GraduationCap, tagline: "Student" },
+const ROLE_META: Record<Role, { tagline: string }> = {
+  program: { tagline: "Program Director" },
+  tutor:   { tagline: "Tutor" },
+  student: { tagline: "Student" },
 };
 
 // Student is intentionally absent here — its three values (score, streak,
@@ -144,14 +144,6 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
           <button onClick={() => setMobileOpen(false)} className="lg:hidden text-white/60 hover:text-white">
             <X className="w-4 h-4" />
           </button>
-        </div>
-
-        {/* Role badge */}
-        <div className="px-4 py-3 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-            <meta.Icon className="w-3.5 h-3.5 text-accent flex-shrink-0" />
-            <span className="text-[11px] font-mono text-white/70">{tagline}</span>
-          </div>
         </div>
 
         {/* Nav */}
