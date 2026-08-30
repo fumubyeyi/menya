@@ -5,10 +5,10 @@ import type {
 
 // Every visual here is a small, parameterized inline SVG generated from plain numbers —
 // no external images, so nothing to fetch, host, or break. Colors follow the app's
-// existing chart palette (#1B5E4F primary, #F0981E accent, slate greys for axes/grid).
+// existing chart palette (#2F4F4F primary, #708090 accent, slate greys for axes/grid).
 
-const PRIMARY = "#1B5E4F";
-const ACCENT = "#F0981E";
+const PRIMARY = "#2F4F4F";
+const ACCENT = "#708090";
 const GRID = "#e2e8f0";
 const AXIS = "#94a3b8";
 const TEXT = "#334155";

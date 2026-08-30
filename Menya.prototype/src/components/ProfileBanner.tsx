@@ -5,7 +5,7 @@ import Avatar from "./Avatar";
 // identity on the left, a caller-supplied actions slot on the right (status badge,
 // schedule button, "prefers" chip…), and an optional row of stat pillars below.
 // Keeps the gradient/pillar treatment in one place instead of two hand-rolled copies.
-const PROFILE_GRADIENT = "linear-gradient(135deg, #1B5E4F 0%, #0d3b2e 100%)";
+const PROFILE_GRADIENT = "linear-gradient(135deg, #2F4F4F 0%, #1E2B2B 100%)";
 
 export interface ProfileBannerStat {
   label: string;

@@ -18,6 +18,7 @@ import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, ca
 import { WEEKDAYS } from "../program/RecurringSlotModal";
 import { mondayOf, toISODate } from "../program/Schedule";
 import type { AttendanceSession, Student } from "../../types";
+import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 // The grade band or course an in-person group session was booked for — reversed
 // from the "Grades 6, 7 Group" / "<Course> Group" label the same way editing one
@@ -182,20 +183,17 @@ export default function TutorSchedule() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground">Schedule</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {mode === "online" ? `${modeSessions.length} online sessions` : `${modeSessions.length} in-person sessions`}
-          </p>
-        </div>
+      <PageHeaderSubtitle>
+        {mode === "online" ? `${modeSessions.length} online sessions` : `${modeSessions.length} in-person sessions`}
+      </PageHeaderSubtitle>
+      <PageHeaderActions>
         <button
           onClick={() => setModal(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" /> Schedule Session
         </button>
-      </div>
+      </PageHeaderActions>
 
       {/* Recurring slots this tutor is assigned to — a standing weekly reference,
           managed by Program staff under Program > Schedule. */}

@@ -1411,13 +1411,13 @@ export const weeklyData = [
 ];
 
 export const courseBreakdown = [
-  { name: "Algebra",       students: 85, color: "#1B5E4F" },
-  { name: "Algebra II",    students: 73, color: "#059669" },
-  { name: "Pre-Alg",       students: 47, color: "#F59E0B" },
-  { name: "Geometry",      students: 61, color: "#3B82F6" },
-  { name: "Statistics",    students: 33, color: "#EC4899" },
-  { name: "Pre-Calculus",  students: 38, color: "#8B5CF6" },
-  { name: "Calculus",      students: 54, color: "#6366F1" },
+  { name: "Algebra",       students: 85, color: "#5E6B72" },
+  { name: "Algebra II",    students: 73, color: "#5E6B72" },
+  { name: "Pre-Alg",       students: 47, color: "#5E6B72" },
+  { name: "Geometry",      students: 61, color: "#5E6B72" },
+  { name: "Statistics",    students: 33, color: "#5E6B72" },
+  { name: "Pre-Calculus",  students: 38, color: "#5E6B72" },
+  { name: "Calculus",      students: 54, color: "#5E6B72" },
 ];
 
 export const tutorWeeklyData = [

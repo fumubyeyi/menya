@@ -1,81 +1,90 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Slate — a monochrome slate-gray system. Dark slate carries the primary
+     weight (buttons, headings, active nav); classic slate gray is the single
+     restrained accent. Cool off-white ground, gunmetal body copy. */
   --font-size: 16px;
-  --background: #F4F3EF;
-  --foreground: #1A1B28;
+  --background: #F1FAFF;
+  --foreground: #353E43;
   --card: #FFFFFF;
-  --card-foreground: #1A1B28;
+  --card-foreground: #353E43;
   --popover: #FFFFFF;
-  --popover-foreground: #1A1B28;
-  --primary: #1B5E4F;
+  --popover-foreground: #353E43;
+  --primary: #2F4F4F;
   --primary-foreground: #FFFFFF;
-  --secondary: #E8EDE9;
-  --secondary-foreground: #1A1B28;
-  --muted: #EEECEA;
-  --muted-foreground: #6B6C7A;
-  --accent: #F0981E;
+  --secondary: #E4EDF1;
+  --secondary-foreground: #2F4F4F;
+  --muted: #E4EDF1;
+  --muted-foreground: #5E6B72;
+  --accent: #708090;
   --accent-foreground: #FFFFFF;
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
-  --border: rgba(26, 27, 40, 0.09);
+  --border: rgba(78, 94, 101, 0.18);
   --input: transparent;
-  --input-background: #F0EFEB;
-  --switch-background: #C8CDD4;
+  --input-background: #EAF1F4;
+  --switch-background: #B8C4CA;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #1B5E4F;
-  --chart-1: #1B5E4F;
-  --chart-2: #F0981E;
-  --chart-3: #3B82F6;
-  --chart-4: #8B5CF6;
-  --chart-5: #10B981;
+  --ring: #2F4F4F;
+  --chart-1: #2F4F4F;
+  --chart-2: #708090;
+  --chart-3: #90A4AE;
+  --chart-4: #4E5E65;
+  --chart-5: #B0BEC5;
   --radius: 0.625rem;
-  --sidebar: #1A2B26;
-  --sidebar-foreground: #E8EDE9;
-  --sidebar-primary: #FFFFFF;
-  --sidebar-primary-foreground: #1A2B26;
-  --sidebar-accent: rgba(255,255,255,0.08);
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: rgba(255,255,255,0.08);
-  --sidebar-ring: #4ADE80;
+  /* Neutral sidebar — matches the app surface. Dark slate marks the active nav
+     item; the page header carries the title. */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #353E43;
+  --sidebar-primary: #2F4F4F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E4EDF1;
+  --sidebar-accent-foreground: #2F4F4F;
+  --sidebar-border: rgba(78, 94, 101, 0.18);
+  --sidebar-ring: #2F4F4F;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  /* Slate, dark: slate-charcoal surfaces; primary inverts to near-white so
+     buttons stay high-contrast; the slate-gray accent lifts slightly. */
+  --background: #1A2224;
+  --foreground: #E3E9EC;
+  --card: #222B2E;
+  --card-foreground: #E3E9EC;
+  --popover: #222B2E;
+  --popover-foreground: #E3E9EC;
+  --primary: #E3E9EC;
+  --primary-foreground: #1A2224;
+  --secondary: #2C373A;
+  --secondary-foreground: #E3E9EC;
+  --muted: #2C373A;
+  --muted-foreground: #9DAAB0;
+  --accent: #8B9BA6;
+  --accent-foreground: #16201F;
+  --destructive: #F05252;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(255, 255, 255, 0.10);
+  --input: transparent;
+  --input-background: #263133;
+  --switch-background: #3C494D;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --ring: #E3E9EC;
+  --chart-1: #CBD5DA;
+  --chart-2: #8B9BA6;
+  --chart-3: #A7B4BC;
+  --chart-4: #6E7F88;
+  --chart-5: #566670;
+  --sidebar: #161D1F;
+  --sidebar-foreground: #E3E9EC;
+  --sidebar-primary: #E3E9EC;
+  --sidebar-primary-foreground: #161D1F;
+  --sidebar-accent: #2C373A;
+  --sidebar-accent-foreground: #E3E9EC;
+  --sidebar-border: rgba(255, 255, 255, 0.10);
+  --sidebar-ring: #E3E9EC;
 }
 
 @theme inline {

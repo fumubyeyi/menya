@@ -8,6 +8,7 @@ import {
 } from "../../data";
 import { statusMeta, courseColor } from "../../lib/constants";
 import { getEnrolledCourses } from "../../hooks/useEnrollment";
+import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 export default function MyStudents() {
   const { user } = useAuth();
@@ -16,16 +17,15 @@ export default function MyStudents() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground">My Students</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 font-mono">{tutorStudents.length} students assigned</p>
-        </div>
+      <PageHeaderSubtitle>
+        <span className="font-mono">{tutorStudents.length} students assigned</span>
+      </PageHeaderSubtitle>
+      <PageHeaderActions>
         <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg">
           <Users className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold text-primary">{tutorStudents.length}</span>
         </div>
-      </div>
+      </PageHeaderActions>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {tutorStudents.map((student) => {
@@ -68,7 +68,7 @@ export default function MyStudents() {
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${sub.score}%`, backgroundColor: courseColor[sub.course] ?? "#1B5E4F" }}
+                        style={{ width: `${sub.score}%`, backgroundColor: courseColor[sub.course] ?? "#5E6B72" }}
                       />
                     </div>
                   </div>

@@ -8,6 +8,7 @@ import { students } from "../../data";
 import { useAlumni } from "../../context/AlumniContext";
 import { alumniOutcomeMeta, followUpStatusMeta, exitReasonMeta, verificationMeta } from "../../lib/constants";
 import type { AlumniRecord, ExitReason, AlumniOutcome, FollowUpStatus } from "../../types";
+import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
 
 const EXIT_OPTIONS: { value: string; label: string }[] = [
   { value: "all",           label: "All Exits"           },
@@ -173,15 +174,9 @@ export default function AlumniTracking() {
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground">Alumni Tracking</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {alumni.length} alumni tracked · students who completed or left the program, followed up on their path after high school
-          </p>
-        </div>
-      </div>
+      <PageHeaderSubtitle>
+        {alumni.length} alumni tracked · students who completed or left the program, followed up on their path after high school
+      </PageHeaderSubtitle>
 
       {/* Tabs — navigation, not state: each is a link to ?view=… */}
       <nav className="flex gap-1 border-b border-border mb-5">
@@ -278,7 +273,7 @@ export default function AlumniTracking() {
               contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e5e7eb" }}
               formatter={(value: number, _name, item) => [`${value}% (${item.payload.count} alumni)`, "STEM Rate"]}
             />
-            <Bar dataKey="stemRate" fill="#1B5E4F" radius={[4, 4, 0, 0]} name="STEM Rate" />
+            <Bar dataKey="stemRate" fill="#2F4F4F" radius={[4, 4, 0, 0]} name="STEM Rate" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -294,7 +289,7 @@ export default function AlumniTracking() {
               <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
               <YAxis type="category" dataKey="outcome" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={110} />
               <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e5e7eb" }} />
-              <Bar dataKey="count" fill="#1B5E4F" radius={[0, 4, 4, 0]} name="Alumni" />
+              <Bar dataKey="count" fill="#2F4F4F" radius={[0, 4, 4, 0]} name="Alumni" />
             </BarChart>
           </ResponsiveContainer>
         </div>

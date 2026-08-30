@@ -12,6 +12,7 @@ import { getCourseIcon, courseColor, chapterAction, courseCompletion } from "../
 import { useEnrollment } from "../../hooks/useEnrollment";
 import { useCurriculum } from "../../context/CurriculumContext";
 import type { CurriculumCourse, CurriculumChapter, CourseDetail } from "../../types";
+import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 const VISIBLE_MODULES = 5;
 
@@ -45,16 +46,13 @@ export default function Learning() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground">Learning</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Your courses, modules, and curriculum progress</p>
-        </div>
+      <PageHeaderSubtitle>Your courses, modules, and curriculum progress</PageHeaderSubtitle>
+      <PageHeaderActions>
         <button onClick={() => setEnrollOpen(true)}
           className="flex items-center gap-2 px-3.5 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors flex-shrink-0">
           <Settings2 className="w-4 h-4" /> Manage Enrollment
         </button>
-      </div>
+      </PageHeaderActions>
 
       {enrolledCourses.length === 0 && (
         <div className="bg-card border border-dashed border-border rounded-xl p-10 flex flex-col items-center text-center gap-3">
@@ -76,7 +74,7 @@ export default function Learning() {
       {activeCourseDetails.length > 0 && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {activeCourseDetails.map((sd) => {
-          const color = courseColor[sd.course] ?? "#1B5E4F";
+          const color = courseColor[sd.course] ?? "#5E6B72";
           const relatedModules = studentModules.filter((m) => m.course === sd.course);
           const completion = courseCompletion(courses, sd.course);
 
@@ -184,7 +182,7 @@ export default function Learning() {
             {notStartedCourses.map((courseName) => {
               const course = courses.find((c) => c.name === courseName);
               if (!course) return null;
-              const color = courseColor[courseName] ?? "#1B5E4F";
+              const color = courseColor[courseName] ?? "#5E6B72";
               const firstChapter = course.chapters[0];
               const action = firstChapter ? chapterAction(firstChapter) : null;
               const moduleCount = course.chapters.reduce((sum, ch) => sum + ch.modules.length, 0);

@@ -13,6 +13,7 @@ import {
 } from "../../data";
 import { getCourseIcon, courseColor, formatTime12h, gradesSummary, gradeGroupFor } from "../../lib/constants";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
+import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 const sessionHistory = studentSessionHistory[sofia.id] ?? [];
 
@@ -32,18 +33,15 @@ export default function StudentSchedule() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground">Schedule</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Upcoming sessions</p>
-        </div>
+      <PageHeaderSubtitle>Upcoming sessions</PageHeaderSubtitle>
+      <PageHeaderActions>
         <button
           onClick={() => setModal(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" /> Request Session
         </button>
-      </div>
+      </PageHeaderActions>
 
       {/* Upcoming Sessions */}
       <div className="bg-card border border-border rounded-xl p-5">
@@ -56,9 +54,9 @@ export default function StudentSchedule() {
               <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${courseColor[s.course] ?? "#1B5E4F"}15` }}
+                  style={{ backgroundColor: `${courseColor[s.course] ?? "#5E6B72"}15` }}
                 >
-                  <span style={{ color: courseColor[s.course] ?? "#1B5E4F" }}>
+                  <span style={{ color: courseColor[s.course] ?? "#5E6B72" }}>
                     {getCourseIcon(s.course)}
                   </span>
                 </div>
@@ -114,9 +112,9 @@ export default function StudentSchedule() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${courseColor[h.course] ?? "#1B5E4F"}15` }}
+                  style={{ backgroundColor: `${courseColor[h.course] ?? "#5E6B72"}15` }}
                 >
-                  <span style={{ color: courseColor[h.course] ?? "#1B5E4F" }}>
+                  <span style={{ color: courseColor[h.course] ?? "#5E6B72" }}>
                     {getCourseIcon(h.course)}
                   </span>
                 </div>

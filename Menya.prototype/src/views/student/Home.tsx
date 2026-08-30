@@ -36,7 +36,7 @@ export default function StudentHome() {
       {/* Greeting Banner */}
       <div
         className="rounded-2xl p-6 flex items-center gap-5"
-        style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0f3d32 100%)" }}
+        style={{ background: "linear-gradient(135deg, #2F4F4F 0%, #1E2B2B 100%)" }}
       >
         <ProgressRing value={sofia.progress} size={72} />
         <div className="flex-1 min-w-0">
@@ -55,10 +55,10 @@ export default function StudentHome() {
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Progress", value: `${sofia.progress}%`, color: "#1B5E4F" },
-          { label: "Sessions", value: sofia.sessions, color: "#3B82F6" },
-          { label: "Streak", value: `${streak}d`, color: "#F59E0B" },
-          { label: "Study Hours", value: `${studyHours}h`, color: "#8B5CF6" },
+          { label: "Progress", value: `${sofia.progress}%`, color: "#708090" },
+          { label: "Sessions", value: sofia.sessions, color: "#5E6B72" },
+          { label: "Streak", value: `${streak}d`, color: "#5E6B72" },
+          { label: "Study Hours", value: `${studyHours}h`, color: "#5E6B72" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-display font-bold" style={{ color }}>{value}</p>
@@ -75,8 +75,8 @@ export default function StudentHome() {
               <h2 className="text-sm font-semibold text-foreground mb-3">Today's Focus</h2>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${courseColor[todaySession.course] ?? "#1B5E4F"}18` }}>
-                  <span style={{ color: courseColor[todaySession.course] ?? "#1B5E4F" }}>
+                  style={{ backgroundColor: `${courseColor[todaySession.course] ?? "#5E6B72"}18` }}>
+                  <span style={{ color: courseColor[todaySession.course] ?? "#5E6B72" }}>
                     {getCourseIcon(todaySession.course)}
                   </span>
                 </div>
@@ -105,13 +105,13 @@ export default function StudentHome() {
                 <div key={sd.course}>
                   <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center gap-2">
-                      <span style={{ color: courseColor[sd.course] ?? "#1B5E4F" }}>{getCourseIcon(sd.course)}</span>
+                      <span style={{ color: courseColor[sd.course] ?? "#5E6B72" }}>{getCourseIcon(sd.course)}</span>
                       <span className="text-sm font-medium text-foreground">{sd.course}</span>
                     </div>
                     <span className="text-xs font-mono text-muted-foreground">{sd.score}%</span>
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${sd.score}%`, backgroundColor: courseColor[sd.course] ?? "#1B5E4F" }} />
+                    <div className="h-full rounded-full transition-all" style={{ width: `${sd.score}%`, backgroundColor: courseColor[sd.course] ?? "#5E6B72" }} />
                   </div>
                 </div>
               ))}
@@ -135,8 +135,8 @@ export default function StudentHome() {
               {sessionHistory.slice(0, 3).map((h, i) => (
                 <div key={i} className="flex items-center gap-2 py-1.5">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${courseColor[h.course] ?? "#1B5E4F"}15` }}>
-                    <span style={{ color: courseColor[h.course] ?? "#1B5E4F" }}>{getCourseIcon(h.course)}</span>
+                    style={{ backgroundColor: `${courseColor[h.course] ?? "#5E6B72"}15` }}>
+                    <span style={{ color: courseColor[h.course] ?? "#5E6B72" }}>{getCourseIcon(h.course)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground">{h.course}</p>
@@ -167,7 +167,7 @@ export default function StudentHome() {
                         <span className="text-[11px] font-mono text-muted-foreground">{current}/{target}</span>
                       </div>
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#1B5E4F" }} />
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#708090" }} />
                       </div>
                     </div>
                   );

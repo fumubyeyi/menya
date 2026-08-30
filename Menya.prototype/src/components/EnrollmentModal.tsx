@@ -39,7 +39,7 @@ export default function EnrollmentModal({ enrolled, onSave, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-6 py-5 scrollbar-hide">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {curriculum.map((course) => {
-              const color = courseColor[course.name] ?? "#1B5E4F";
+              const color = courseColor[course.name] ?? "#5E6B72";
               const isSelected = selected.includes(course.name);
               const chapterCount = course.chapters.length;
               const moduleCount = course.chapters.reduce((sum, ch) => sum + ch.modules.length, 0);

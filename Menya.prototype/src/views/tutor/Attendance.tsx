@@ -12,6 +12,7 @@ import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { studentsForAttendanceScope, attendanceRate, getTutorById, CURRENT_TUTOR_ID } from "../../data";
 import { parseGroupLabel, gradesSummary, attendanceForSession, formatTime12h, formatSessionTime } from "../../lib/constants";
 import type { Session, AttendanceMark, AttendanceEntry, AttendanceSession, Student, Tutor } from "../../types";
+import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
 
 const sameGrades = (a: number[], b: number[]) =>
   a.length === b.length && [...a].sort().every((g, i) => g === [...b].sort()[i]);
@@ -283,12 +284,9 @@ export default function TutorAttendance() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-display font-semibold text-foreground">Attendance</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {mode === "in-person" ? "Today" : "All"} · {tutorSessions.length} {mode === "online" ? "online" : "in-person"} sessions · {loggedCount} logged
-        </p>
-      </div>
+      <PageHeaderSubtitle>
+        {mode === "in-person" ? "Today" : "All"} · {tutorSessions.length} {mode === "online" ? "online" : "in-person"} sessions · {loggedCount} logged
+      </PageHeaderSubtitle>
 
       {/* Mode Tabs */}
       <div className="flex gap-1 border-b border-border">

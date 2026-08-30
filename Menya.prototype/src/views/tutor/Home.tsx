@@ -116,7 +116,7 @@ export default function TutorHome() {
           the right since this is the tutor's own, editable copy of it. */}
       <div
         className="rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
-        style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0f3d32 100%)" }}
+        style={{ background: "linear-gradient(135deg, #2F4F4F 0%, #1E2B2B 100%)" }}
       >
         <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold font-display flex-shrink-0">
           {currentTutor ? currentTutor.firstName[0] + currentTutor.lastName[0] : ""}
@@ -141,7 +141,7 @@ export default function TutorHome() {
                 onClick={() => togglePreferredDay(day)}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
                   preferredDays.includes(day)
-                    ? "bg-white text-[#1B5E4F]"
+                    ? "bg-white text-[#2F4F4F]"
                     : "border border-white/25 text-white/70 hover:bg-white/10"
                 }`}
               >
@@ -153,9 +153,9 @@ export default function TutorHome() {
 
       {/* Stat Pillars */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatTile label="Assigned Students" value={currentTutor?.students ?? tutorStudents.length} Icon={Users} color="#1B5E4F" />
-        <StatTile label="In-Person This Week" value={inPersonThisWeek.length} Icon={CalendarDays} color="#3B82F6" />
-        <StatTile label="Avg Student Score" value={`${avgProgress}%`} Icon={TrendingUp} color="#F0981E" />
+        <StatTile label="Assigned Students" value={currentTutor?.students ?? tutorStudents.length} Icon={Users} color="#5E6B72" />
+        <StatTile label="In-Person This Week" value={inPersonThisWeek.length} Icon={CalendarDays} color="#5E6B72" />
+        <StatTile label="Avg Student Score" value={`${avgProgress}%`} Icon={TrendingUp} color="#708090" />
         <StatTile label="Pending Roll Calls" value={pendingRollCalls.length} Icon={ClipboardCheck} color="#DC2626" />
       </div>
 
@@ -268,25 +268,25 @@ export default function TutorHome() {
               <AreaChart data={tutorWeeklyData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="tScoreGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1B5E4F" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#1B5E4F" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#2F4F4F" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#2F4F4F" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="tSessGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F0981E" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#F0981E" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#708090" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#708090" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                 <XAxis dataKey="week" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e5e7eb" }} />
-                <Area type="monotone" dataKey="avgScore" stroke="#1B5E4F" strokeWidth={2} fill="url(#tScoreGrad)" name="Avg Score" />
-                <Area type="monotone" dataKey="sessions" stroke="#F0981E" strokeWidth={2} fill="url(#tSessGrad)" name="Sessions" />
+                <Area type="monotone" dataKey="avgScore" stroke="#2F4F4F" strokeWidth={2} fill="url(#tScoreGrad)" name="Avg Score" />
+                <Area type="monotone" dataKey="sessions" stroke="#708090" strokeWidth={2} fill="url(#tSessGrad)" name="Sessions" />
               </AreaChart>
             </ResponsiveContainer>
             <div className="flex gap-4 mt-2">
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#1B5E4F] inline-block rounded" />Avg Score</span>
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#F0981E] inline-block rounded" />Sessions</span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#2F4F4F] inline-block rounded" />Avg Score</span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#708090] inline-block rounded" />Sessions</span>
             </div>
           </div>
         </div>

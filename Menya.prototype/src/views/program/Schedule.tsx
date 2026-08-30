@@ -11,6 +11,7 @@ import { useScheduleNotices } from "../../context/ScheduleNoticesContext";
 import { useRecurringSlots, type RecurringSlot } from "../../context/RecurringSlotsContext";
 import { formatSessionTime, formatTime12h, gradesSummary } from "../../lib/constants";
 import type { Session } from "../../types";
+import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 export type { RecurringSlot };
 
@@ -160,22 +161,13 @@ export default function Schedule() {
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground">Schedule</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Schedule, review, and adjust sessions week by week</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={notifyTutors}
-            className="flex items-center gap-2 bg-background border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
-            <BellRing className="w-4 h-4" /> Notify Tutors
-          </button>
-          <button onClick={() => setModalState({ mode: "add" })}
-            className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-            <Plus className="w-4 h-4" /> Add Session
-          </button>
-        </div>
-      </div>
+      <PageHeaderSubtitle>Schedule, review, and adjust sessions week by week</PageHeaderSubtitle>
+      <PageHeaderActions>
+        <button onClick={notifyTutors}
+          className="flex items-center gap-2 bg-background border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:bg-muted transition-colors">
+          <BellRing className="w-4 h-4" /> Notify Tutors
+        </button>
+      </PageHeaderActions>
 
       {/* Week navigation */}
       <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3">
@@ -279,9 +271,15 @@ export default function Schedule() {
       {/* On-demand sessions — anything added via "Add Session" for the viewed week,
           as distinct from the standing Recurring Slots above. */}
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-          On-Demand Sessions ({publishedGroups.length})
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+            On-Demand Sessions ({publishedGroups.length})
+          </span>
+          <button onClick={() => setModalState({ mode: "add" })}
+            className="flex items-center gap-1.5 text-xs font-mono font-medium text-primary hover:underline">
+            <Plus className="w-3.5 h-3.5" /> Add Session
+          </button>
+        </div>
         {publishedGroups.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center border border-dashed border-border rounded-lg">
             No sessions added for this week yet.

@@ -11,6 +11,7 @@ import { useLibrarySearch } from "../../hooks/useLibrarySearch";
 import { getTutorStudents, CURRENT_TUTOR_ID, libraryQueries } from "../../data";
 import { diffCls, searchCurriculumLibrary, matchStrengthMeta, searchDecisionCls, searchDecisionLabel } from "../../lib/constants";
 import type { LibrarySearchQuery, SearchDecision } from "../../types";
+import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 type Filter = "all" | SearchDecision;
 
@@ -81,13 +82,10 @@ export default function Search() {
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
-      <div className="mb-5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-2xl font-display font-semibold text-foreground">Curriculum Library Search</h1>
-          <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-purple-100 text-purple-700">Tutor-Initiated</span>
-        </div>
-        <p className="text-sm text-muted-foreground mt-0.5">Search the Curriculum Library for content to use live with a student — review and approve before walking through it with them</p>
-      </div>
+      <PageHeaderSubtitle>Search the Curriculum Library for content to use live with a student — review and approve before walking through it with them</PageHeaderSubtitle>
+      <PageHeaderActions>
+        <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-purple-100 text-purple-700">Tutor-Initiated</span>
+      </PageHeaderActions>
 
       <div className="flex gap-5 h-[calc(100vh-180px)]">
         {/* Left panel */}

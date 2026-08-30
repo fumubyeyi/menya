@@ -19,7 +19,7 @@ export default function ZoomModal({ sessionId, userName, course, onClose }: Zoom
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
-      <div className="flex items-center justify-between px-4 py-2 bg-[#1B5E4F]">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#2F4F4F]">
         <span className="text-sm font-mono text-white/80">Live Session · {userName ?? "Menya"}</span>
         <button
           onClick={onClose}
@@ -35,7 +35,7 @@ export default function ZoomModal({ sessionId, userName, course, onClose }: Zoom
             key={key}
             onClick={() => setTab(key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              tab === key ? "bg-[#1B5E4F] text-white" : "text-white/50 hover:text-white/80 hover:bg-white/5"
+              tab === key ? "bg-[#2F4F4F] text-white" : "text-white/50 hover:text-white/80 hover:bg-white/5"
             }`}
           >
             <Icon className="w-3.5 h-3.5" /> {label}

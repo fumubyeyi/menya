@@ -156,7 +156,7 @@ function CreateAccountModal({
               </button>
               <button
                 onClick={onClose}
-                className="px-4 py-2 bg-[#1B5E4F] text-white rounded-lg text-sm font-semibold hover:bg-[#1B5E4F]/90 transition-colors"
+                className="px-4 py-2 bg-[#2F4F4F] text-white rounded-lg text-sm font-semibold hover:bg-[#2F4F4F]/90 transition-colors"
               >
                 Done
               </button>
@@ -179,7 +179,7 @@ function CreateAccountModal({
                       key={r}
                       type="button"
                       onClick={() => setAccountRole(r)}
-                      className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-colors capitalize ${accountRole === r ? "bg-[#1B5E4F] text-white border-[#1B5E4F]" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                      className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-colors capitalize ${accountRole === r ? "bg-[#2F4F4F] text-white border-[#2F4F4F]" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
                     >
                       {r}
                     </button>
@@ -196,7 +196,7 @@ function CreateAccountModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Jordan Rivera"
-                  className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B5E4F]/25"
+                  className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]/25"
                 />
               </label>
 
@@ -210,7 +210,7 @@ function CreateAccountModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="jordan@school.edu"
-                  className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B5E4F]/25"
+                  className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]/25"
                 />
               </label>
 
@@ -222,7 +222,7 @@ function CreateAccountModal({
                   <select
                     value={grade}
                     onChange={(e) => setGrade(e.target.value)}
-                    className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B5E4F]/25 cursor-pointer"
+                    className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]/25 cursor-pointer"
                   >
                     {[
                       "5",
@@ -250,7 +250,7 @@ function CreateAccountModal({
                       key={s}
                       type="button"
                       onClick={() => toggleCourse(s)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${courses.includes(s) ? "bg-[#1B5E4F]/10 border-[#1B5E4F]/40 text-[#1B5E4F]" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${courses.includes(s) ? "bg-[#2F4F4F]/10 border-[#2F4F4F]/40 text-[#2F4F4F]" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
                     >
                       {s}
                     </button>
@@ -268,7 +268,7 @@ function CreateAccountModal({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-[#1B5E4F] text-white rounded-lg text-sm font-semibold hover:bg-[#1B5E4F]/90 transition-all flex items-center gap-2"
+                className="px-5 py-2.5 bg-[#2F4F4F] text-white rounded-lg text-sm font-semibold hover:bg-[#2F4F4F]/90 transition-all flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Create Account

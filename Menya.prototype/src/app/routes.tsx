@@ -15,7 +15,6 @@ import ProgramSessions   from "../views/program/Sessions";
 import ProgramSchedule   from "../views/program/Schedule";
 import ProgramTutors     from "../views/program/Tutors";
 import TutorDetail       from "../views/program/TutorDetail";
-import ProgramAnalytics  from "../views/program/Analytics";
 import ProgramAlumni     from "../views/program/AlumniTracking";
 import AlumniDetail      from "../views/program/AlumniDetail";
 
@@ -69,7 +68,7 @@ export const router = createBrowserRouter([
               { path: "schedule",       Component: ProgramSchedule   },
               { path: "tutors",         Component: ProgramTutors     },
               { path: "tutors/:id",     Component: TutorDetail       },
-              { path: "analytics",      Component: ProgramAnalytics  },
+              { path: "analytics",      element: <Navigate to="../dashboard" replace /> },
               { path: "alumni",         Component: ProgramAlumni     },
               { path: "alumni/:id",     Component: AlumniDetail      },
             ],

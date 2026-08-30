@@ -39,7 +39,7 @@ export default function AlumniDetail() {
       </button>
 
       {/* Hero Banner */}
-      <div className="rounded-xl overflow-hidden border border-border" style={{ background: "linear-gradient(135deg, #1B5E4F 0%, #0d3b2e 100%)" }}>
+      <div className="rounded-xl overflow-hidden border border-border" style={{ background: "linear-gradient(135deg, #2F4F4F 0%, #1E2B2B 100%)" }}>
         <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Avatar name={alumnus.name} size={16} />
           <div className="flex-1 min-w-0">
@@ -67,7 +67,7 @@ export default function AlumniDetail() {
               )}
             </div>
           </div>
-          <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-lg bg-[#F0981E] hover:opacity-90 transition-opacity">
+          <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-lg bg-[#708090] hover:opacity-90 transition-opacity">
             <Pencil className="w-4 h-4" /> Edit Record
           </button>
         </div>

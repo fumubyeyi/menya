@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { NavLink, Outlet, Navigate, useNavigate, useLocation } from "react-router";
 import {
-  LayoutDashboard, Users, BookOpen, Calendar, BarChart3,
-  Bell, Plus, Menu, X, Settings, Trophy,
+  LayoutDashboard, Users, BookOpen, Calendar,
+  Bell, Plus, Menu, X, Trophy,
   Search, LogOut,
   Award, AlertTriangle, UserCog, CalendarRange, ExternalLink,
 } from "lucide-react";
@@ -14,6 +14,7 @@ import { getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID, sofia } from "
 import { statusMeta } from "../lib/constants";
 import Avatar from "./Avatar";
 import ScheduleModal from "./ScheduleModal";
+import { PageHeaderContext } from "../context/PageHeaderContext";
 import type { Role } from "../types";
 
 const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; badge?: number }[]> = {
@@ -24,7 +25,6 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
     { to: "/program/sessions",   label: "Attendance", Icon: Calendar },
     { to: "/program/schedule",   label: "Schedule",   Icon: CalendarRange   },
     { to: "/program/tutors",     label: "Tutors",     Icon: UserCog         },
-    { to: "/program/analytics",  label: "Analytics",  Icon: BarChart3       },
     { to: "/program/alumni",     label: "Alumni",     Icon: Award           },
   ],
   tutor: [
@@ -66,6 +66,10 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
+  // Slots the shared page header exposes to the active view (subtitle + actions).
+  const [subtitleEl, setSubtitleEl] = useState<HTMLElement | null>(null);
+  const [actionsEl, setActionsEl] = useState<HTMLElement | null>(null);
+  const pageHeaderSlots = useMemo(() => ({ subtitleEl, actionsEl }), [subtitleEl, actionsEl]);
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -103,23 +107,22 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   };
 
   const titleMap: Record<string, string> = {
-    "/program/dashboard":  "Dashboard",
-    "/program/students":   "Students",
-    "/program/curriculum": "Curriculum",
+    "/program/dashboard":  "Program Overview",
+    "/program/students":   "Student Roster",
+    "/program/curriculum": "Curriculum Library",
     "/program/sessions":   "Attendance",
     "/program/schedule":   "Schedule",
     "/program/tutors":     "Tutors",
-    "/program/analytics":  "Analytics",
     "/program/alumni":     "Alumni Tracking",
     "/tutor/home":         "My Home",
     "/tutor/students":     "My Students",
     "/tutor/schedule":     "Schedule",
     "/tutor/attendance":   "Attendance",
-    "/tutor/search":       "Curriculum Search",
+    "/tutor/search":       "Curriculum Library Search",
     "/student/home":       "My Home",
-    "/student/learning":   "My Courses",
-    "/student/schedule":   "My Schedule",
-    "/student/goals":      "Goals",
+    "/student/learning":   "Learning",
+    "/student/schedule":   "Schedule",
+    "/student/goals":      "Goals & Achievements",
     "/student/module":     "Module Workspace",
   };
 
@@ -132,16 +135,16 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:relative z-30 inset-y-0 left-0 flex flex-col w-60 flex-shrink-0 transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
-        style={{ backgroundColor: "var(--sidebar)" }}
+        className={`fixed lg:relative z-30 inset-y-0 left-0 flex flex-col w-60 flex-shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         {/* Logo */}
-        <div className="px-5 pt-5 pb-4 border-b flex items-center justify-between" style={{ borderColor: "var(--sidebar-border)" }}>
+        <div className="px-5 pt-5 pb-4 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/menya-mark-reverse.svg" alt="" className="w-9 h-9 flex-shrink-0" />
-            <span className="font-display font-bold text-white text-base leading-none">Menya</span>
+            <img src="/menya-mark.svg" alt="" className="w-9 h-9 flex-shrink-0 dark:hidden" />
+            <img src="/menya-mark-reverse.svg" alt="" className="w-9 h-9 flex-shrink-0 hidden dark:block" />
+            <span className="font-display font-bold text-sidebar-foreground text-base leading-none">Menya</span>
           </div>
-          <button onClick={() => setMobileOpen(false)} className="lg:hidden text-white/60 hover:text-white">
+          <button onClick={() => setMobileOpen(false)} className="lg:hidden text-sidebar-foreground/50 hover:text-sidebar-foreground">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -151,7 +154,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
           {nav.map(({ to, label, Icon, badge }) => (
             <NavLink key={to} to={to} onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-white/10 text-white" : "text-white/60 hover:text-white hover:bg-white/5"}`
+                `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"}`
               }>
               {({ isActive }) => (
                 <>
@@ -167,16 +170,16 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
         </nav>
 
         {/* Stats widget */}
-        <div className="px-4 py-3 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
-          <div className="rounded-lg p-3" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-            <p className="text-[9px] font-mono text-white/40 mb-2 uppercase tracking-widest">
+        <div className="px-4 py-3 border-t border-sidebar-border">
+          <div className="rounded-lg p-3 bg-sidebar-accent">
+            <p className="text-[9px] font-mono text-sidebar-foreground/40 mb-2 uppercase tracking-widest">
               {role === "program" ? "This Month" : role === "tutor" ? "My Stats" : "My Progress"}
             </p>
             <div className="flex justify-between font-mono">
               {stats.map(([v, l]) => (
                 <div key={l} className="text-center">
-                  <p className="font-bold text-base leading-none text-white">{v}</p>
-                  <p className="text-[10px] text-white/40 mt-0.5">{l}</p>
+                  <p className="font-bold text-base leading-none text-sidebar-foreground">{v}</p>
+                  <p className="text-[10px] text-sidebar-foreground/40 mt-0.5">{l}</p>
                 </div>
               ))}
             </div>
@@ -184,33 +187,35 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
         </div>
 
         {/* User footer */}
-        <div className="px-4 py-3 border-t flex items-center gap-3" style={{ borderColor: "var(--sidebar-border)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-            style={{ backgroundColor: "rgba(240,152,30,0.35)" }}>
-            {user.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-          </div>
+        <div className="px-4 py-3 border-t border-sidebar-border flex items-center gap-3">
+          <Avatar name={user.name} size={8} />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate">{user.name}</p>
-            <p className="text-[10px] font-mono text-white/40">{tagline}</p>
+            <p className="text-xs font-semibold text-sidebar-foreground truncate">{user.name}</p>
+            <p className="text-[10px] font-mono text-sidebar-foreground/40">{tagline}</p>
           </div>
           <button onClick={handleLogout} title="Sign out"
-            className="text-white/30 hover:text-white/70 cursor-pointer transition-colors flex-shrink-0">
+            className="text-sidebar-foreground/30 hover:text-sidebar-foreground/70 cursor-pointer transition-colors flex-shrink-0">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </aside>
 
       {/* Main */}
+      <PageHeaderContext.Provider value={pageHeaderSlots}>
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Topbar */}
-        <header className="flex items-center justify-between px-5 lg:px-6 py-4 bg-background border-b border-border flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setMobileOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground transition-colors">
+        {/* Page header */}
+        <header className="flex items-center justify-between gap-4 px-5 lg:px-6 py-4 bg-background border-b border-border flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="font-display font-semibold text-foreground text-lg leading-none">{pageTitle}</h1>
+            <div className="min-w-0">
+              <h1 className="font-display font-semibold text-foreground text-lg leading-tight truncate">{pageTitle}</h1>
+              <p ref={setSubtitleEl} className="text-sm text-muted-foreground mt-0.5 empty:hidden" />
+            </div>
           </div>
-          <div className="flex items-center gap-2 relative">
+          <div className="flex items-center gap-2 relative flex-shrink-0">
+            <div ref={setActionsEl} className="flex items-center gap-2 flex-wrap justify-end empty:hidden" />
             {role !== "student" && (
               <a
                 href="/about"
@@ -310,6 +315,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
           <Outlet />
         </main>
       </div>
+      </PageHeaderContext.Provider>
 
       {checkInStudent && (
         <ScheduleModal defaultStudent={checkInStudent} defaultType="check-in" onClose={() => setCheckInStudent(null)} />

@@ -5,10 +5,12 @@ import {
 } from "lucide-react";
 import type { StudentStatus, Difficulty, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor, Session, AttendanceSession, MatchStrength, SearchDecision, LibrarySearchResult, StudentGoal } from "../types";
 
-// Math courses only, matching the Program > Curriculum library. Each gets a distinct color/icon.
+// Math courses only, matching the Program > Curriculum library. Courses are
+// distinguished by icon alone now — one shared neutral slate, no per-course hue.
+const COURSE_COLOR = "#5E6B72";
 export const courseColor: Record<string, string> = {
-  Algebra: "#1B5E4F", "Algebra II": "#059669", "Pre-Alg": "#F59E0B",
-  Geometry: "#3B82F6", Statistics: "#EC4899", "Pre-Calculus": "#8B5CF6", Calculus: "#6366F1",
+  Algebra: COURSE_COLOR, "Algebra II": COURSE_COLOR, "Pre-Alg": COURSE_COLOR,
+  Geometry: COURSE_COLOR, Statistics: COURSE_COLOR, "Pre-Calculus": COURSE_COLOR, Calculus: COURSE_COLOR,
 };
 
 export const ALL_COURSES = Object.keys(courseColor);
@@ -407,12 +409,12 @@ type AchievementInput = { streak: number; progress: number; sessions: number; se
 
 export const achievements = [
   { id: "streak-5",    label: "5-Day Streak",     Icon: Flame,        color: "#F59E0B", condition: (s: AchievementInput) => s.streak >= 5   },
-  { id: "streak-7",    label: "Week Warrior",      Icon: Trophy,       color: "#F0981E", condition: (s: AchievementInput) => s.streak >= 7   },
-  { id: "score-80",    label: "80+ Score",         Icon: Target,       color: "#1B5E4F", condition: (s: AchievementInput) => s.progress >= 80},
+  { id: "streak-7",    label: "Week Warrior",      Icon: Trophy,       color: "#C9922E", condition: (s: AchievementInput) => s.streak >= 7   },
+  { id: "score-80",    label: "80+ Score",         Icon: Target,       color: "#708090", condition: (s: AchievementInput) => s.progress >= 80},
   { id: "score-90",    label: "Top Performer",     Icon: Star,         color: "#059669", condition: (s: AchievementInput) => s.progress >= 90},
   { id: "sessions-10", label: "10 Sessions",       Icon: CheckCircle2, color: "#3B82F6", condition: (s: AchievementInput) => s.sessions >= 10},
   { id: "sessions-15", label: "Dedicated Learner", Icon: BookMarked,   color: "#8B5CF6", condition: (s: AchievementInput) => s.sessions >= 15},
-  { id: "showed-up",   label: "Showed Up",         Icon: BadgeCheck,   color: "#1B5E4F", condition: (s: AchievementInput) => (s.sessionsAttended ?? 0) >= 1 },
+  { id: "showed-up",   label: "Showed Up",         Icon: BadgeCheck,   color: "#708090", condition: (s: AchievementInput) => (s.sessionsAttended ?? 0) >= 1 },
 ];
 
 // Human-readable label + live progress for a student-created goal (see

@@ -359,7 +359,7 @@ export default function ModuleWorkspace() {
   }
 
   const { course, chapter } = found;
-  const color = courseColor[course.name] ?? "#1B5E4F";
+  const color = courseColor[course.name] ?? "#5E6B72";
   const status = statusMeta[courseModule.status];
 
   const chapterTestTotal = chapterTestQuestions.length;

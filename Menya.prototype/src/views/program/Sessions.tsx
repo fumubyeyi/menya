@@ -13,6 +13,7 @@ import { useStudents } from "../../context/StudentsContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { attendanceRate, attendanceSessionLabel, getTutorById } from "../../data";
 import { ALL_COURSES, GRADE_GROUPS, formatTime12h } from "../../lib/constants";
+import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
 
 const MODES = [
   { key: "in-person", label: "In-Person" },
@@ -145,15 +146,9 @@ export default function Sessions() {
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground">Attendance</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {mode === "online" ? `${modeSessions.length} online sessions` : `${modeSessions.length} in-person sessions · ${attendanceSessions.length} roll calls logged`}
-          </p>
-        </div>
-      </div>
+      <PageHeaderSubtitle>
+        {mode === "online" ? `${modeSessions.length} online sessions` : `${modeSessions.length} in-person sessions · ${attendanceSessions.length} roll calls logged`}
+      </PageHeaderSubtitle>
 
       {/* Mode Tabs */}
       <div className="flex gap-1 border-b border-border">
@@ -273,10 +268,10 @@ export default function Sessions() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatTile label="Roll Calls Logged" value={filteredAttendance.length} Icon={ClipboardCheck} color="#1B5E4F" />
-            <StatTile label="Avg Attendance Rate" value={`${avgRate}%`} Icon={Percent} color="#059669" />
+            <StatTile label="Roll Calls Logged" value={filteredAttendance.length} Icon={ClipboardCheck} color="#5E6B72" />
+            <StatTile label="Avg Attendance Rate" value={`${avgRate}%`} Icon={Percent} color="#708090" />
             <StatTile label="Total Absences" value={totalAbsences} Icon={XCircle} color="#DC2626" />
-            <StatTile label="Students Below 80%" value={belowThreshold} Icon={AlertTriangle} color="#F59E0B" />
+            <StatTile label="Students Below 80%" value={belowThreshold} Icon={AlertTriangle} color="#C9922E" />
           </div>
 
           {/* Filters */}
