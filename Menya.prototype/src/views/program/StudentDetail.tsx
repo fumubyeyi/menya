@@ -125,10 +125,10 @@ export default function StudentDetail() {
             <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Activity className="w-4 h-4" />This Week</h2>
             <ResponsiveContainer width="100%" height={90}>
               <BarChart data={weekActivity} margin={{ top: 0, right: 0, left: -24, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="day" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 6 }} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
                 <Bar dataKey="mins" fill="#2F4F4F" radius={[3, 3, 0, 0]} name="mins" />
               </BarChart>
             </ResponsiveContainer>

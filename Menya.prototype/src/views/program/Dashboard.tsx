@@ -68,25 +68,25 @@ export default function Dashboard() {
           <AreaChart data={weeklyData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#2F4F4F" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#2F4F4F" stopOpacity={0} />
+                <stop offset="5%"  stopColor="var(--chart-1)" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="sessGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#708090" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#708090" stopOpacity={0} />
+                <stop offset="5%"  stopColor="var(--chart-2)" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-            <XAxis dataKey="week" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e5e7eb" }} />
-            <Area type="monotone" dataKey="avgScore" stroke="#2F4F4F" strokeWidth={2} fill="url(#scoreGrad)" name="Avg Score" />
-            <Area type="monotone" dataKey="sessions"  stroke="#708090" strokeWidth={2} fill="url(#sessGrad)"  name="Sessions" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="week" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
+            <Area type="monotone" dataKey="avgScore" stroke="var(--chart-1)" strokeWidth={2} fill="url(#scoreGrad)" name="Avg Score" />
+            <Area type="monotone" dataKey="sessions"  stroke="var(--chart-2)" strokeWidth={2} fill="url(#sessGrad)"  name="Sessions" />
           </AreaChart>
         </ResponsiveContainer>
         <div className="flex gap-4 mt-2">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#2F4F4F] inline-block rounded" />Avg Score</span>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#708090] inline-block rounded" />Sessions</span>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-chart-1 inline-block rounded" />Avg Score</span>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-chart-2 inline-block rounded" />Sessions</span>
         </div>
       </div>
 

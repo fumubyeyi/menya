@@ -266,11 +266,11 @@ export default function AlumniTracking() {
         <p className="text-xs text-muted-foreground mb-4">Share of each cohort in a STEM major or career, so progress across years is visible — not just the current snapshot.</p>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={cohortTrend} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} />
             <Tooltip
-              contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e5e7eb" }}
+              contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }}
               formatter={(value: number, _name, item) => [`${value}% (${item.payload.count} alumni)`, "STEM Rate"]}
             />
             <Bar dataKey="stemRate" fill="#2F4F4F" radius={[4, 4, 0, 0]} name="STEM Rate" />
@@ -285,10 +285,10 @@ export default function AlumniTracking() {
           <p className="text-xs text-muted-foreground mb-4">Where every alumnus landed, not just the STEM/non-STEM split above.</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={outcomeBreakdown} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
               <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
               <YAxis type="category" dataKey="outcome" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={110} />
-              <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e5e7eb" }} />
+              <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
               <Bar dataKey="count" fill="#2F4F4F" radius={[0, 4, 4, 0]} name="Alumni" />
             </BarChart>
           </ResponsiveContainer>

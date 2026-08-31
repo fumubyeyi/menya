@@ -3,10 +3,11 @@ import { NavLink, Outlet, Navigate, useNavigate, useLocation } from "react-route
 import {
   LayoutDashboard, Users, BookOpen, Calendar,
   Bell, Plus, Menu, X, Trophy,
-  Search, LogOut,
+  Search, LogOut, Moon, Sun,
   Award, AlertTriangle, UserCog, CalendarRange, ExternalLink,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useTutors } from "../context/TutorsContext";
 import { useScheduleNotices } from "../context/ScheduleNoticesContext";
 import { useStudentActivity } from "../context/StudentActivityContext";
@@ -58,6 +59,7 @@ const STATS: Record<Exclude<Role, "student">, [string, string][]> = {
 
 export default function AppShell({ onSchedule }: { onSchedule?: (student?: string) => void }) {
   const { user, logout } = useAuth();
+  const { theme, toggle: toggleTheme } = useTheme();
   const { tutors } = useTutors();
   const { scheduleNotices, markScheduleNoticeSeen } = useScheduleNotices();
   const { streak } = useStudentActivity();
@@ -130,7 +132,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   const pageTitle = titleMap[basePath] ?? "Dashboard";
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden" style={{ fontFamily: "Manrope, sans-serif" }}>
+    <div className={`flex h-screen bg-background overflow-hidden ${theme === "dark" ? "dark" : ""}`} style={{ fontFamily: "Manrope, sans-serif", colorScheme: theme }}>
       {mobileOpen && <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setMobileOpen(false)} />}
 
       {/* Sidebar */}
@@ -227,6 +229,14 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
                 View Public Page
               </a>
             )}
+            <button
+              onClick={toggleTheme}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <button
               onClick={() => setNotifOpen((o) => !o)}
               className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

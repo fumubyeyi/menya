@@ -1,4 +1,5 @@
 import { RouterProvider } from "react-router";
+import { ThemeProvider } from "../context/ThemeContext";
 import { AuthProvider } from "../context/AuthContext";
 import { SessionContentProvider } from "../context/SessionContentContext";
 import { CurriculumProvider } from "../context/CurriculumContext";
@@ -15,6 +16,7 @@ import { router } from "./routes";
 
 export default function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <SessionContentProvider>
         <CurriculumProvider>
@@ -40,5 +42,6 @@ export default function App() {
         </CurriculumProvider>
       </SessionContentProvider>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
