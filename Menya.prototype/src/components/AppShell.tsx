@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar,
   Bell, Plus, Menu, X, Trophy,
   Search, LogOut, Moon, Sun,
-  Award, AlertTriangle, UserCog, CalendarRange, ExternalLink,
+  Award, AlertTriangle, UserCog, CalendarRange, ExternalLink, Settings2, UserRound,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -67,6 +67,8 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [profilePanel, setProfilePanel] = useState<"account" | "preferences" | null>(null);
   const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
   // Slots the shared page header exposes to the active view (subtitle + actions).
   const [subtitleEl, setSubtitleEl] = useState<HTMLElement | null>(null);
@@ -142,9 +144,10 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
         {/* Logo */}
         <div className="px-5 pt-5 pb-4 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/menya-mark.svg" alt="" className="w-9 h-9 flex-shrink-0 dark:hidden" />
-            <img src="/menya-mark-reverse.svg" alt="" className="w-9 h-9 flex-shrink-0 hidden dark:block" />
-            <span className="font-display font-bold text-sidebar-foreground text-base leading-none">Menya</span>
+            <img src="/menya_logo.ico" alt="" className="w-11 h-11 flex-shrink-0" />
+            <div className="leading-none">
+              <span className="font-display font-bold text-sidebar-foreground text-lg block">Menya</span>
+            </div>
           </div>
           <button onClick={() => setMobileOpen(false)} className="lg:hidden text-sidebar-foreground/50 hover:text-sidebar-foreground">
             <X className="w-4 h-4" />
@@ -156,7 +159,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
           {nav.map(({ to, label, Icon, badge }) => (
             <NavLink key={to} to={to} onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"}`
+                `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/60"}`
               }>
               {({ isActive }) => (
                 <>
@@ -171,49 +174,38 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
           ))}
         </nav>
 
-        {/* Stats widget */}
-        <div className="px-4 py-3 border-t border-sidebar-border">
-          <div className="rounded-lg p-3 bg-sidebar-accent">
-            <p className="text-[9px] font-mono text-sidebar-foreground/40 mb-2 uppercase tracking-widest">
-              {role === "program" ? "This Month" : role === "tutor" ? "My Stats" : "My Progress"}
-            </p>
-            <div className="flex justify-between font-mono">
-              {stats.map(([v, l]) => (
-                <div key={l} className="text-center">
-                  <p className="font-bold text-base leading-none text-sidebar-foreground">{v}</p>
-                  <p className="text-[10px] text-sidebar-foreground/40 mt-0.5">{l}</p>
-                </div>
-              ))}
+        {/* Student progress remains useful here; program and tutor stats repeat their page content. */}
+        {role === "student" && (
+          <div className="px-4 py-3 border-t border-sidebar-border">
+            <div className="rounded-lg p-3 bg-sidebar-accent">
+              <p className="text-[9px] font-mono text-sidebar-foreground/40 mb-2 uppercase tracking-widest">
+                My Progress
+              </p>
+              <div className="flex justify-between font-mono">
+                {stats.map(([v, l]) => (
+                  <div key={l} className="text-center">
+                    <p className="font-bold text-base leading-none text-sidebar-foreground">{v}</p>
+                    <p className="text-[10px] text-sidebar-foreground/40 mt-0.5">{l}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* User footer */}
-        <div className="px-4 py-3 border-t border-sidebar-border flex items-center gap-3">
-          <Avatar name={user.name} size={8} />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-sidebar-foreground truncate">{user.name}</p>
-            <p className="text-[10px] font-mono text-sidebar-foreground/40">{tagline}</p>
-          </div>
-          <button onClick={handleLogout} title="Sign out"
-            className="text-sidebar-foreground/30 hover:text-sidebar-foreground/70 cursor-pointer transition-colors flex-shrink-0">
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
       </aside>
 
       {/* Main */}
       <PageHeaderContext.Provider value={pageHeaderSlots}>
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Page header */}
-        <header className="flex items-center justify-between gap-4 px-5 lg:px-6 py-4 bg-background border-b border-border flex-shrink-0">
+        <header className="flex items-center justify-between gap-4 px-5 lg:px-6 py-4 min-h-[81px] bg-background border-b border-border flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <button onClick={() => setMobileOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
               <Menu className="w-5 h-5" />
             </button>
             <div className="min-w-0">
-              <h1 className="font-display font-semibold text-foreground text-lg leading-tight truncate">{pageTitle}</h1>
-              <p ref={setSubtitleEl} className="text-sm text-muted-foreground mt-0.5 empty:hidden" />
+              <h1 className="font-display font-semibold text-foreground text-xl leading-tight truncate">{pageTitle}</h1>
             </div>
           </div>
           <div className="flex items-center gap-2 relative flex-shrink-0">
@@ -230,18 +222,10 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
               </a>
             )}
             <button
-              onClick={toggleTheme}
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            <button
               onClick={() => setNotifOpen((o) => !o)}
               className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-5 h-5" />
               {notificationCount > 0 && (
                 <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent text-white text-[10px] font-mono font-bold flex items-center justify-center">
                   {notificationCount}
@@ -310,6 +294,47 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
               </>
             )}
 
+            <div className="relative">
+              <button
+                onClick={() => setProfileMenuOpen((open) => !open)}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-muted transition-colors"
+                aria-expanded={profileMenuOpen}
+                aria-label="Open profile menu"
+              >
+                <Avatar name={user.name} size={9} />
+              </button>
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-border bg-card p-1.5 shadow-lg z-50">
+                  <button
+                    onClick={() => { setProfilePanel("account"); setProfileMenuOpen(false); }}
+                    className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                  >
+                    <UserRound className="w-4 h-4 text-muted-foreground" /> Account
+                  </button>
+                  <button
+                    onClick={() => { setProfilePanel("preferences"); setProfileMenuOpen(false); }}
+                    className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                  >
+                    <Settings2 className="w-4 h-4 text-muted-foreground" /> Preferences
+                  </button>
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                  >
+                    {theme === "dark" ? <Sun className="w-4 h-4 text-muted-foreground" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
+                    {theme === "dark" ? "Light mode" : "Dark mode"}
+                  </button>
+                  <div className="my-1 border-t border-border" />
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                  >
+                    <LogOut className="w-4 h-4 text-muted-foreground" /> Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+
             {role !== "student" && onSchedule && (
               <button onClick={() => onSchedule()}
                 className="hidden sm:flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
@@ -329,6 +354,53 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
 
       {checkInStudent && (
         <ScheduleModal defaultStudent={checkInStudent} defaultType="check-in" onClose={() => setCheckInStudent(null)} />
+      )}
+
+      {profilePanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setProfilePanel(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">
+                  {profilePanel === "account" ? "Account" : "Preferences"}
+                </p>
+                <h2 className="font-display font-semibold text-foreground text-xl">
+                  {profilePanel === "account" ? user.name : "Workspace preferences"}
+                </h2>
+              </div>
+              <button onClick={() => setProfilePanel(null)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Close">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {profilePanel === "account" ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 rounded-xl bg-muted/50 p-4">
+                  <Avatar name={user.name} size={12} />
+                  <div>
+                    <p className="font-semibold text-foreground">{user.name}</p>
+                    <p className="text-sm text-muted-foreground">{tagline}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">Your account details and role determine which tutoring workflows and records you can access.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-border p-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Appearance</p>
+                    <p className="text-xs text-muted-foreground mt-1">Choose how Menya looks for you.</p>
+                  </div>
+                  <button onClick={toggleTheme} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">
+                    {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    {theme === "dark" ? "Light" : "Dark"}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">More notification and profile controls can be added here as the account model grows.</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

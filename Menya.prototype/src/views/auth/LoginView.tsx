@@ -11,7 +11,6 @@ import {
   X,
 } from "lucide-react";
 import PublicHeader from "../../components/PublicHeader";
-import GradientBanner from "../../components/GradientBanner";
 import HeroIntro from "../../components/HeroIntro";
 import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
@@ -348,7 +347,7 @@ export default function LoginView() {
 
   return (
     <div
-      className="min-h-screen bg-[#F4F3EF]"
+      className="min-h-screen bg-[#F1F4F5]"
       style={{ fontFamily: "Manrope, sans-serif" }}
     >
       {showCreateModal && (
@@ -359,18 +358,13 @@ export default function LoginView() {
 
       <PublicHeader />
 
-      {/* Branding banner */}
-      <GradientBanner>
-        <HeroIntro />
-        {/* Overlap spacer — keep this height equal to the negative margin on the
-            sign-in card below, so the card always lands in this empty zone and
-            never on the hero text, regardless of GradientBanner padding. */}
-        <div className="h-16 sm:h-24" />
-      </GradientBanner>
-
-      {/* Sign-in card, overlapping the banner */}
-      <div className="px-4 sm:px-10 -mt-16 sm:-mt-36 relative z-20 pb-16">
-        <div className="w-full max-w-md mx-auto bg-white rounded-2xl border border-border shadow-xl p-6 sm:p-8">
+      {/* Sign-in hero */}
+      <section className="border-y border-[#708090]/35 bg-[#F1F4F5]">
+        <div className="max-w-6xl mx-auto px-6 sm:px-10 py-12 sm:py-16 grid lg:grid-cols-[1fr_0.8fr] gap-10 lg:gap-16 items-center">
+          <div className="max-w-xl">
+            <HeroIntro />
+          </div>
+          <div className="w-full max-w-md lg:justify-self-end bg-white rounded-2xl border border-border shadow-sm p-6 sm:p-8">
           <h2 className="font-display font-bold text-foreground text-2xl leading-none mb-1">
             Sign in
           </h2>
@@ -388,7 +382,7 @@ export default function LoginView() {
                     setSelectedRole(role);
                     setError("");
                   }}
-                  className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 text-center transition-all ${selectedRole === role ? "border-primary bg-[#F4F3EF] shadow-sm" : "border-transparent bg-[#F4F3EF] hover:border-border"}`}
+                  className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 text-center transition-all ${selectedRole === role ? "border-primary bg-[#F1F4F5] shadow-sm" : "border-transparent bg-[#F1F4F5] hover:border-border"}`}
                 >
                   <div
                     className="w-5 h-5 rounded-xl flex items-center justify-center"
@@ -543,11 +537,12 @@ export default function LoginView() {
             </form>
           )}
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            Demo app — any password accepted for sign-in
-          </p>
+            <p className="text-center text-xs text-muted-foreground mt-6">
+              Demo app — any password accepted for sign-in
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

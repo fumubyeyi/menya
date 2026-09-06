@@ -67,7 +67,7 @@ export default function AlumniDetail() {
               )}
             </div>
           </div>
-          <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-lg bg-[#708090] hover:opacity-90 transition-opacity">
+          <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-lg bg-[#2F4F4F] hover:bg-[#2F4F4F]/90 transition-colors">
             <Pencil className="w-4 h-4" /> Edit Record
           </button>
         </div>

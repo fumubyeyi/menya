@@ -69,7 +69,7 @@ export default function StudentDetail() {
             <span className={`text-xs px-2.5 py-1 rounded-full font-mono flex items-center gap-1 ${meta.cls}`}>
               <meta.Icon className="w-3 h-3" />{meta.label}
             </span>
-            <button onClick={() => setModal(true)} className={`flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity ${needsAttention ? "bg-amber-600" : "bg-[#708090]"}`}>
+            <button onClick={() => setModal(true)} className={`flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity ${needsAttention ? "bg-amber-600" : "bg-[#2F4F4F]"}`}>
               <CalendarPlus className="w-4 h-4" /> {needsAttention ? "Schedule Check-in" : "Schedule Session"}
             </button>
           </>

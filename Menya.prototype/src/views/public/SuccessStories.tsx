@@ -2,7 +2,6 @@ import { Link } from "react-router";
 import { TrendingUp, Users, Mail } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import PublicHeader from "../../components/PublicHeader";
-import GradientBanner from "../../components/GradientBanner";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "../../app/components/ui/carousel";
 import { useAlumni } from "../../context/AlumniContext";
 import { alumniOutcomeMeta } from "../../lib/constants";
@@ -15,30 +14,47 @@ export default function SuccessStories() {
   const stemRate = alumni.length ? Math.round((stemCount / alumni.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#F4F3EF]" style={{ fontFamily: "Manrope, sans-serif" }}>
+    <div className="min-h-screen bg-[#F1F4F5]" style={{ fontFamily: "Manrope, sans-serif" }}>
       <PublicHeader />
 
-      {/* Hero */}
-      <GradientBanner>
-        <h1 className="font-display font-bold text-white text-3xl sm:text-4xl leading-tight mb-4">
-          Real Students. Real Outcomes.
-        </h1>
-        <p className="text-white/60 text-base leading-relaxed mb-10">
-          Menya connects students to STEM tutoring and follows them well past graduation — here's where some of our alumni landed, in their own words.
-        </p>
-        <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
-          {[
-            [String(alumni.length), "Alumni Tracked"],
-            [`${stemRate}%`, "STEM Outcome Rate"],
-            [String(stories.length), "Featured Stories"],
-          ].map(([v, l]) => (
-            <div key={l}>
-              <p className="font-display font-bold text-white text-2xl leading-none">{v}</p>
-              <p className="text-white/50 text-xs mt-1">{l}</p>
+      {/* Stories hero */}
+      <section className="border-y border-[#708090]/35 bg-[#F1F4F5]">
+        <div className="max-w-6xl mx-auto px-6 sm:px-10 py-12 sm:py-16 grid lg:grid-cols-[1fr_0.8fr] gap-10 lg:gap-16 items-center">
+          <div className="max-w-xl">
+            <p className="text-xs font-mono uppercase tracking-[0.18em] text-[#708090] mb-3">Outcomes worth following</p>
+            <h1 className="font-display font-bold text-[#1F2933] text-4xl sm:text-5xl leading-[1.05] mb-5">
+              Support that stays with students.
+            </h1>
+            <p className="text-[#353E43] text-base sm:text-lg leading-relaxed mb-7">
+              When sessions, notes, and follow-up stay visible, tutoring programs can help more students keep moving forward.
+            </p>
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-1.5 text-sm font-medium bg-[#2F4F4F] text-white px-5 py-2.5 rounded-lg hover:bg-[#2F4F4F]/90 transition-colors">
+              <Mail className="w-3.5 h-3.5" />Talk about your program
+            </Link>
+          </div>
+          <div className="bg-white border border-border rounded-2xl p-6 shadow-sm">
+            <p className="text-xs font-mono uppercase tracking-[0.18em] text-[#708090] mb-5">What Menya helps programs see</p>
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                [String(alumni.length), "Alumni tracked"],
+                [`${stemRate}%`, "STEM outcome rate"],
+                [String(stories.length), "Featured stories"],
+              ].map(([value, label]) => (
+                <div key={label}>
+                  <p className="font-display font-bold text-[#1F2933] text-2xl leading-none">{value}</p>
+                  <p className="text-[#353E43]/70 text-xs mt-2 leading-snug">{label}</p>
+                </div>
+              ))}
             </div>
-          ))}
+            <div className="border-t border-border mt-6 pt-5 flex items-center gap-2 text-xs text-[#353E43]/75">
+              <TrendingUp className="w-4 h-4 text-[#708090]" />
+              <span>Progress is easier to understand when the record stays connected.</span>
+            </div>
+          </div>
         </div>
-      </GradientBanner>
+      </section>
 
       {/* Stories */}
       <div className="max-w-5xl mx-auto px-6 sm:px-16 py-14">

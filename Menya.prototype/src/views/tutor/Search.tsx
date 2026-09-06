@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Sparkles, ThumbsUp, ThumbsDown, SendHorizonal, Search as SearchIcon,
-  AlertTriangle, ClipboardList, CheckCircle2,
+  AlertTriangle, ClipboardList, CheckCircle2, Info,
 } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
 import { ModuleContentBody } from "../../components/ContentDrawer";
@@ -11,7 +11,6 @@ import { useLibrarySearch } from "../../hooks/useLibrarySearch";
 import { getTutorStudents, CURRENT_TUTOR_ID, libraryQueries } from "../../data";
 import { diffCls, searchCurriculumLibrary, matchStrengthMeta, searchDecisionCls, searchDecisionLabel } from "../../lib/constants";
 import type { LibrarySearchQuery, SearchDecision } from "../../types";
-import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 type Filter = "all" | SearchDecision;
 
@@ -82,10 +81,10 @@ export default function Search() {
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
-      <PageHeaderSubtitle>Search the Curriculum Library for content to use live with a student — review and approve before walking through it with them</PageHeaderSubtitle>
-      <PageHeaderActions>
-        <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-purple-100 text-purple-700">Tutor-Initiated</span>
-      </PageHeaderActions>
+      <div className="mb-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
+        <p>Search by grade level and topic or learning gap. Review and approve content before using it live with a student, and do not include student names.</p>
+      </div>
 
       <div className="flex gap-5 h-[calc(100vh-180px)]">
         {/* Left panel */}
@@ -155,9 +154,7 @@ export default function Search() {
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                 This looks like it names a specific student ("{flaggedName}") — describe the grade level and topic instead.
               </p>
-            ) : (
-              <p className="text-[11px] text-muted-foreground">Describe grade level and topic/gap only — no student names, per Menya's data-handling guidance.</p>
-            )}
+            ) : null}
             <button
               type="submit"
               disabled={!prompt.trim() || !!flaggedName}

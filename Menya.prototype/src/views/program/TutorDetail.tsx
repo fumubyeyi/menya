@@ -42,7 +42,7 @@ export default function TutorDetail() {
         name={`${tutor.firstName} ${tutor.lastName}`}
         subtitle={tutor.profession}
         actions={
-          <span className="text-xs font-mono text-white/70 bg-white/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+          <span className="text-sm font-mono font-medium text-[#353E43] bg-white/70 border border-[#708090]/30 px-2.5 py-1 rounded-full flex items-center gap-1.5">
             <CalendarClock className="w-3.5 h-3.5" />
             {preferredDays.length > 0 ? `Prefers: ${preferredDays.join(", ")}` : "No day preference set"}
           </span>

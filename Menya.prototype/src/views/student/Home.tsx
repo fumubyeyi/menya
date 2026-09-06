@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { Flame, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Link } from "react-router";
 import ZoomModal from "../../components/ZoomModal";
-import ProgressRing from "../../components/ProgressRing";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
   sofia, studentCourseDetail, studentSessionHistory, tutorNameById,
 } from "../../data";
 import { achievements, getCourseIcon, courseColor, goalProgress, goalLabel } from "../../lib/constants";
-import { useEnrollment } from "../../hooks/useEnrollment";
 import { useSessions } from "../../context/SessionsContext";
 import { useStudentGoals } from "../../hooks/useStudentGoals";
 import { useStudentActivity } from "../../context/StudentActivityContext";
@@ -21,7 +19,6 @@ const studyHours = Math.round(sessionHistory.reduce((sum, h) => sum + h.duration
 export default function StudentHome() {
   const [modal, setModal] = useState(false);
   const [zoomOpen, setZoomOpen] = useState(false);
-  const { courses: enrolledCourses } = useEnrollment();
   const { sessions, updateSession } = useSessions();
   const { goals } = useStudentGoals();
   const { streak, sessionsAttendedTotal, studyDaysThisWeek, sessionsThisWeek, logSessionAttended } = useStudentActivity();
@@ -33,25 +30,6 @@ export default function StudentHome() {
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
-      {/* Greeting Banner */}
-      <div
-        className="rounded-2xl p-6 flex items-center gap-5"
-        style={{ background: "linear-gradient(135deg, #2F4F4F 0%, #1E2B2B 100%)" }}
-      >
-        <ProgressRing value={sofia.progress} size={72} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl font-display font-semibold text-white">Good afternoon, Sofia 👋</h1>
-          </div>
-          <p className="text-white/70 text-sm font-mono">Grade {sofia.grade} · {enrolledCourses.length > 0 ? enrolledCourses.join(" · ") : "No courses yet"}</p>
-        </div>
-        <div className="flex flex-col items-center gap-1 bg-white/10 rounded-xl px-4 py-3">
-          <Flame className="w-5 h-5 text-amber-400" />
-          <span className="text-xl font-display font-bold text-white">{streak}</span>
-          <span className="text-[10px] font-mono text-white/60">day streak</span>
-        </div>
-      </div>
-
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[

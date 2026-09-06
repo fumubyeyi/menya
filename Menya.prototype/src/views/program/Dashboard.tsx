@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Users, CalendarDays, TrendingUp, GraduationCap, AlertTriangle, ChevronRight, Target } from "lucide-react";
+import { Users, CalendarDays, GraduationCap, AlertTriangle, Target } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
@@ -10,8 +10,8 @@ import Avatar from "../../components/Avatar";
 import StatTile from "../../components/StatTile";
 import { useSessions } from "../../context/SessionsContext";
 import { useCurriculum } from "../../context/CurriculumContext";
-import { courseCompletion } from "../../lib/constants";
-import { students, weeklyData, courseBreakdown, tutorNameById } from "../../data";
+import { courseCompletion, statusMeta } from "../../lib/constants";
+import { students, tutors, weeklyData, courseBreakdown, tutorNameById } from "../../data";
 import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
 
 const maxStudents = Math.max(...courseBreakdown.map((s) => s.students));
@@ -33,13 +33,18 @@ export default function Dashboard() {
   const { sessions } = useSessions();
   const { courses } = useCurriculum();
   const todaySessions = sessions.slice(0, 5);
+  const studentsOnTrack = students.filter((student) => student.status === "exceeding" || student.status === "on-track").length;
+  const goalAttainment = students.length ? Math.round((studentsOnTrack / students.length) * 100) : 0;
+  const attentionStudents = students.filter((student) => student.status === "at-risk" || student.status === "needs-support").slice(0, 4);
+  const averageCompletion = courses.length
+    ? Math.round(courses.reduce((sum, course) => sum + courseCompletion(courses, course.name), 0) / courses.length)
+    : 0;
 
   const kpis = [
-    { label: "Students Enrolled", value: "247", delta: "+12 this month", Icon: Users,         color: "#5E6B72" },
-    { label: "Sessions This Week", value: "84",  delta: "+7 from last",   Icon: CalendarDays,  color: "#5E6B72" },
-    { label: "Avg Progress Score", value: "73%", delta: "+3 pts",         Icon: TrendingUp,    color: "#708090" },
-    { label: "Goal Attainment",    value: "68%", delta: "On track overall", Icon: Target,      color: "#5E6B72" },
-    { label: "Active Tutors",      value: "18",  delta: "2 onboarding",   Icon: GraduationCap, color: "#5E6B72" },
+    { label: "Students Enrolled", value: students.length, delta: "Current roster", Icon: Users,         color: "#5E6B72" },
+    { label: "Scheduled Sessions", value: sessions.length, delta: "In the program schedule", Icon: CalendarDays,  color: "#5E6B72" },
+    { label: "Students On Track", value: `${goalAttainment}%`, delta: `${studentsOnTrack} of ${students.length} students`, Icon: Target,      color: "#5E6B72" },
+    { label: "Active Tutors",      value: tutors.length,  delta: "In tutor directory",   Icon: GraduationCap, color: "#5E6B72" },
   ];
 
   return (
@@ -47,8 +52,8 @@ export default function Dashboard() {
       <PageHeaderSubtitle>Summer 2026 · Week 6 of 10</PageHeaderSubtitle>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {kpis.map(({ label, value, delta, Icon, color }) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        {kpis.filter(({ label }) => label !== "Active Tutors").map(({ label, value, delta, Icon, color }) => (
           <StatTile key={label} label={label} value={value} delta={delta} Icon={Icon} color={color} />
         ))}
         <StatTile
@@ -59,6 +64,57 @@ export default function Dashboard() {
           color="#DC2626"
           onClick={() => navigate("/program/students")}
         />
+        {kpis.filter(({ label }) => label === "Active Tutors").map(({ label, value, delta, Icon, color }) => (
+          <StatTile key={label} label={label} value={value} delta={delta} Icon={Icon} color={color} />
+        ))}
+      </div>
+
+      {/* Operational queue */}
+      <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-4">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Needs attention</h2>
+              <p className="text-xs text-muted-foreground mt-1">Students who may need follow-up.</p>
+            </div>
+            <button onClick={() => navigate("/program/students")} className="text-xs font-medium text-primary hover:underline">View roster</button>
+          </div>
+          <div className="divide-y divide-border">
+            {attentionStudents.map((student) => (
+              <button key={student.id} onClick={() => navigate(`/program/students/${student.id}`)} className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-muted/50 rounded-lg px-1 transition-colors">
+                <Avatar name={student.name} size={8} />
+                <span className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-foreground truncate block">{student.name}</span>
+                  <span className="text-xs text-muted-foreground">Grade {student.grade} · {student.courses[0] ?? "No course"}</span>
+                </span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${statusMeta[student.status].cls}`}>{statusMeta[student.status].label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Today’s sessions</h2>
+              <p className="text-xs text-muted-foreground mt-1">The next sessions on the program schedule.</p>
+            </div>
+            <button onClick={() => navigate("/program/sessions")} className="text-xs font-medium text-primary hover:underline">View attendance</button>
+          </div>
+          <div className="divide-y divide-border">
+            {todaySessions.slice(0, 4).map((s) => (
+              <div key={s.id} className="flex items-center gap-3 py-2.5">
+                <Avatar name={s.student} size={8} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{s.student}</p>
+                  <p className="text-xs text-muted-foreground">{s.course} · {tutorNameById(s.tutorId)}</p>
+                </div>
+                <span className="text-xs text-muted-foreground font-mono">{s.clock}</span>
+                <SessionStatusPill status={s.status} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* 6-Week Trend */}
@@ -108,14 +164,20 @@ export default function Dashboard() {
 
       {/* Course Enrollment & Completion */}
       <div className="bg-card border border-border rounded-xl p-4">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-semibold text-foreground">Course Enrollment &amp; Completion</h2>
-          <div className="flex gap-4">
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#2F4F4F] inline-block rounded" />Enrolled</span>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#708090] inline-block rounded" />Completion</span>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Course Enrollment &amp; Completion</h2>
+            <p className="text-xs text-muted-foreground mt-1">A quick view of where enrollment and learning progress are moving together.</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-1 rounded-md">{courses.length} active courses</span>
+            <span className="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-1 rounded-md">{averageCompletion}% avg completion</span>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mb-4">Students enrolled and share of modules marked complete, per course.</p>
+        <div className="flex justify-end gap-4 mb-4">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#2F4F4F] inline-block rounded" />Enrolled</span>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-[#708090] inline-block rounded" />Completion</span>
+        </div>
 
         <div className="hidden sm:grid sm:grid-cols-[9rem_1fr_1fr] gap-x-5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground mb-2">
           <span>Course</span><span>Enrolled</span><span>Completion</span>
@@ -145,24 +207,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Today's Sessions */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <h2 className="text-sm font-semibold text-foreground mb-3">Today's Sessions</h2>
-        <div className="divide-y divide-border">
-          {todaySessions.map((s) => (
-            <div key={s.id} className="flex items-center gap-3 py-2.5 hover:bg-muted/40 rounded-lg px-1 -mx-1 cursor-pointer transition-colors">
-              <Avatar name={s.student} size={8} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{s.student}</p>
-                <p className="text-xs text-muted-foreground">{s.course} · {tutorNameById(s.tutorId)}</p>
-              </div>
-              <span className="text-xs text-muted-foreground font-mono">{s.clock}</span>
-              <SessionStatusPill status={s.status} />
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

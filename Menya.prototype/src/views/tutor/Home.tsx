@@ -21,7 +21,7 @@ import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import {
   getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
-import { statusMeta, formatTime12h, gradesSummary, attendanceForSession, PREFERENCE_DAYS } from "../../lib/constants";
+import { statusMeta, formatTime12h, gradesSummary, attendanceForSession } from "../../lib/constants";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
 import { mondayOf, toISODate } from "../program/Schedule";
 
@@ -37,7 +37,7 @@ function timeAgo(iso: string): string {
 export default function TutorHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { tutors, updateTutor } = useTutors();
+  const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
   const { sessions } = useSessions();
   const { attendanceSessions } = useAttendance();
@@ -75,13 +75,6 @@ export default function TutorHome() {
   const currentTutor = getTutorById(tutors, tutorId);
   const tutorStudents = getTutorStudents(tutorId);
 
-  const preferredDays = currentTutor?.preferredDays ?? [];
-  const togglePreferredDay = (day: string) => {
-    if (!currentTutor) return;
-    const next = preferredDays.includes(day) ? preferredDays.filter((d) => d !== day) : [...preferredDays, day];
-    updateTutor({ ...currentTutor, preferredDays: next });
-  };
-
   const avgProgress = tutorStudents.length
     ? Math.round(tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length)
     : 0;
@@ -111,46 +104,6 @@ export default function TutorHome() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-      {/* Profile Banner — same identity card Program sees on a tutor's profile
-          (avatar, profession, grade range), plus the day-preference toggle on
-          the right since this is the tutor's own, editable copy of it. */}
-      <div
-        className="rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
-        style={{ background: "linear-gradient(135deg, #2F4F4F 0%, #1E2B2B 100%)" }}
-      >
-        <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold font-display flex-shrink-0">
-          {currentTutor ? currentTutor.firstName[0] + currentTutor.lastName[0] : ""}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-display font-semibold text-white leading-none">{currentTutor ? `${currentTutor.firstName} ${currentTutor.lastName}` : ""}</h1>
-          {currentTutor?.profession && (
-            <p className="text-sm text-white/60 mt-1">{currentTutor.profession}</p>
-          )}
-          {currentTutor && currentTutor.grades.length > 0 && (
-            <p className="text-sm text-white/60 mt-1 font-mono">Grades {Math.min(...currentTutor.grades)}–{Math.max(...currentTutor.grades)}</p>
-          )}
-        </div>
-
-        {/* Tutoring Day Preference */}
-        <div className="flex flex-col items-start sm:items-end gap-2">
-          <span className="text-[11px] font-mono text-white/50 uppercase tracking-wide">Prefers to tutor:</span>
-            {PREFERENCE_DAYS.map((day) => (
-              <button
-                key={day}
-                type="button"
-                onClick={() => togglePreferredDay(day)}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                  preferredDays.includes(day)
-                    ? "bg-white text-[#2F4F4F]"
-                    : "border border-white/25 text-white/70 hover:bg-white/10"
-                }`}
-              >
-                {day}
-              </button>
-            ))}
-        </div>
-      </div>
-
       {/* Stat Pillars */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatTile label="Assigned Students" value={currentTutor?.students ?? tutorStudents.length} Icon={Users} color="#5E6B72" />
