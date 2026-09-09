@@ -1,16 +1,9 @@
 import { useState } from "react";
 import { X, Save } from "lucide-react";
 import Avatar from "./Avatar";
-import { ALL_COURSES, TUTOR_GRADES } from "../lib/constants";
+import StudentFormFields from "./StudentFormFields";
 import { useStudents } from "../context/StudentsContext";
-import type { StudentStatus } from "../types";
-
-const STATUS_OPTIONS: { value: StudentStatus; label: string }[] = [
-  { value: "exceeding",     label: "Exceeding"     },
-  { value: "on-track",      label: "On Track"      },
-  { value: "needs-support", label: "Needs Support" },
-  { value: "at-risk",       label: "At Risk"       },
-];
+import { studentStatus } from "../lib/constants";
 
 interface Props {
   onClose: () => void;
@@ -21,7 +14,6 @@ export default function AddStudentModal({ onClose }: Props) {
   const [name, setName] = useState("");
   const [grade, setGrade] = useState<number | "">("");
   const [location, setLocation] = useState("");
-  const [status, setStatus] = useState<StudentStatus>("on-track");
   const [courses, setCourses] = useState<string[]>([]);
 
   const toggleCourse = (c: string) => setCourses((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
@@ -31,7 +23,9 @@ export default function AddStudentModal({ onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    addStudent({ name: name.trim(), grade: grade as number, location: location.trim(), status, courses });
+    // New students start at 0 progress, so their computed status is always "at-risk"
+    // until they log sessions — see studentStatus.
+    addStudent({ name: name.trim(), grade: grade as number, location: location.trim(), status: studentStatus(0), courses });
     onClose();
   };
 
@@ -54,48 +48,12 @@ export default function AddStudentModal({ onClose }: Props) {
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 scrollbar-hide">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Full Name *</span>
-              <input required value={name} onChange={(e) => setName(e.target.value)}
-                className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
-            </label>
-
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Grade *</span>
-                <select required value={grade} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : "")}
-                  className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25">
-                  <option value="">Select grade…</option>
-                  {TUTOR_GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Status</span>
-                <select value={status} onChange={(e) => setStatus(e.target.value as StudentStatus)}
-                  className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25">
-                  {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </label>
-            </div>
-
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Location *</span>
-              <input required value={location} onChange={(e) => setLocation(e.target.value)}
-                placeholder="City, State"
-                className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25" />
-            </label>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Enrolled Courses *</span>
-              <div className="flex flex-wrap gap-2">
-                {ALL_COURSES.map((c) => (
-                  <button key={c} type="button" onClick={() => toggleCourse(c)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${courses.includes(c) ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-muted"}`}>
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <StudentFormFields
+              name={name} onNameChange={setName}
+              grade={grade} onGradeChange={setGrade}
+              location={location} onLocationChange={setLocation}
+              courses={courses} onToggleCourse={toggleCourse}
+            />
           </div>
 
           <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border flex-shrink-0">

@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { sofia } from "../../data";
 import { achievements, goalLabel, goalProgress } from "../../lib/constants";
 import { useStudentGoals } from "../../hooks/useStudentGoals";
 import { useStudentActivity } from "../../context/StudentActivityContext";
+import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import AddGoalModal from "../../components/AddGoalModal";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 export default function Goals() {
+  const student = useCurrentStudent();
   const [addOpen, setAddOpen] = useState(false);
   const { goals, addGoal, removeGoal } = useStudentGoals();
   const { streak, sessionsAttendedTotal, studyDaysThisWeek, sessionsThisWeek } = useStudentActivity();
 
-  const achievementInput = { streak, progress: sofia.progress, sessions: sofia.sessions, sessionsAttended: sessionsAttendedTotal };
+  const achievementInput = { streak, progress: student.progress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal };
   const earnedAchievements = achievements.filter((a) => a.condition(achievementInput));
   const lockedAchievements = achievements.filter((a) => !a.condition(achievementInput));
 

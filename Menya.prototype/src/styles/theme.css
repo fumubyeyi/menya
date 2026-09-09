@@ -21,6 +21,18 @@
   --accent-foreground: #FFFFFF;
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
+  /* Status colors. Success ties directly to --primary (referenced, not copied,
+     so it always tracks it); info and warning are the palette's own slate-gray
+     accent and gold. */
+  --success: var(--primary);
+  --success-foreground: var(--primary-foreground);
+  --info: #708090;
+  --info-foreground: #FFFFFF;
+  --warning: #C9922E;
+  --warning-foreground: #1A2224;
+  /* The brand mark's single warm accent (see guidelines/menya-logo-colors.md) —
+     reserved for streak/flame moments only, never a general-purpose color. */
+  --brand-amber: #F0981E;
   --border: rgba(78, 94, 101, 0.18);
   --input: transparent;
   --input-background: #EAF1F4;
@@ -65,6 +77,12 @@
   --accent-foreground: #16201F;
   --destructive: #F05252;
   --destructive-foreground: #FFFFFF;
+  --success: var(--primary);
+  --success-foreground: var(--primary-foreground);
+  --info: #8B9BA6;
+  --info-foreground: #16201F;
+  --warning: #D9A94D;
+  --warning-foreground: #1A2224;
   --border: rgba(255, 255, 255, 0.10);
   --input: transparent;
   --input-background: #263133;
@@ -104,6 +122,13 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-brand-amber: var(--brand-amber);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-input-background: var(--input-background);

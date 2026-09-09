@@ -1,50 +1,121 @@
-import { useState } from "react";
+import { useState, type ElementType, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { Users, CalendarDays, GraduationCap, AlertTriangle, Target } from "lucide-react";
-import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
-} from "recharts";
-import SessionStatusPill from "../../components/SessionStatusPill";
-import Avatar from "../../components/Avatar";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { Users, CalendarDays, GraduationCap, ClipboardCheck } from "lucide-react";
 import StatTile from "../../components/StatTile";
 import { useSessions } from "../../context/SessionsContext";
 import { useCurriculum } from "../../context/CurriculumContext";
-import { courseCompletion, statusMeta } from "../../lib/constants";
-import { students, tutors, weeklyData, courseBreakdown, tutorNameById } from "../../data";
+import { useAttendance } from "../../context/AttendanceContext";
+import { courseCompletion } from "../../lib/constants";
+import { students, tutors, attendanceRate, attendanceSessionLabel, tutorNameById } from "../../data";
 import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
 
-const maxStudents = Math.max(...courseBreakdown.map((s) => s.students));
-const attentionCount = students.filter((s) => s.status === "at-risk" || s.status === "needs-support").length;
+function rateCls(rate: number) {
+  if (rate >= 90) return "text-emerald-700 bg-emerald-50";
+  if (rate >= 75) return "text-amber-700 bg-amber-50";
+  return "text-red-700 bg-red-50";
+}
 
 // Student outcome mix — computed from the live roster rather than a fixed tuple.
+// Flagged statuses lead the list so the card reads "who needs a look" first.
+// `bar` maps each outcome to the theme's Critical/Warning/Success/Info semantic
+// set (theme.css) so this stays on-brand and dark-mode aware; `textCls` reuses
+// the same status text shades statusMeta uses (lib/constants.tsx) for the
+// legend, giving At Risk/Needs Support extra emphasis via `flagged`.
 const OUTCOME_META = [
-  { key: "exceeding",     label: "Exceeding",     bar: "#2F4F4F" },
-  { key: "on-track",      label: "On Track",      bar: "#708090" },
-  { key: "needs-support", label: "Needs Support", bar: "#C9922E" },
-  { key: "at-risk",       label: "At Risk",       bar: "#DC2626" },
+  { key: "at-risk",       label: "At Risk",       bar: "var(--destructive)", textCls: "text-red-700",     flagged: true  },
+  { key: "needs-support", label: "Needs Support", bar: "var(--warning)",     textCls: "text-amber-700",   flagged: true  },
+  { key: "on-track",      label: "On Track",      bar: "var(--info)",        textCls: "text-blue-700",    flagged: false },
+  { key: "exceeding",     label: "Exceeding",     bar: "var(--success)",     textCls: "text-emerald-700", flagged: false },
 ] as const;
-const outcomes = OUTCOME_META.map((m) => ({ ...m, count: students.filter((s) => s.status === m.key).length }));
-const maxOutcome = Math.max(...outcomes.map((o) => o.count), 1);
+const outcomes = OUTCOME_META.map((m) => {
+  const count = students.filter((s) => s.status === m.key).length;
+  const pct = students.length ? Math.round((count / students.length) * 100) : 0;
+  return { ...m, count, pct };
+});
+
+// Every card on this page shares the same title/subtitle/action-link header —
+// only the body underneath differs, so that's the one piece each caller supplies.
+function DashboardCard({ title, subtitle, actionLabel, onAction, children }: {
+  title: string;
+  subtitle: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 flex flex-col">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+        </div>
+        {actionLabel && onAction && (
+          <button onClick={onAction} className="text-xs font-medium text-primary hover:underline whitespace-nowrap flex-shrink-0">{actionLabel}</button>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// The row shape both the coverage-gap list and the activity feed use: an icon,
+// a title/subtitle pair, and a trailing status badge.
+function ListRow({ Icon, iconCls, title, subtitle, badge, badgeCls }: {
+  Icon: ElementType;
+  iconCls: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  badgeCls: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${iconCls}`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">{title}</p>
+        <p className="text-xs text-muted-foreground font-mono">{subtitle}</p>
+      </div>
+      <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold flex-shrink-0 ${badgeCls}`}>{badge}</span>
+    </div>
+  );
+}
+
+function EmptyRow({ message }: { message: string }) {
+  return <p className="text-sm text-muted-foreground text-center py-8">{message}</p>;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [_tab] = useState("overview");
   const { sessions } = useSessions();
   const { courses } = useCurriculum();
-  const todaySessions = sessions.slice(0, 5);
-  const studentsOnTrack = students.filter((student) => student.status === "exceeding" || student.status === "on-track").length;
-  const goalAttainment = students.length ? Math.round((studentsOnTrack / students.length) * 100) : 0;
-  const attentionStudents = students.filter((student) => student.status === "at-risk" || student.status === "needs-support").slice(0, 4);
+  const { attendanceSessions } = useAttendance();
   const averageCompletion = courses.length
     ? Math.round(courses.reduce((sum, course) => sum + courseCompletion(courses, course.name), 0) / courses.length)
     : 0;
 
+  // Most recently logged roll calls, newest first — a quick "what happened since
+  // I last looked" feed rather than the full attendance history.
+  const recentActivity = [...attendanceSessions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
+
+  // Enrollment counted live off each student's own `courses` list rather than a
+  // fixed mock tuple, so it can't drift out of sync with the actual roster size.
+  const courseStats = courses.map((course) => ({
+    course,
+    enrolled: students.filter((s) => s.courses.includes(course.name)).length,
+    pct: courseCompletion(courses, course.name),
+  }));
+  const maxEnrolled = Math.max(1, ...courseStats.map((c) => c.enrolled));
+
+  // On Track / At Risk breakdowns live in the Student Engagement pie chart
+  // below — kept out of this row so the same numbers aren't shown twice.
   const kpis = [
-    { label: "Students Enrolled", value: students.length, delta: "Current roster", Icon: Users,         color: "#5E6B72" },
-    { label: "Scheduled Sessions", value: sessions.length, delta: "In the program schedule", Icon: CalendarDays,  color: "#5E6B72" },
-    { label: "Students On Track", value: `${goalAttainment}%`, delta: `${studentsOnTrack} of ${students.length} students`, Icon: Target,      color: "#5E6B72" },
-    { label: "Active Tutors",      value: tutors.length,  delta: "In tutor directory",   Icon: GraduationCap, color: "#5E6B72" },
+    { label: "Students Enrolled", value: students.length, delta: "Current roster", Icon: Users, color: "#5E6B72", onClick: () => navigate("/program/students") },
+    { label: "Scheduled Sessions", value: sessions.length, delta: "In the program schedule", Icon: CalendarDays, color: "#5E6B72", onClick: () => navigate("/program/sessions") },
+    { label: "Active Tutors", value: tutors.length, delta: "In tutor directory", Icon: GraduationCap, color: "#5E6B72", onClick: () => navigate("/program/tutors") },
   ];
 
   return (
@@ -52,114 +123,105 @@ export default function Dashboard() {
       <PageHeaderSubtitle>Summer 2026 · Week 6 of 10</PageHeaderSubtitle>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-        {kpis.filter(({ label }) => label !== "Active Tutors").map(({ label, value, delta, Icon, color }) => (
-          <StatTile key={label} label={label} value={value} delta={delta} Icon={Icon} color={color} />
-        ))}
-        <StatTile
-          label="Needing Attention"
-          value={attentionCount}
-          delta="At-risk or needs support"
-          Icon={AlertTriangle}
-          color="#DC2626"
-          onClick={() => navigate("/program/students")}
-        />
-        {kpis.filter(({ label }) => label === "Active Tutors").map(({ label, value, delta, Icon, color }) => (
-          <StatTile key={label} label={label} value={value} delta={delta} Icon={Icon} color={color} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {kpis.map(({ label, value, delta, Icon, color, onClick }) => (
+          <StatTile key={label} label={label} value={value} delta={delta} Icon={Icon} color={color} onClick={onClick} />
         ))}
       </div>
 
       {/* Operational queue */}
-      <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-4">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Needs attention</h2>
-              <p className="text-xs text-muted-foreground mt-1">Students who may need follow-up.</p>
-            </div>
-            <button onClick={() => navigate("/program/students")} className="text-xs font-medium text-primary hover:underline">View roster</button>
-          </div>
-          <div className="divide-y divide-border">
-            {attentionStudents.map((student) => (
-              <button key={student.id} onClick={() => navigate(`/program/students/${student.id}`)} className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-muted/50 rounded-lg px-1 transition-colors">
-                <Avatar name={student.name} size={8} />
-                <span className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-foreground truncate block">{student.name}</span>
-                  <span className="text-xs text-muted-foreground">Grade {student.grade} · {student.courses[0] ?? "No course"}</span>
-                </span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${statusMeta[student.status].cls}`}>{statusMeta[student.status].label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <DashboardCard title="Student Engagement" subtitle="How the roster breaks down by outcome." actionLabel="View roster" onAction={() => navigate("/program/students")}>
+          {/* Outcome mix — At Risk / Needs Support called out in color and weight
+              so the concerning share of the roster reads as the headline. */}
+          <div className="flex-1 flex items-center gap-5 py-2">
+            <ResponsiveContainer width={190} height={190} className="flex-shrink-0">
+              <PieChart>
+                {/* CSS vars go through `style`, not the plain `fill`/`stroke` attributes —
+                    SVG presentation attributes don't reliably resolve var() in every
+                    browser, style-based custom properties always do. */}
+                <Pie
+                  data={outcomes}
+                  dataKey="count"
+                  nameKey="label"
+                  isAnimationActive={false}
+                  innerRadius={58}
+                  outerRadius={92}
+                  paddingAngle={2}
+                  style={{ stroke: "var(--card)" }}
+                  strokeWidth={2}
+                  labelLine={false}
+                  label={({ cx, cy, midAngle, innerRadius: ir, outerRadius: or, percent }) => {
+                    if (!percent) return null;
+                    const RADIAN = Math.PI / 180;
+                    const r = ir + (or - ir) / 2;
+                    const x = cx + r * Math.cos(-midAngle * RADIAN);
+                    const y = cy + r * Math.sin(-midAngle * RADIAN);
+                    return (
+                      <text x={x} y={y} textAnchor="middle" dominantBaseline="central" className="fill-white text-[11px] font-mono font-semibold" style={{ pointerEvents: "none" }}>
+                        {Math.round(percent * 100)}%
+                      </text>
+                    );
+                  }}
+                >
+                  {outcomes.map((o) => (
+                    <Cell
+                      key={o.key}
+                      style={{ fill: o.bar, cursor: "pointer", outline: "none" }}
+                      onClick={() => navigate(`/program/students?status=${o.key}`)}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number, name: string) => [`${value} student${value === 1 ? "" : "s"}`, name]}
+                  contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
 
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Today’s sessions</h2>
-              <p className="text-xs text-muted-foreground mt-1">The next sessions on the program schedule.</p>
+            {/* Legend carries identity via the swatch, not colored text — flagged
+                rows reuse the app's existing status text colors for emphasis
+                instead of the raw (lighter, harder-to-read) slice fills. Each
+                row is also a click target, same as its pie slice. */}
+            <div className="flex-1 min-w-0 space-y-2">
+              {outcomes.map(({ key, label, bar, pct, textCls, flagged }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => navigate(`/program/students?status=${key}`)}
+                  className="w-full flex items-center gap-2 -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: bar }} />
+                  <span className={`text-xs font-mono flex-1 truncate text-left ${flagged ? `font-semibold ${textCls}` : "text-muted-foreground"}`}>{label}</span>
+                  <span className={`text-xs font-mono tabular-nums flex-shrink-0 ${flagged ? `font-bold ${textCls}` : "text-muted-foreground"}`}>{pct}%</span>
+                </button>
+              ))}
             </div>
-            <button onClick={() => navigate("/program/sessions")} className="text-xs font-medium text-primary hover:underline">View attendance</button>
           </div>
-          <div className="divide-y divide-border">
-            {todaySessions.slice(0, 4).map((s) => (
-              <div key={s.id} className="flex items-center gap-3 py-2.5">
-                <Avatar name={s.student} size={8} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{s.student}</p>
-                  <p className="text-xs text-muted-foreground">{s.course} · {tutorNameById(s.tutorId)}</p>
-                </div>
-                <span className="text-xs text-muted-foreground font-mono">{s.clock}</span>
-                <SessionStatusPill status={s.status} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+        </DashboardCard>
 
-      {/* 6-Week Trend */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <h2 className="text-sm font-semibold text-foreground mb-4">6-Week Program Trend</h2>
-        <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={weeklyData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="var(--chart-1)" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="sessGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="var(--chart-2)" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-            <XAxis dataKey="week" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
-            <Area type="monotone" dataKey="avgScore" stroke="var(--chart-1)" strokeWidth={2} fill="url(#scoreGrad)" name="Avg Score" />
-            <Area type="monotone" dataKey="sessions"  stroke="var(--chart-2)" strokeWidth={2} fill="url(#sessGrad)"  name="Sessions" />
-          </AreaChart>
-        </ResponsiveContainer>
-        <div className="flex gap-4 mt-2">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-chart-1 inline-block rounded" />Avg Score</span>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-chart-2 inline-block rounded" />Sessions</span>
-        </div>
-      </div>
-
-      {/* Student Outcome Distribution */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Student Outcome Distribution</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {outcomes.map(({ key, label, count, bar }) => (
-            <div key={key} className="rounded-xl border border-border p-3 flex flex-col gap-2">
-              <p className="text-2xl font-display font-bold text-foreground leading-none">{count}</p>
-              <p className="text-[11px] font-mono text-muted-foreground">{label}</p>
-              <div className="h-1 bg-muted rounded-full overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${(count / maxOutcome) * 100}%`, backgroundColor: bar }} />
-              </div>
+        <DashboardCard title="Recent Activity" subtitle="Latest attendance logged by tutors." actionLabel="View all" onAction={() => navigate("/program/sessions")}>
+          {recentActivity.length === 0 ? (
+            <EmptyRow message="No attendance logged yet." />
+          ) : (
+            <div className="divide-y divide-border">
+              {recentActivity.map((a) => {
+                const rate = attendanceRate(a.entries);
+                return (
+                  <ListRow
+                    key={a.id}
+                    Icon={ClipboardCheck}
+                    iconCls="bg-primary/10 text-primary"
+                    title={`${tutorNameById(a.tutorId)} logged ${attendanceSessionLabel(a)}`}
+                    subtitle={a.date}
+                    badge={`${rate}%`}
+                    badgeCls={rateCls(rate)}
+                  />
+                );
+              })}
             </div>
-          ))}
-        </div>
+          )}
+        </DashboardCard>
       </div>
 
       {/* Course Enrollment & Completion */}
@@ -183,27 +245,23 @@ export default function Dashboard() {
           <span>Course</span><span>Enrolled</span><span>Completion</span>
         </div>
         <div className="space-y-2.5">
-          {courses.map((course) => {
-            const enrolled = courseBreakdown.find((c) => c.name === course.name)?.students ?? 0;
-            const pct = courseCompletion(courses, course.name);
-            return (
-              <div key={course.id} className="grid grid-cols-1 sm:grid-cols-[9rem_1fr_1fr] gap-x-5 gap-y-1.5 sm:items-center">
-                <span className="text-xs font-mono text-foreground truncate">{course.name}</span>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${(enrolled / maxStudents) * 100}%`, backgroundColor: "#2F4F4F" }} />
-                  </div>
-                  <span className="text-[11px] font-mono text-muted-foreground tabular-nums w-8 text-right shrink-0">{enrolled}</span>
+          {courseStats.map(({ course, enrolled, pct }) => (
+            <div key={course.id} className="grid grid-cols-1 sm:grid-cols-[9rem_1fr_1fr] gap-x-5 gap-y-1.5 sm:items-center">
+              <span className="text-xs font-mono text-foreground truncate">{course.name}</span>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${(enrolled / maxEnrolled) * 100}%`, backgroundColor: "#2F4F4F" }} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#708090" }} />
-                  </div>
-                  <span className="text-[11px] font-mono text-muted-foreground tabular-nums w-8 text-right shrink-0">{pct}%</span>
-                </div>
+                <span className="text-[11px] font-mono text-muted-foreground tabular-nums w-8 text-right shrink-0">{enrolled}</span>
               </div>
-            );
-          })}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#708090" }} />
+                </div>
+                <span className="text-[11px] font-mono text-muted-foreground tabular-nums w-8 text-right shrink-0">{pct}%</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

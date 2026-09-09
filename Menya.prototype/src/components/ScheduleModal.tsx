@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Calendar, CheckCircle2, ChevronLeft, ChevronRight, MapPin, Video } from "lucide-react";
-import { students } from "../data";
+import { students, getTutorStudents, getTutorSessionCount } from "../data";
 import { ALL_COURSES, courseColor, formatSessionTime, scoreTutorMatch } from "../lib/constants";
 import { useSessions } from "../context/SessionsContext";
 import { useTutors } from "../context/TutorsContext";
@@ -197,7 +197,7 @@ export default function ScheduleModal({ onClose, defaultStudent, defaultType }: 
                                 {score === 3 && <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">Best match · course + grade</span>}
                                 {score === 2 && <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Course match</span>}
                                 {score === 1 && <span className="text-[10px] font-mono text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">Grade match</span>}
-                                <span className="text-[10px] font-mono text-muted-foreground ml-auto">{t.students} students · {t.sessions} sessions</span>
+                                <span className="text-[10px] font-mono text-muted-foreground ml-auto">{getTutorStudents(t.id).length} students · {getTutorSessionCount(t.id)} sessions</span>
                               </div>
                             </button>
                           </CarouselItem>

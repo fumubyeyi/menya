@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { sofia } from "../data";
+import { useCallback, useEffect, useState } from "react";
+import { useCurrentStudent } from "./useCurrentStudent";
 
 const enrollmentKey = (studentId: number) => `menya:enrollment:${studentId}`;
 
@@ -18,15 +18,24 @@ export function getEnrolledCourses(studentId: number, fallback: string[]): strin
   return readEnrollment(studentId, fallback);
 }
 
-// Client-side enrollment state (no backend), seeded from the student's original
-// courses list and overridden once they enroll/unenroll via the Learning page.
+// Client-side enrollment state (no backend), seeded from the logged-in
+// student's original courses list and overridden once they enroll/unenroll
+// via the Learning page.
 export function useEnrollment() {
-  const [courses, setCourses] = useState<string[]>(() => readEnrollment(sofia.id, sofia.courses));
+  const student = useCurrentStudent();
+  const [courses, setCourses] = useState<string[]>(() => readEnrollment(student.id, student.courses));
+
+  // Re-sync if the logged-in student changes (e.g. logout/login as someone
+  // else in the same browser session, no full page reload in between).
+  useEffect(() => {
+    setCourses(readEnrollment(student.id, student.courses));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student.id]);
 
   const updateEnrollment = useCallback((next: string[]) => {
     setCourses(next);
-    localStorage.setItem(enrollmentKey(sofia.id), JSON.stringify(next));
-  }, []);
+    localStorage.setItem(enrollmentKey(student.id), JSON.stringify(next));
+  }, [student.id]);
 
   return { courses, updateEnrollment };
 }

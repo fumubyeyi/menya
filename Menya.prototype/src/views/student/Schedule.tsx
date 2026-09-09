@@ -8,27 +8,28 @@ import SessionArtifacts from "../../components/SessionArtifacts";
 import { useSessions } from "../../context/SessionsContext";
 import { useStudentActivity } from "../../context/StudentActivityContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
+import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import {
-  sofia, studentSessionHistory, tutorNameById,
+  studentSessionHistory, tutorNameById,
 } from "../../data";
 import { getCourseIcon, courseColor, formatTime12h, gradesSummary, gradeGroupFor } from "../../lib/constants";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
-const sessionHistory = studentSessionHistory[sofia.id] ?? [];
-
 export default function StudentSchedule() {
+  const student = useCurrentStudent();
   const { sessions, updateSession } = useSessions();
   const { logSessionAttended } = useStudentActivity();
   const { recurringSlots } = useRecurringSlots();
-  const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
+  const sessionHistory = studentSessionHistory[student.id] ?? [];
+  const studentSessions = sessions.filter((s) => s.student === student.name);
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
 
   // Same in-person schedule Program plans under Program > Schedule, narrowed
   // to the grade band that actually covers this student.
   const myGradeSlots = WEEKDAYS
-    .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.grades.includes(sofia.grade)))
+    .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.grades.includes(student.grade)))
     .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
 
   return (
@@ -46,11 +47,11 @@ export default function StudentSchedule() {
       {/* Upcoming Sessions */}
       <div className="bg-card border border-border rounded-xl p-5">
         <h2 className="text-sm font-semibold text-foreground mb-4">Upcoming Sessions</h2>
-        {sofiaSessions.length === 0 ? (
+        {studentSessions.length === 0 ? (
           <p className="text-sm text-muted-foreground">No upcoming sessions.</p>
         ) : (
           <div className="divide-y divide-border">
-            {sofiaSessions.map((s) => (
+            {studentSessions.map((s) => (
               <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -91,7 +92,7 @@ export default function StudentSchedule() {
           <h2 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
             <CalendarClock className="w-4 h-4 text-primary" /> In-Person Schedule
           </h2>
-          <p className="text-xs text-muted-foreground mb-4">Standing weekly sessions for {gradesSummary(gradeGroupFor(sofia.grade))} — set by program staff.</p>
+          <p className="text-xs text-muted-foreground mb-4">Standing weekly sessions for {gradesSummary(gradeGroupFor(student.grade))} — set by program staff.</p>
           <div className="flex flex-wrap gap-2">
             {myGradeSlots.map((slot) => (
               <span key={slot.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-muted text-foreground border border-border">
@@ -137,13 +138,13 @@ export default function StudentSchedule() {
         </div>
       </div>
 
-      {modal && <ScheduleModal defaultStudent={sofia.name} onClose={() => setModal(false)} />}
+      {modal && <ScheduleModal defaultStudent={student.name} onClose={() => setModal(false)} />}
       {activeSession?.meetingId && (
         <ZoomModal
           sessionId={activeSession.id}
           meetingId={activeSession.meetingId}
           password={activeSession.password ?? ""}
-          userName={sofia.name}
+          userName={student.name}
           course={activeSession.course}
           onClose={() => {
             updateSession({ ...activeSession, status: "completed" });

@@ -1,17 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { AlertTriangle, CalendarDays, CalendarClock, ClipboardCheck, Clock, HelpCircle, Plus, TrendingUp, Users, ChevronRight } from "lucide-react";
+import { AlertTriangle, CalendarClock, ClipboardCheck, Clock, HelpCircle, Plus, ChevronRight } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
 import Avatar from "../../components/Avatar";
 import ProgressRing from "../../components/ProgressRing";
 import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
-import StatTile from "../../components/StatTile";
 import { useSessions } from "../../context/SessionsContext";
 import { useHelpRequests } from "../../context/HelpRequestsContext";
 import { useAuth } from "../../context/AuthContext";
@@ -19,11 +15,10 @@ import { useTutors } from "../../context/TutorsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import {
-  getTutorStudents, tutorWeeklyData, CURRENT_TUTOR_ID, getTutorById,
+  getTutorStudents, CURRENT_TUTOR_ID, getTutorById,
 } from "../../data";
 import { statusMeta, formatTime12h, gradesSummary, attendanceForSession } from "../../lib/constants";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
-import { mondayOf, toISODate } from "../program/Schedule";
 
 function timeAgo(iso: string): string {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -50,34 +45,22 @@ export default function TutorHome() {
     .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.tutorIds.includes(tutorId)))
     .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
 
-  // In-person sessions published for the current week (see program/Schedule's
-  // "Notify Tutors", which turns a Recurring Slot into a dated, in-person Session)
-  // — the real weekly in-person volume, not the old static mock figure.
-  const weekStartISO = toISODate(mondayOf(new Date()));
-  const weekEnd = mondayOf(new Date());
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const weekEndISO = toISODate(weekEnd);
-  const inPersonThisWeek = tutorSessions.filter(
-    (s) => s.location === "in-person" && !!s.date && s.date >= weekStartISO && s.date <= weekEndISO
-  );
-
-  // In-person sessions already in the past (or today) with no roll call logged yet —
-  // the same "shared across co-tutors" lookup the Schedule/Attendance pages use, so
-  // this only flags what's genuinely still outstanding for the whole group.
+  // Today's in-person sessions with no roll call logged yet — in-person attendance
+  // only makes sense to take same-day, so a session from a prior day is just missed,
+  // not something this card should keep nagging about. Same "shared across
+  // co-tutors" lookup the Schedule/Attendance pages use.
   const todayISO = new Date().toISOString().slice(0, 10);
   const pendingRollCalls = tutorSessions
-    .filter((s) => s.location === "in-person" && !!s.date && s.date <= todayISO)
+    .filter((s) => s.location === "in-person" && s.date === todayISO)
     .filter((s) => !attendanceForSession(s, sessions, attendanceSessions))
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+
   const [modal, setModal] = useState(false);
   const [checkInStudent, setCheckInStudent] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const currentTutor = getTutorById(tutors, tutorId);
   const tutorStudents = getTutorStudents(tutorId);
 
-  const avgProgress = tutorStudents.length
-    ? Math.round(tutorStudents.reduce((sum, s) => sum + s.progress, 0) / tutorStudents.length)
-    : 0;
   const attentionStudents = tutorStudents.filter((s) => s.status === "at-risk" || s.status === "needs-support");
 
   // Open help requests from this tutor's own students — merged into the same
@@ -104,13 +87,37 @@ export default function TutorHome() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-      {/* Stat Pillars */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatTile label="Assigned Students" value={currentTutor?.students ?? tutorStudents.length} Icon={Users} color="#5E6B72" />
-        <StatTile label="In-Person This Week" value={inPersonThisWeek.length} Icon={CalendarDays} color="#5E6B72" />
-        <StatTile label="Avg Student Score" value={`${avgProgress}%`} Icon={TrendingUp} color="#708090" />
-        <StatTile label="Pending Roll Calls" value={pendingRollCalls.length} Icon={ClipboardCheck} color="#DC2626" />
-      </div>
+      {/* Pending Roll Calls */}
+      {pendingRollCalls.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <ClipboardCheck className="w-4 h-4 text-red-600" />
+            <h2 className="text-sm font-semibold text-foreground">Pending Roll Calls</h2>
+            <span className="text-[11px] font-mono text-red-700 bg-red-100 px-2 py-0.5 rounded-full ml-auto">
+              {pendingRollCalls.length} session{pendingRollCalls.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {pendingRollCalls.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 bg-card border border-border rounded-lg p-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{s.student}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <CourseTag course={s.course} />
+                    <span className="text-[11px] text-muted-foreground font-mono">{s.date}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate("/tutor/attendance")}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"
+                >
+                  <ClipboardCheck className="w-3.5 h-3.5" /> Take Attendance
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Needs Attention */}
       {attentionRows.length > 0 && (
@@ -174,7 +181,7 @@ export default function TutorHome() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Today's Queue */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2">
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-foreground">Today's Queue</h2>
@@ -212,35 +219,6 @@ export default function TutorHome() {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Area Chart */}
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-foreground mb-4">6-Week Trend</h2>
-            <ResponsiveContainer width="100%" height={160}>
-              <AreaChart data={tutorWeeklyData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="tScoreGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="tSessGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
-                <Area type="monotone" dataKey="avgScore" stroke="var(--chart-1)" strokeWidth={2} fill="url(#tScoreGrad)" name="Avg Score" />
-                <Area type="monotone" dataKey="sessions" stroke="var(--chart-2)" strokeWidth={2} fill="url(#tSessGrad)" name="Sessions" />
-              </AreaChart>
-            </ResponsiveContainer>
-            <div className="flex gap-4 mt-2">
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-chart-1 inline-block rounded" />Avg Score</span>
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-3 h-0.5 bg-chart-2 inline-block rounded" />Sessions</span>
-            </div>
           </div>
         </div>
 

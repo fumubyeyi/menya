@@ -1331,11 +1331,11 @@ export const curriculum: CurriculumCourse[] = [
 ];
 
 export const tutors: Tutor[] = [
-  { id: 1, firstName: "Jennifer", lastName: "Chen",      courses: ["Algebra", "Geometry"],        grades: [6, 7, 8, 9],       students: 14, sessions: 38, description: "Breaks down algebra and geometry into visual, step-by-step problems so abstract rules finally click. Patient with students who need concepts repeated a few different ways.", profession: "Middle School Math Teacher" },
-  { id: 2, firstName: "David",    lastName: "Thompson",  courses: ["Algebra II", "Calculus"],     grades: [9, 10, 11, 12],    students: 11, sessions: 29, description: "Makes algebra II and calculus click by tying abstract rules to real-world modeling and hands-on problem-solving instead of rote memorization.", profession: "Data Analyst" },
-  { id: 3, firstName: "Maria",    lastName: "Rodriguez", courses: ["Pre-Alg", "Statistics"],      grades: [6, 7, 8, 9, 10],   students: 16, sessions: 44, description: "Builds strong number-sense foundations in pre-algebra and statistics, with a calm, encouraging style that's great for students still building math confidence.", profession: "Actuary" },
-  { id: 4, firstName: "Andrew",   lastName: "Kim",       courses: ["Geometry", "Pre-Calculus"],   grades: [8, 9, 10, 11],     students: 13, sessions: 35, description: "Turns geometry and pre-calculus into everyday phenomena students can see and test themselves, focusing on visual intuition before formulas.", profession: "Civil Engineer" },
-  { id: 5, firstName: "Francoise",lastName: "Umubyeyi",  courses: ["Pre-Calculus", "Calculus"],   grades: [9, 10, 11, 12],    students: 20, sessions: 25, description: "Guides students through pre-calculus and calculus with a focus on problem-solving strategy, helping them recognize patterns across problem types rather than memorizing steps.", profession: "Software Engineer" },
+  { id: 1, firstName: "Jennifer", lastName: "Chen",      courses: ["Algebra", "Geometry"],        grades: [6, 7, 8, 9],       description: "Breaks down algebra and geometry into visual, step-by-step problems so abstract rules finally click. Patient with students who need concepts repeated a few different ways.", profession: "Middle School Math Teacher" },
+  { id: 2, firstName: "David",    lastName: "Thompson",  courses: ["Algebra II", "Calculus"],     grades: [9, 10, 11, 12],    description: "Makes algebra II and calculus click by tying abstract rules to real-world modeling and hands-on problem-solving instead of rote memorization.", profession: "Data Analyst" },
+  { id: 3, firstName: "Maria",    lastName: "Rodriguez", courses: ["Pre-Alg", "Statistics"],      grades: [6, 7, 8, 9, 10],   description: "Builds strong number-sense foundations in pre-algebra and statistics, with a calm, encouraging style that's great for students still building math confidence.", profession: "Actuary" },
+  { id: 4, firstName: "Andrew",   lastName: "Kim",       courses: ["Geometry", "Pre-Calculus"],   grades: [8, 9, 10, 11],     description: "Turns geometry and pre-calculus into everyday phenomena students can see and test themselves, focusing on visual intuition before formulas.", profession: "Civil Engineer" },
+  { id: 5, firstName: "Francoise",lastName: "Umubyeyi",  courses: ["Pre-Calculus", "Calculus"],   grades: [9, 10, 11, 12],    description: "Guides students through pre-calculus and calculus with a focus on problem-solving strategy, helping them recognize patterns across problem types rather than memorizing steps.", profession: "Software Engineer" },
 ];
 
 // Takes the tutor list as a parameter (rather than closing over the static seed
@@ -1378,71 +1378,63 @@ export function tutorNameById(id: number): string {
 }
 
 export const studentCourseDetail: Record<number, CourseDetail[]> = {
-  1: [{ course: "Algebra",      score: 82, sessions: 7, lastSession: "Jun 18", trend: "up"   }, { course: "Algebra II",   score: 74, sessions: 5, lastSession: "Jun 15", trend: "up"   }],
-  2: [{ course: "Calculus",     score: 61, sessions: 4, lastSession: "Jun 17", trend: "flat" }, { course: "Geometry",     score: 68, sessions: 4, lastSession: "Jun 14", trend: "up"   }],
-  3: [{ course: "Geometry",     score: 94, sessions: 8, lastSession: "Jun 19", trend: "up"   }, { course: "Pre-Alg",      score: 88, sessions: 7, lastSession: "Jun 16", trend: "up"   }],
-  4: [{ course: "Pre-Calculus", score: 52, sessions: 3, lastSession: "Jun 12", trend: "down" }, { course: "Algebra II",   score: 58, sessions: 3, lastSession: "Jun 10", trend: "flat" }],
-  5: [{ course: "Algebra II",   score: 86, sessions: 6, lastSession: "Jun 18", trend: "up"   }, { course: "Statistics",   score: 80, sessions: 5, lastSession: "Jun 16", trend: "up"   }],
-  6: [{ course: "Calculus",     score: 67, sessions: 5, lastSession: "Jun 17", trend: "up"   }, { course: "Algebra",      score: 73, sessions: 4, lastSession: "Jun 15", trend: "flat" }],
-  7: [{ course: "Pre-Alg",      score: 91, sessions: 7, lastSession: "Jun 19", trend: "up"   }, { course: "Geometry",     score: 85, sessions: 7, lastSession: "Jun 17", trend: "up"   }],
-  8: [{ course: "Calculus",     score: 68, sessions: 4, lastSession: "Jun 18", trend: "up"   }, { course: "Pre-Calculus", score: 60, sessions: 3, lastSession: "Jun 14", trend: "flat" }],
+  1: [{ course: "Algebra",      score: 82, sessions: 7, lastSession: "Aug 18", trend: "up"   }, { course: "Algebra II",   score: 74, sessions: 5, lastSession: "Aug 15", trend: "up"   }],
+  2: [{ course: "Calculus",     score: 61, sessions: 4, lastSession: "Aug 17", trend: "flat" }, { course: "Geometry",     score: 67, sessions: 4, lastSession: "Aug 14", trend: "up"   }],
+  3: [{ course: "Geometry",     score: 94, sessions: 8, lastSession: "Aug 19", trend: "up"   }, { course: "Pre-Alg",      score: 88, sessions: 7, lastSession: "Aug 16", trend: "up"   }],
+  4: [{ course: "Pre-Calculus", score: 52, sessions: 3, lastSession: "Aug 12", trend: "down" }, { course: "Algebra II",   score: 58, sessions: 3, lastSession: "Aug 10", trend: "flat" }],
+  5: [{ course: "Algebra II",   score: 86, sessions: 6, lastSession: "Aug 18", trend: "up"   }, { course: "Statistics",   score: 80, sessions: 5, lastSession: "Aug 16", trend: "up"   }],
+  6: [{ course: "Calculus",     score: 67, sessions: 5, lastSession: "Aug 17", trend: "up"   }, { course: "Algebra",      score: 73, sessions: 4, lastSession: "Aug 15", trend: "flat" }],
+  7: [{ course: "Pre-Alg",      score: 91, sessions: 7, lastSession: "Aug 19", trend: "up"   }, { course: "Geometry",     score: 85, sessions: 7, lastSession: "Aug 17", trend: "up"   }],
+  8: [{ course: "Calculus",     score: 62, sessions: 4, lastSession: "Aug 18", trend: "up"   }, { course: "Pre-Calculus", score: 60, sessions: 3, lastSession: "Aug 14", trend: "flat" }],
+  9: [{ course: "Pre-Calculus", score: 71, sessions: 6, lastSession: "Aug 15", trend: "up"   }, { course: "Calculus",     score: 77, sessions: 4, lastSession: "Aug 18", trend: "up"   }],
+  10: [{ course: "Calculus",    score: 89, sessions: 13, lastSession: "Aug 19", trend: "up"  }],
 };
 
 export const studentSessionHistory: Record<number, SessionRecord[]> = {
-  1: [{ course: "Algebra",       tutorId: 1, date: "Jun 18", score: 84, duration: 60 }, { course: "Algebra II",    tutorId: 2, date: "Jun 15", score: 76, duration: 45 }, { course: "Algebra",       tutorId: 1, date: "Jun 11", score: 79, duration: 60 }, { course: "Algebra II", tutorId: 2, date: "Jun 8",  score: 71, duration: 45 }],
-  2: [{ course: "Calculus",      tutorId: 2, date: "Jun 17", score: 63, duration: 45 }, { course: "Geometry",      tutorId: 1, date: "Jun 14", score: 70, duration: 60 }, { course: "Calculus",      tutorId: 2, date: "Jun 10", score: 58, duration: 45 }],
-  3: [{ course: "Geometry",      tutorId: 4, date: "Jun 19", score: 96, duration: 60, artifacts: [{ id: 1, type: "notes", label: "Session notes", url: "https://notes.menya.app/sessions/3-jun19" }, { id: 2, type: "whiteboard", label: "Whiteboard", url: "https://whiteboard.menya.app/sessions/3-jun19" }] }, { course: "Pre-Alg",       tutorId: 3, date: "Jun 16", score: 91, duration: 60, artifacts: [{ id: 3, type: "notes", label: "Session notes", url: "https://notes.menya.app/sessions/3-jun16" }] }, { course: "Geometry",      tutorId: 4, date: "Jun 12", score: 93, duration: 45 }, { course: "Pre-Alg",  tutorId: 5, date: "Jun 9",  score: 88, duration: 60 }],
-  4: [{ course: "Pre-Calculus",  tutorId: 4, date: "Jun 12", score: 54, duration: 45 }, { course: "Pre-Calculus",  tutorId: 5, date: "Jun 10", score: 57, duration: 60 }, { course: "Pre-Calculus",  tutorId: 4, date: "Jun 5",  score: 49, duration: 45 }, { course: "Pre-Calculus", tutorId: 5, date: "Jun 1", score: 52, duration: 60 }],
-  5: [{ course: "Algebra II",    tutorId: 2, date: "Jun 18", score: 88, duration: 60 }, { course: "Statistics",    tutorId: 3, date: "Jun 16", score: 82, duration: 45 }, { course: "Algebra II",    tutorId: 2, date: "Jun 13", score: 85, duration: 60 }, { course: "Statistics", tutorId: 3, date: "Jun 10", score: 78, duration: 45 }],
-  6: [{ course: "Calculus",      tutorId: 2, date: "Jun 17", score: 69, duration: 45 }, { course: "Algebra",       tutorId: 1, date: "Jun 15", score: 74, duration: 60 }, { course: "Calculus",      tutorId: 2, date: "Jun 11", score: 64, duration: 45 }],
-  7: [{ course: "Pre-Alg",       tutorId: 3, date: "Jun 19", score: 93, duration: 60 }, { course: "Geometry",      tutorId: 4, date: "Jun 17", score: 87, duration: 45 }, { course: "Pre-Alg",       tutorId: 3, date: "Jun 14", score: 90, duration: 60 }, { course: "Geometry",      tutorId: 4, date: "Jun 11", score: 84, duration: 45 }],
-  8: [{ course: "Pre-Calculus",  tutorId: 5, date: "Jun 18", score: 68, duration: 60 }, { course: "Pre-Calculus",  tutorId: 4, date: "Jun 14", score: 60, duration: 45 }, { course: "Calculus",      tutorId: 5, date: "Jun 11", score: 63, duration: 60 }, { course: "Pre-Calculus", tutorId: 4, date: "Jun 7",  score: 56, duration: 45 }],
+  1: [{ course: "Algebra",       tutorId: 1, date: "Aug 18", score: 84, duration: 60 }, { course: "Algebra II",    tutorId: 2, date: "Aug 15", score: 76, duration: 45 }, { course: "Algebra",       tutorId: 1, date: "Aug 11", score: 79, duration: 60 }, { course: "Algebra II", tutorId: 2, date: "Aug 8",  score: 71, duration: 45 }],
+  2: [{ course: "Calculus",      tutorId: 2, date: "Aug 17", score: 63, duration: 45 }, { course: "Geometry",      tutorId: 1, date: "Aug 14", score: 70, duration: 60 }, { course: "Calculus",      tutorId: 2, date: "Aug 10", score: 58, duration: 45 }],
+  3: [{ course: "Geometry",      tutorId: 4, date: "Aug 19", score: 96, duration: 60, artifacts: [{ id: 1, type: "notes", label: "Session notes", url: "https://notes.menya.app/sessions/3-aug19" }, { id: 2, type: "whiteboard", label: "Whiteboard", url: "https://whiteboard.menya.app/sessions/3-aug19" }] }, { course: "Pre-Alg",       tutorId: 3, date: "Aug 16", score: 91, duration: 60, artifacts: [{ id: 3, type: "notes", label: "Session notes", url: "https://notes.menya.app/sessions/3-aug16" }] }, { course: "Geometry",      tutorId: 4, date: "Aug 12", score: 93, duration: 45 }, { course: "Pre-Alg",  tutorId: 5, date: "Aug 9",  score: 88, duration: 60 }],
+  4: [{ course: "Pre-Calculus",  tutorId: 4, date: "Aug 12", score: 54, duration: 45 }, { course: "Pre-Calculus",  tutorId: 5, date: "Aug 10", score: 57, duration: 60 }, { course: "Pre-Calculus",  tutorId: 4, date: "Aug 5",  score: 49, duration: 45 }, { course: "Pre-Calculus", tutorId: 5, date: "Aug 1", score: 52, duration: 60 }],
+  5: [{ course: "Algebra II",    tutorId: 2, date: "Aug 18", score: 88, duration: 60 }, { course: "Statistics",    tutorId: 3, date: "Aug 16", score: 82, duration: 45 }, { course: "Algebra II",    tutorId: 2, date: "Aug 13", score: 85, duration: 60 }, { course: "Statistics", tutorId: 3, date: "Aug 10", score: 78, duration: 45 }],
+  6: [{ course: "Calculus",      tutorId: 2, date: "Aug 17", score: 69, duration: 45 }, { course: "Algebra",       tutorId: 1, date: "Aug 15", score: 74, duration: 60 }, { course: "Calculus",      tutorId: 2, date: "Aug 11", score: 64, duration: 45 }],
+  7: [{ course: "Pre-Alg",       tutorId: 3, date: "Aug 19", score: 93, duration: 60 }, { course: "Geometry",      tutorId: 4, date: "Aug 17", score: 87, duration: 45 }, { course: "Pre-Alg",       tutorId: 3, date: "Aug 14", score: 90, duration: 60 }, { course: "Geometry",      tutorId: 4, date: "Aug 11", score: 84, duration: 45 }],
+  8: [{ course: "Pre-Calculus",  tutorId: 5, date: "Aug 18", score: 68, duration: 60 }, { course: "Pre-Calculus",  tutorId: 4, date: "Aug 14", score: 60, duration: 45 }, { course: "Calculus",      tutorId: 5, date: "Aug 11", score: 63, duration: 60 }, { course: "Pre-Calculus", tutorId: 4, date: "Aug 7",  score: 56, duration: 45 }],
+  9: [{ course: "Calculus",      tutorId: 5, date: "Aug 18", score: 79, duration: 60 }, { course: "Pre-Calculus",  tutorId: 4, date: "Aug 15", score: 73, duration: 45 }, { course: "Calculus",      tutorId: 5, date: "Aug 11", score: 75, duration: 60 }, { course: "Pre-Calculus", tutorId: 4, date: "Aug 8",  score: 69, duration: 45 }],
+  10: [{ course: "Calculus",     tutorId: 2, date: "Aug 19", score: 91, duration: 60 }, { course: "Calculus",      tutorId: 2, date: "Aug 16", score: 88, duration: 60 }, { course: "Calculus",      tutorId: 2, date: "Aug 12", score: 87, duration: 60 }],
 };
 
-export const tutorAssignedIds = [3, 4, 8];
+// Which chapter is "current" for a course, and how many modules it has — content
+// structure, the same for whoever's taking the course (mirrors the matching
+// chapter in `curriculum` below).
+const COURSE_MODULE_META: Record<string, { title: string; totalModules: number }> = {
+  "Pre-Alg":      { title: "Pre-Algebra Foundations",  totalModules: 6 },
+  "Algebra":      { title: "Quadratic Equations",      totalModules: 6 },
+  "Algebra II":   { title: "Polynomial Functions",     totalModules: 8 },
+  "Geometry":     { title: "Geometry Essentials",      totalModules: 8 },
+  "Statistics":   { title: "Intro to Statistics",      totalModules: 5 },
+  "Pre-Calculus": { title: "Functions & Their Graphs", totalModules: 7 },
+  "Calculus":     { title: "Limits & Continuity",      totalModules: 6 },
+};
 
-export const weeklyData = [
-  { week: "Wk 1", avgScore: 58, sessions: 52 },
-  { week: "Wk 2", avgScore: 62, sessions: 61 },
-  { week: "Wk 3", avgScore: 65, sessions: 68 },
-  { week: "Wk 4", avgScore: 67, sessions: 71 },
-  { week: "Wk 5", avgScore: 70, sessions: 78 },
-  { week: "Wk 6", avgScore: 73, sessions: 84 },
-];
-
-export const courseBreakdown = [
-  { name: "Algebra",       students: 85, color: "#5E6B72" },
-  { name: "Algebra II",    students: 73, color: "#5E6B72" },
-  { name: "Pre-Alg",       students: 47, color: "#5E6B72" },
-  { name: "Geometry",      students: 61, color: "#5E6B72" },
-  { name: "Statistics",    students: 33, color: "#5E6B72" },
-  { name: "Pre-Calculus",  students: 38, color: "#5E6B72" },
-  { name: "Calculus",      students: 54, color: "#5E6B72" },
-];
-
-export const tutorWeeklyData = [
-  { week: "Wk 1", sessions: 4, avgScore: 62 },
-  { week: "Wk 2", sessions: 5, avgScore: 65 },
-  { week: "Wk 3", sessions: 4, avgScore: 67 },
-  { week: "Wk 4", sessions: 5, avgScore: 68 },
-  { week: "Wk 5", sessions: 4, avgScore: 70 },
-  { week: "Wk 6", sessions: 5, avgScore: 72 },
-];
-
-export const studentModules = [
-  { course: "Pre-Alg",       title: "Pre-Algebra Foundations", completion: 80, totalModules: 6, currentModule: 5, active: false },
-  { course: "Pre-Alg",       title: "Linear Equations (next)", completion: 0,  totalModules: 5, currentModule: 0, active: false },
-
-  // Math — additional module progress (more courses to follow later)
-  { course: "Algebra",       title: "Quadratic Equations",                completion: 68, totalModules: 6, currentModule: 4, active: true  },
-  { course: "Algebra",       title: "Systems of Equations (next)",        completion: 0,  totalModules: 7, currentModule: 0, active: false },
-  { course: "Algebra II",    title: "Polynomial Functions",               completion: 45, totalModules: 8, currentModule: 4, active: true  },
-  { course: "Geometry",      title: "Geometry Essentials",                completion: 55, totalModules: 8, currentModule: 4, active: true  },
-  { course: "Geometry",      title: "Triangles & the Pythagorean Theorem (next)", completion: 0, totalModules: 6, currentModule: 0, active: false },
-  { course: "Statistics",    title: "Intro to Statistics",                completion: 59, totalModules: 5, currentModule: 3, active: true  },
-  { course: "Pre-Calculus",  title: "Functions & Their Graphs",           completion: 30, totalModules: 7, currentModule: 2, active: true  },
-  { course: "Calculus",      title: "Limits & Continuity",                completion: 68, totalModules: 6, currentModule: 4, active: true  },
-];
+// Per-student "Active Modules" card on the Learning page — keyed by student id
+// like studentCourseDetail/studentSessionHistory above, rather than the flat,
+// course-only list this used to be (which showed the same module progress to
+// every student taking that course, regardless of who was logged in).
+// `completion` reuses each student's own studentCourseDetail score for that
+// course rather than a separately invented number, so the two can't disagree.
+export const studentModules: Record<number, { course: string; title: string; completion: number; totalModules: number; currentModule: number; active: boolean }[]> =
+  Object.fromEntries(
+    students.map((s) => [
+      s.id,
+      s.courses.flatMap((course) => {
+        const meta = COURSE_MODULE_META[course];
+        if (!meta) return [];
+        const completion = studentCourseDetail[s.id]?.find((d) => d.course === course)?.score ?? 0;
+        const currentModule = Math.max(1, Math.min(meta.totalModules, Math.round((completion / 100) * meta.totalModules)));
+        return [{ course, title: meta.title, completion, totalModules: meta.totalModules, currentModule, active: true }];
+      }),
+    ])
+  ) as Record<number, { course: string; title: string; completion: number; totalModules: number; currentModule: number; active: boolean }[]>;
 
 // Tutor-initiated Curriculum Library search history (see Curriculum Library Tutor
 // Search Feature.md) — seeded with a couple of past searches so the history panel
@@ -1499,6 +1491,16 @@ export const libraryQueries: LibrarySearchQuery[] = [
 export function getTutorStudents(tutorId: number) {
   return students.filter((s) =>
     studentSessionHistory[s.id]?.some((h) => h.tutorId === tutorId)
+  );
+}
+
+// Total logged sessions across all students for one tutor — counted from the
+// same session-history records getTutorStudents reads, so the two numbers
+// can't drift apart the way a separately hand-set counter could.
+export function getTutorSessionCount(tutorId: number): number {
+  return Object.values(studentSessionHistory).reduce(
+    (total, records) => total + records.filter((h) => h.tutorId === tutorId).length,
+    0
   );
 }
 

@@ -6,10 +6,11 @@ import ModuleStatusRow from "../../components/ModuleStatusRow";
 import ChapterModulesViewModal from "../../components/ChapterModulesViewModal";
 import EnrollmentModal from "../../components/EnrollmentModal";
 import {
-  sofia, studentCourseDetail, studentModules,
+  studentCourseDetail, studentModules,
 } from "../../data";
 import { getCourseIcon, courseColor, chapterAction, courseCompletion } from "../../lib/constants";
 import { useEnrollment } from "../../hooks/useEnrollment";
+import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import { useCurriculum } from "../../context/CurriculumContext";
 import type { CurriculumCourse, CurriculumChapter, CourseDetail } from "../../types";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
@@ -33,8 +34,10 @@ export default function Learning() {
   const [enrollOpen, setEnrollOpen] = useState(false);
   const { courses: enrolledCourses, updateEnrollment } = useEnrollment();
   const { courses } = useCurriculum();
+  const student = useCurrentStudent();
 
-  const knownDetails = studentCourseDetail[sofia.id] ?? [];
+  const knownDetails = studentCourseDetail[student.id] ?? [];
+  const modules = studentModules[student.id] ?? [];
   const activeCourseDetails: CourseDetail[] = enrolledCourses
     .filter((course) => isCourseStarted(courses, course))
     .map((course) =>
@@ -75,7 +78,7 @@ export default function Learning() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {activeCourseDetails.map((sd) => {
           const color = courseColor[sd.course] ?? "#5E6B72";
-          const relatedModules = studentModules.filter((m) => m.course === sd.course);
+          const relatedModules = modules.filter((m) => m.course === sd.course);
           const completion = courseCompletion(courses, sd.course);
 
           return (

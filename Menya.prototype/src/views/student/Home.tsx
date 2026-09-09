@@ -5,37 +5,39 @@ import ZoomModal from "../../components/ZoomModal";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import {
-  sofia, studentCourseDetail, studentSessionHistory, tutorNameById,
+  studentCourseDetail, studentSessionHistory, tutorNameById,
 } from "../../data";
 import { achievements, getCourseIcon, courseColor, goalProgress, goalLabel } from "../../lib/constants";
 import { useSessions } from "../../context/SessionsContext";
 import { useStudentGoals } from "../../hooks/useStudentGoals";
 import { useStudentActivity } from "../../context/StudentActivityContext";
-
-const courseDetails = studentCourseDetail[sofia.id] ?? [];
-const sessionHistory = studentSessionHistory[sofia.id] ?? [];
-const studyHours = Math.round(sessionHistory.reduce((sum, h) => sum + h.duration, 0) / 60);
+import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 
 export default function StudentHome() {
+  const student = useCurrentStudent();
   const [modal, setModal] = useState(false);
   const [zoomOpen, setZoomOpen] = useState(false);
   const { sessions, updateSession } = useSessions();
   const { goals } = useStudentGoals();
   const { streak, sessionsAttendedTotal, studyDaysThisWeek, sessionsThisWeek, logSessionAttended } = useStudentActivity();
 
-  const sofiaSessions = sessions.filter((s) => s.student === sofia.name);
-  const todaySession = sofiaSessions.find((s) => s.time === "Today");
-  const earnedAchievements = achievements.filter((a) => a.condition({ streak, progress: sofia.progress, sessions: sofia.sessions, sessionsAttended: sessionsAttendedTotal }));
-  const lockedAchievements = achievements.filter((a) => !a.condition({ streak, progress: sofia.progress, sessions: sofia.sessions, sessionsAttended: sessionsAttendedTotal }));
+  const courseDetails = studentCourseDetail[student.id] ?? [];
+  const sessionHistory = studentSessionHistory[student.id] ?? [];
+  const studyHours = Math.round(sessionHistory.reduce((sum, h) => sum + h.duration, 0) / 60);
+
+  const studentSessions = sessions.filter((s) => s.student === student.name);
+  const todaySession = studentSessions.find((s) => s.time === "Today");
+  const earnedAchievements = achievements.filter((a) => a.condition({ streak, progress: student.progress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal }));
+  const lockedAchievements = achievements.filter((a) => !a.condition({ streak, progress: student.progress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal }));
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Progress", value: `${sofia.progress}%`, color: "#708090" },
-          { label: "Sessions", value: sofia.sessions, color: "#5E6B72" },
-          { label: "Streak", value: `${streak}d`, color: "#5E6B72" },
+          { label: "Progress", value: `${student.progress}%`, color: "#708090" },
+          { label: "Sessions", value: student.sessions, color: "#5E6B72" },
+          { label: "Streak", value: `${streak}d`, color: "#F0981E" },
           { label: "Study Hours", value: `${studyHours}h`, color: "#5E6B72" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-4 text-center">
@@ -175,12 +177,12 @@ export default function StudentHome() {
         </div>
       </div>
 
-      {modal && <ScheduleModal defaultStudent={sofia.name} onClose={() => setModal(false)} />}
+      {modal && <ScheduleModal defaultStudent={student.name} onClose={() => setModal(false)} />}
       {zoomOpen && todaySession?.meetingId && (
         <ZoomModal
           meetingId={todaySession.meetingId}
           password={todaySession.password ?? ""}
-          userName={sofia.name}
+          userName={student.name}
           course={todaySession.course}
           onClose={() => {
             updateSession({ ...todaySession, status: "completed" });

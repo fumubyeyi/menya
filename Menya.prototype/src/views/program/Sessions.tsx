@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
-import { Pencil, ClipboardCheck, Percent, XCircle, AlertTriangle, Download, CalendarClock } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import { Pencil, Download, CalendarClock, ChevronRight, ChevronDown } from "lucide-react";
 import type { Session, AttendanceScope } from "../../types";
 import Avatar from "../../components/Avatar";
 import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ReassignTutorModal from "../../components/ReassignTutorModal";
-import StatTile from "../../components/StatTile";
 import { useSessions } from "../../context/SessionsContext";
 import { useTutors } from "../../context/TutorsContext";
 import { useAttendance } from "../../context/AttendanceContext";
@@ -33,6 +32,12 @@ function csvEscape(value: string | number): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+function rateCls(rate: number) {
+  if (rate >= 90) return "text-emerald-700 bg-emerald-50";
+  if (rate >= 75) return "text-amber-700 bg-amber-50";
+  return "text-red-700 bg-red-50";
+}
+
 export default function Sessions() {
   const { sessions } = useSessions();
   const { tutors } = useTutors();
@@ -43,6 +48,11 @@ export default function Sessions() {
   const [mode, setMode] = useState<Mode>("in-person");
   const [statusTab, setStatusTab] = useState("all");
   const [reassigning, setReassigning] = useState<Session | null>(null);
+  // Attendance log is grouped by roll call, one expanded at a time, rather than
+  // a flat per-student-per-entry list — much shorter to scan once there's a
+  // few weeks of history.
+  const [expandedRollCall, setExpandedRollCall] = useState<number | null>(null);
+  const toggleRollCall = (id: number) => setExpandedRollCall((prev) => (prev === id ? null : id));
 
   const [scope, setScope] = useState<AttendanceScope>("grade");
   const [value, setValue] = useState("");
@@ -86,31 +96,6 @@ export default function Sessions() {
     .filter((s) => !effectiveFromDate || s.date >= effectiveFromDate)
     .filter((s) => !effectiveToDate || s.date <= effectiveToDate)
     .sort((a, b) => b.date.localeCompare(a.date));
-
-  const totalAbsences = filteredAttendance.reduce((sum, s) => sum + s.entries.filter((e) => e.status === "absent").length, 0);
-  const avgRate = filteredAttendance.length
-    ? Math.round(filteredAttendance.reduce((sum, s) => sum + attendanceRate(s.entries), 0) / filteredAttendance.length)
-    : 0;
-
-  const perStudent = useMemo(() => {
-    const byStudent = new Map<number, { present: number; total: number }>();
-    filteredAttendance.forEach((s) => s.entries.forEach((e) => {
-      const cur = byStudent.get(e.studentId) ?? { present: 0, total: 0 };
-      cur.total += 1;
-      if (e.status === "present") cur.present += 1;
-      byStudent.set(e.studentId, cur);
-    }));
-    return Array.from(byStudent.entries())
-      .map(([studentId, { present, total }]) => ({
-        student: students.find((s) => s.id === studentId),
-        rate: total ? Math.round((present / total) * 100) : 0,
-        total,
-      }))
-      .filter((r): r is { student: NonNullable<typeof r.student>; rate: number; total: number } => !!r.student)
-      .sort((a, b) => a.rate - b.rate);
-  }, [filteredAttendance, students]);
-
-  const belowThreshold = perStudent.filter((r) => r.rate < 80).length;
 
   // One row per student per roll call — the granular "was this student present, and
   // when" record, driving both the on-screen log and the CSV export.
@@ -267,13 +252,6 @@ export default function Sessions() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatTile label="Roll Calls Logged" value={filteredAttendance.length} Icon={ClipboardCheck} color="#5E6B72" />
-            <StatTile label="Avg Attendance Rate" value={`${avgRate}%`} Icon={Percent} color="#708090" />
-            <StatTile label="Total Absences" value={totalAbsences} Icon={XCircle} color="#DC2626" />
-            <StatTile label="Students Below 80%" value={belowThreshold} Icon={AlertTriangle} color="#C9922E" />
-          </div>
-
           {/* Filters */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 border-b border-border">
@@ -318,43 +296,101 @@ export default function Sessions() {
             </div>
           </div>
 
-          {/* Attendance log — was this student present, and when */}
+          {/* Attendance log — one row per roll call, expandable to who was
+              there. Grouped rather than a flat per-student-entry list, which
+              got long fast once a few weeks of history piled up. */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">Attendance Log</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Every roll call entry, per student</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Every roll call, per group — expand to see who was there</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
+                <colgroup>
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
-                    {["Student", "Grade", "Date", "Group", "Status"].map((h) => (
+                    {["Date", "Group", "Present", "Rate"].map((h) => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-mono text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {attendanceLog.map((r) => (
-                    <tr key={r.key} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <Avatar name={r.studentName} size={7} />
-                          <span className="font-medium text-foreground whitespace-nowrap">{r.studentName}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{r.grade ?? "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{r.date}</td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{r.group}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${r.status === "present" ? "text-emerald-700 bg-emerald-50" : "text-red-700 bg-red-50"}`}>
-                          {r.status === "present" ? "Present" : "Absent"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredAttendance.map((rollCall) => {
+                    const rate = attendanceRate(rollCall.entries);
+                    const presentCount = rollCall.entries.filter((e) => e.status === "present").length;
+                    const isOpen = expandedRollCall === rollCall.id;
+                    return (
+                      <Fragment key={rollCall.id}>
+                        <tr onClick={() => toggleRollCall(rollCall.id)} className="cursor-pointer hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 text-muted-foreground font-mono text-xs whitespace-nowrap">
+                            <span className="inline-flex items-center gap-2">
+                              {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                              {rollCall.date}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">{attendanceSessionLabel(rollCall)}</td>
+                          <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{presentCount}/{rollCall.entries.length}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${rateCls(rate)}`}>{rate}%</span>
+                          </td>
+                        </tr>
+                        {isOpen && (
+                          <tr className="bg-muted/10">
+                            <td colSpan={4} className="py-2">
+                              {/* Same colgroup as the parent table so Grade lines up
+                                  under Group and Status lines up under Present. */}
+                              <table className="w-full text-xs table-fixed">
+                                <colgroup>
+                                  <col className="w-[30%]" />
+                                  <col />
+                                  <col className="w-28" />
+                                  <col className="w-24" />
+                                </colgroup>
+                                <thead>
+                                  <tr className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                                    <th className="text-left font-normal py-1 px-4">Student</th>
+                                    <th className="text-left font-normal py-1 px-4">Grade</th>
+                                    <th className="text-left font-normal py-1 px-4">Status</th>
+                                    <th />
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {rollCall.entries.map((e) => {
+                                    const student = students.find((st) => st.id === e.studentId);
+                                    return (
+                                      <tr key={e.studentId} className="border-t border-border/60">
+                                        <td className="py-1.5 px-4">
+                                          <div className="flex items-center gap-2">
+                                            <Avatar name={student?.name ?? "Unknown"} size={6} />
+                                            <span className="text-foreground font-mono whitespace-nowrap">{student?.name ?? "Unknown"}</span>
+                                          </div>
+                                        </td>
+                                        <td className="py-1.5 px-4 text-muted-foreground font-mono">{student?.grade ?? "—"}</td>
+                                        <td className="py-1.5 px-4">
+                                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${e.status === "present" ? "text-emerald-700 bg-emerald-50" : "text-red-700 bg-red-50"}`}>
+                                            {e.status === "present" ? "Present" : "Absent"}
+                                          </span>
+                                        </td>
+                                        <td />
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
-              {attendanceLog.length === 0 && (
+              {filteredAttendance.length === 0 && (
                 <div className="py-12 text-center text-sm text-muted-foreground">No attendance data yet.</div>
               )}
             </div>

@@ -1,27 +1,20 @@
-import type { ElementType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import Avatar from "./Avatar";
 
 // Dark-green profile header shared by the Student and Tutor detail pages — avatar +
 // identity on the left, a caller-supplied actions slot on the right (status badge,
-// schedule button, "prefers" chip…), and an optional row of stat pillars below.
-// Keeps the gradient/pillar treatment in one place instead of two hand-rolled copies.
+// schedule button, "prefers" chip…). Keeps the gradient treatment in one place
+// instead of two hand-rolled copies.
 const PROFILE_GRADIENT = "linear-gradient(135deg, #F5F5F5 0%, #F5F5F5 100%)";
-
-export interface ProfileBannerStat {
-  label: string;
-  value: ReactNode;
-  Icon: ElementType;
-}
 
 interface ProfileBannerProps {
   name: string;
   subtitle?: ReactNode;
   tags?: string[];
   actions?: ReactNode;
-  stats?: ProfileBannerStat[];
 }
 
-export default function ProfileBanner({ name, subtitle, tags, actions, stats }: ProfileBannerProps) {
+export default function ProfileBanner({ name, subtitle, tags, actions }: ProfileBannerProps) {
   return (
     <div className="rounded-xl overflow-hidden border border-border" style={{ background: PROFILE_GRADIENT }}>
       <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -39,21 +32,6 @@ export default function ProfileBanner({ name, subtitle, tags, actions, stats }: 
         </div>
         {actions && <div className="flex flex-col items-start sm:items-end gap-2">{actions}</div>}
       </div>
-
-      {stats && stats.length > 0 && (
-        <div
-          className="grid border-t border-[#2F4F4F]/15"
-          style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}
-        >
-          {stats.map(({ label, value, Icon }) => (
-            <div key={label} className="flex flex-col items-center py-4 gap-1 border-r border-[#2F4F4F]/15 last:border-r-0">
-              <Icon className="w-4 h-4 text-[#2F4F4F]/60" />
-              <p className="text-xl font-display font-bold text-[#203B3B]">{value}</p>
-              <p className="text-[11px] text-[#2F4F4F]/60 font-mono">{label}</p>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

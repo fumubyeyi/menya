@@ -22,6 +22,7 @@ interface StudentsContextValue {
   students: Student[];
   addStudent: (student: NewStudent) => void;
   addStudents: (students: NewStudent[]) => void;
+  updateStudent: (student: Student) => void;
 }
 
 const StudentsContext = createContext<StudentsContextValue | null>(null);
@@ -44,8 +45,14 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     setRecords(next);
   };
 
+  const updateStudent = (updated: Student) => {
+    const next = records.map((s) => (s.id === updated.id ? updated : s));
+    localStorage.setItem(STUDENTS_KEY, JSON.stringify(next));
+    setRecords(next);
+  };
+
   return (
-    <StudentsContext.Provider value={{ students: records, addStudent, addStudents }}>
+    <StudentsContext.Provider value={{ students: records, addStudent, addStudents, updateStudent }}>
       {children}
     </StudentsContext.Provider>
   );

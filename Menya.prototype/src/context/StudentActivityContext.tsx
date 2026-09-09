@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { sofia } from "../data";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCurrentStudent } from "../hooks/useCurrentStudent";
 
 type ActivitySource = "study" | "session";
 interface ActivityEntry { date: string; source: ActivitySource }
@@ -71,17 +71,24 @@ const StudentActivityContext = createContext<StudentActivityContextValue | null>
 // whichever page is active — that all need to see the same live log, the
 // same reasoning as CurriculumContext/SessionsContext.
 export function StudentActivityProvider({ children }: { children: ReactNode }) {
-  const [entries, setEntries] = useState<ActivityEntry[]>(() => readActivity(sofia.id));
+  const student = useCurrentStudent();
+  const [entries, setEntries] = useState<ActivityEntry[]>(() => readActivity(student.id));
+
+  // Re-sync if the logged-in student changes (e.g. logout/login as someone
+  // else in the same browser session, no full page reload in between).
+  useEffect(() => {
+    setEntries(readActivity(student.id));
+  }, [student.id]);
 
   const log = useCallback((source: ActivitySource) => {
     setEntries((prev) => {
       const today = todayStr();
       if (prev.some((e) => e.date === today && e.source === source)) return prev;
       const next = [...prev, { date: today, source }];
-      localStorage.setItem(activityKey(sofia.id), JSON.stringify(next));
+      localStorage.setItem(activityKey(student.id), JSON.stringify(next));
       return next;
     });
-  }, []);
+  }, [student.id]);
 
   const logStudy = useCallback(() => log("study"), [log]);
   const logSessionAttended = useCallback(() => log("session"), [log]);

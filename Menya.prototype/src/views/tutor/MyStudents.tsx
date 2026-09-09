@@ -48,7 +48,7 @@ export default function MyStudents() {
                   </div>
                   <p className="text-[11px] font-mono text-muted-foreground mt-0.5">Grade {student.grade}</p>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <span className="flex items-center gap-1 text-[11px] text-amber-600 font-mono">
+                    <span className="flex items-center gap-1 text-[11px] text-brand-amber font-mono">
                       <Flame className="w-3 h-3" />{student.streak}d streak
                     </span>
                     <span className="text-muted-foreground/40">·</span>

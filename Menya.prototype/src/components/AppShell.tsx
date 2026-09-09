@@ -10,8 +10,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useTutors } from "../context/TutorsContext";
 import { useScheduleNotices } from "../context/ScheduleNoticesContext";
-import { useStudentActivity } from "../context/StudentActivityContext";
-import { getAtRiskAlertsForTutor, getTutorById, CURRENT_TUTOR_ID, sofia } from "../data";
+import { getAtRiskAlertsForTutor, CURRENT_TUTOR_ID } from "../data";
 import { statusMeta } from "../lib/constants";
 import Avatar from "./Avatar";
 import ScheduleModal from "./ScheduleModal";
@@ -48,21 +47,11 @@ const ROLE_META: Record<Role, { tagline: string }> = {
   student: { tagline: "Student" },
 };
 
-// Student is intentionally absent here — its three values (score, streak,
-// sessions) all come from live data (sofia + useStudentActivity) below,
-// rather than a hardcoded tuple that could silently drift from the real
-// numbers everywhere else in the app now shows.
-const STATS: Record<Exclude<Role, "student">, [string, string][]> = {
-  program: [["84","sessions"],["247","students"],["73%","avg"]],
-  tutor:   [["20","students"],["25","sessions"]],
-};
-
 export default function AppShell({ onSchedule }: { onSchedule?: (student?: string) => void }) {
   const { user, logout } = useAuth();
   const { theme, toggle: toggleTheme } = useTheme();
   const { tutors } = useTutors();
   const { scheduleNotices, markScheduleNoticeSeen } = useScheduleNotices();
-  const { streak } = useStudentActivity();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -87,12 +76,6 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   // own roster, which only reflects students they've already had a session with.
   const tutorId = user.tutorId ?? CURRENT_TUTOR_ID;
   const atRiskAlerts = role === "tutor" ? getAtRiskAlertsForTutor(tutors, tutorId) : [];
-  const tutorRecord = role === "tutor" ? getTutorById(tutors, tutorId) : undefined;
-  const stats: [string, string][] = tutorRecord
-    ? [[String(tutorRecord.students), "students"], [String(tutorRecord.sessions), "sessions"]]
-    : role === "student"
-    ? [[`${sofia.progress}%`, "score"], [`${streak}d`, "streak"], [String(sofia.sessions), "sessions"]]
-    : STATS[role];
   const alertRows: { student: (typeof atRiskAlerts)[number]["student"]; courses: string[] }[] = [];
   atRiskAlerts.forEach(({ student, course }) => {
     const row = alertRows.find((r) => r.student.id === student.id);
@@ -173,25 +156,6 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
             </NavLink>
           ))}
         </nav>
-
-        {/* Student progress remains useful here; program and tutor stats repeat their page content. */}
-        {role === "student" && (
-          <div className="px-4 py-3 border-t border-sidebar-border">
-            <div className="rounded-lg p-3 bg-sidebar-accent">
-              <p className="text-[9px] font-mono text-sidebar-foreground/40 mb-2 uppercase tracking-widest">
-                My Progress
-              </p>
-              <div className="flex justify-between font-mono">
-                {stats.map(([v, l]) => (
-                  <div key={l} className="text-center">
-                    <p className="font-bold text-base leading-none text-sidebar-foreground">{v}</p>
-                    <p className="text-[10px] text-sidebar-foreground/40 mt-0.5">{l}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
       </aside>
 

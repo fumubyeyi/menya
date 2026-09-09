@@ -261,8 +261,6 @@ export interface Tutor {
   lastName: string;
   courses: string[];
   grades: number[];
-  students: number;
-  sessions: number;
   description: string;
   // Day-job/background, shown on the tutor profile banner — most of these
   // tutors are volunteers, not full-time educators.

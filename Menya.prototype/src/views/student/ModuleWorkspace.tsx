@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../app/components/u
 import { useCurriculum } from "../../context/CurriculumContext";
 import { useStudentActivity } from "../../context/StudentActivityContext";
 import { getCourseIcon, courseColor, diffCls, getModuleContent, getChapterTest, isNumericAnswerCorrect } from "../../lib/constants";
-import { sofia } from "../../data";
+import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import type { PracticeItem } from "../../types";
 
 const statusMeta = {
@@ -220,6 +220,7 @@ export default function ModuleWorkspace() {
   const { chapterId, moduleIndex } = useParams();
   const { findChapterById } = useCurriculum();
   const { logStudy } = useStudentActivity();
+  const student = useCurrentStudent();
   const found = findChapterById(Number(chapterId));
   const index = Number(moduleIndex);
   const courseModule = found?.chapter.modules[index];
@@ -436,7 +437,7 @@ export default function ModuleWorkspace() {
           <Trophy className="w-3 h-3" />{masteryTier.label}
         </span>
         {combo > 1 && (
-          <span className="text-[11px] px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5 text-orange-700 bg-orange-50">
+          <span className="text-[11px] px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5 text-brand-amber bg-brand-amber/10">
             <Flame className="w-3 h-3" />{combo}x Combo
           </span>
         )}
@@ -634,8 +635,8 @@ export default function ModuleWorkspace() {
       {helpModalOpen && (
         <RequestHelpModal
           onClose={() => setHelpModalOpen(false)}
-          studentId={sofia.id}
-          studentName={sofia.name}
+          studentId={student.id}
+          studentName={student.name}
           course={course.name}
           chapterId={chapter.id}
           chapterTitle={chapter.title}

@@ -28,7 +28,7 @@ function readTutors(): Tutor[] {
   return tutors;
 }
 
-type NewTutor = Omit<Tutor, "id" | "students" | "sessions">;
+type NewTutor = Omit<Tutor, "id">;
 
 interface TutorsContextValue {
   tutors: Tutor[];
@@ -49,7 +49,7 @@ export function TutorsProvider({ children }: { children: ReactNode }) {
   // flow, which can add many tutors at once.
   const addTutors = (newTutors: NewTutor[]) => {
     let nextId = records.length ? Math.max(...records.map((t) => t.id)) + 1 : 1;
-    const additions = newTutors.map((tutor) => ({ ...tutor, id: nextId++, students: 0, sessions: 0 }));
+    const additions = newTutors.map((tutor) => ({ ...tutor, id: nextId++ }));
     const next = [...records, ...additions];
     localStorage.setItem(TUTORS_KEY, JSON.stringify(next));
     setRecords(next);

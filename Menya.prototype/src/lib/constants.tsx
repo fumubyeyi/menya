@@ -366,6 +366,15 @@ export function attendanceForSession(session: Session, sessions: Session[], atte
   return attendanceSessions.find((a) => a.sessionId !== undefined && siblingIds.has(a.sessionId));
 }
 
+// Status is derived from progress rather than hand-picked, so the two can't
+// drift apart the way a manually-set status field could.
+export function studentStatus(progress: number): StudentStatus {
+  if (progress >= 85) return "exceeding";
+  if (progress >= 70) return "on-track";
+  if (progress >= 60) return "needs-support";
+  return "at-risk";
+}
+
 export const statusMeta: Record<StudentStatus, { label: string; cls: string; Icon: React.ElementType }> = {
   exceeding:      { label: "Exceeding",     cls: "text-emerald-700 bg-emerald-50", Icon: CheckCircle2  },
   "on-track":     { label: "On Track",      cls: "text-blue-700 bg-blue-50",       Icon: CheckCircle2  },
@@ -408,7 +417,7 @@ export const verificationMeta: Record<VerificationSource, { label: string; cls: 
 type AchievementInput = { streak: number; progress: number; sessions: number; sessionsAttended?: number };
 
 export const achievements = [
-  { id: "streak-5",    label: "5-Day Streak",     Icon: Flame,        color: "#F59E0B", condition: (s: AchievementInput) => s.streak >= 5   },
+  { id: "streak-5",    label: "5-Day Streak",     Icon: Flame,        color: "#F0981E", condition: (s: AchievementInput) => s.streak >= 5   },
   { id: "streak-7",    label: "Week Warrior",      Icon: Trophy,       color: "#C9922E", condition: (s: AchievementInput) => s.streak >= 7   },
   { id: "score-80",    label: "80+ Score",         Icon: Target,       color: "#708090", condition: (s: AchievementInput) => s.progress >= 80},
   { id: "score-90",    label: "Top Performer",     Icon: Star,         color: "#059669", condition: (s: AchievementInput) => s.progress >= 90},
