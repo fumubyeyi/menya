@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { AlertTriangle, CalendarClock, ClipboardCheck, Clock, HelpCircle, Plus, ChevronRight } from "lucide-react";
+import { AlertTriangle, CalendarClock, ClipboardCheck, Clock, HelpCircle, Plus, ChevronRight, Sparkles } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
@@ -14,10 +14,12 @@ import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
+import { useLibrarySearch } from "../../hooks/useLibrarySearch";
 import {
-  getTutorStudents, CURRENT_TUTOR_ID, getTutorById,
+  getTutorStudents, CURRENT_TUTOR_ID, getTutorById, libraryQueries,
 } from "../../data";
-import { statusMeta, formatTime12h, gradesSummary, attendanceForSession } from "../../lib/constants";
+import { statusMeta, formatTime12h, gradesSummary, attendanceForSession, matchStrengthMeta, PREFERENCE_DAYS } from "../../lib/constants";
+import { mondayOf } from "../program/Schedule";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
 
 function timeAgo(iso: string): string {
@@ -34,22 +36,39 @@ export default function TutorHome() {
   const { user } = useAuth();
   const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
-  const { sessions } = useSessions();
+  const { sessions, removeSession } = useSessions();
   const { attendanceSessions } = useAttendance();
   const { recurringSlots } = useRecurringSlots();
   const { requests: helpRequests, resolveRequest } = useHelpRequests();
+  const { queries: recentQueries } = useLibrarySearch(tutorId, libraryQueries);
   const tutorSessions = sessions.filter((s) => s.tutorId === tutorId);
-  const todayQueue = tutorSessions.filter((s) => s.time === "Today");
+  const todayISO = new Date().toISOString().slice(0, 10);
+  // Not just today — a tutor with nothing left today shouldn't hit a dead end;
+  // this bridges to whatever's coming up next this week. Excludes sessions whose
+  // explicit `date` has already passed — the pre-seeded in-person group sessions
+  // are historical (for Attendance history demo data) despite still carrying a
+  // "scheduled" status, so status alone isn't enough to tell upcoming from past.
+  const upcomingQueue = tutorSessions
+    .filter((s) => s.status !== "completed" && (!s.date || s.date >= todayISO))
+    .slice(0, 6);
 
-  const mySlots = WEEKDAYS
+  const mySlots = PREFERENCE_DAYS
     .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.tutorIds.includes(tutorId)))
-    .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
+    .sort((a, b) => PREFERENCE_DAYS.indexOf(a.day) - PREFERENCE_DAYS.indexOf(b.day) || a.time.localeCompare(b.time));
+
+  // This week's actual calendar date for each preference day, so the tutor sees
+  // "Wed, Sep 9" rather than just the bare weekday name.
+  const weekMonday = mondayOf(new Date());
+  const dateForDay = (day: string) => {
+    const d = new Date(weekMonday);
+    d.setDate(d.getDate() + WEEKDAYS.indexOf(day));
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  };
 
   // Today's in-person sessions with no roll call logged yet — in-person attendance
   // only makes sense to take same-day, so a session from a prior day is just missed,
   // not something this card should keep nagging about. Same "shared across
   // co-tutors" lookup the Schedule/Attendance pages use.
-  const todayISO = new Date().toISOString().slice(0, 10);
   const pendingRollCalls = tutorSessions
     .filter((s) => s.location === "in-person" && s.date === todayISO)
     .filter((s) => !attendanceForSession(s, sessions, attendanceSessions))
@@ -179,24 +198,66 @@ export default function TutorHome() {
       )}
 
 
+      {/* This Week — whether this tutor is actually scheduled on each of the
+          program's two recurring days, not just their stated preference. */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <CalendarClock className="w-4 h-4 text-primary" /> This Week
+          </h2>
+          <button
+            onClick={() => navigate("/tutor/schedule")}
+            className="flex items-center gap-0.5 text-xs text-primary hover:underline font-mono"
+          >
+            Schedule <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {PREFERENCE_DAYS.map((day) => {
+            const daySlots = mySlots.filter((s) => s.day === day);
+            const scheduled = daySlots.length > 0;
+            return (
+              <div key={day} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${scheduled ? "border-primary/30 bg-primary/5" : "border-border bg-muted/20"}`}>
+                <div className="flex items-baseline gap-1.5 min-w-0">
+                  <p className="text-sm font-medium text-foreground flex-shrink-0">{day}</p>
+                  <p className="text-[11px] font-mono text-muted-foreground truncate">
+                    {scheduled ? daySlots.map((s) => `${gradesSummary(s.grades)} · ${formatTime12h(s.time)}`).join(", ") : "Not scheduled"}
+                  </p>
+                </div>
+                <p className="text-[11px] font-mono text-muted-foreground flex-shrink-0">{dateForDay(day)}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Today's Queue */}
+        {/* Upcoming Sessions — this week, not just today */}
         <div className="lg:col-span-2">
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-foreground">Today's Queue</h2>
-              <button
-                onClick={() => setModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add Session
-              </button>
+              <h2 className="text-sm font-semibold text-foreground">Upcoming Sessions</h2>
+              <div className="flex items-center gap-3">
+               
+                <button
+                  onClick={() => setModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Session
+                </button>
+                <button
+                  onClick={() => navigate("/tutor/schedule")}
+                  className="flex items-center gap-0.5 text-xs text-primary hover:underline font-mono"
+                >
+                  Schedule <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
-            {todayQueue.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No sessions today.</p>
+            {upcomingQueue.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No upcoming sessions.</p>
             ) : (
               <div className="divide-y divide-border">
-                {todayQueue.map((s) => (
+                {upcomingQueue.map((s) => (
                   <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <Avatar name={s.student} size={9} />
                     <div className="flex-1 min-w-0">
@@ -204,7 +265,7 @@ export default function TutorHome() {
                       <CourseTag course={s.course} />
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-                      <Clock className="w-3.5 h-3.5" /> {s.clock}
+                      <Clock className="w-3.5 h-3.5" /> {s.time} · {s.clock}
                     </div>
                     <SessionStatusPill status={s.status} />
                     {s.status === "in-progress" && s.meetingId && (
@@ -213,6 +274,14 @@ export default function TutorHome() {
                         className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
                       >
                         Start
+                      </button>
+                    )}
+                    {s.status !== "in-progress" && (
+                      <button
+                        onClick={() => removeSession(s.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                      >
+                        Cancel
                       </button>
                     )}
                   </div>
@@ -224,25 +293,33 @@ export default function TutorHome() {
 
         {/* Sidebar */}
         <div className="space-y-4">
-        {/* My Recurring Slots */}
-        {mySlots.length > 0 && (
+        {/* Recent Searches — the tutor's own AI-assisted curriculum searches,
+            one click closer than digging through Curriculum Search directly. */}
+        {recentQueries.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <CalendarClock className="w-4 h-4 text-primary" /> My Recurring Slots
+                <Sparkles className="w-4 h-4 text-primary" /> Recent Searches
               </h2>
               <button
-                onClick={() => navigate("/tutor/schedule")}
+                onClick={() => navigate("/tutor/search")}
                 className="flex items-center gap-0.5 text-xs text-primary hover:underline font-mono"
               >
-                Schedule <ChevronRight className="w-3.5 h-3.5" />
+                Search <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {mySlots.map((slot) => (
-                <span key={slot.id} className="px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium bg-muted text-foreground border border-border">
-                  {slot.day} · {gradesSummary(slot.grades)} · {formatTime12h(slot.time)}
-                </span>
+            <div className="space-y-1">
+              {recentQueries.slice(0, 3).map((q) => (
+                <button
+                  key={q.id}
+                  onClick={() => navigate("/tutor/search")}
+                  className="w-full flex items-start gap-2 text-left p-2 -mx-2 rounded-lg hover:bg-muted/40 transition-colors"
+                >
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono flex-shrink-0 mt-0.5 ${matchStrengthMeta[q.result.matchStrength].cls}`}>
+                    {matchStrengthMeta[q.result.matchStrength].label}
+                  </span>
+                  <span className="text-xs text-foreground line-clamp-2 flex-1">{q.promptText}</span>
+                </button>
               ))}
             </div>
           </div>

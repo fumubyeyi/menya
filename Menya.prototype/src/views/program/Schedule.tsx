@@ -9,7 +9,7 @@ import { useSessions } from "../../context/SessionsContext";
 import { useTutors } from "../../context/TutorsContext";
 import { useScheduleNotices } from "../../context/ScheduleNoticesContext";
 import { useRecurringSlots, type RecurringSlot } from "../../context/RecurringSlotsContext";
-import { formatSessionTime, formatTime12h, gradesSummary } from "../../lib/constants";
+import { formatSessionTime, formatTime12h, gradesSummary, PREFERENCE_DAYS } from "../../lib/constants";
 import type { Session } from "../../types";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
@@ -77,7 +77,7 @@ export default function Schedule() {
   }, [weekStart]);
   const isCurrentWeek = toISODate(weekStart) === toISODate(mondayOf(new Date()));
 
-  const slotsByDay = WEEKDAYS
+  const slotsByDay = PREFERENCE_DAYS
     .map((day) => ({ day, slots: recurringSlots.filter((s) => s.day === day).sort((a, b) => a.time.localeCompare(b.time)) }))
     .filter((g) => g.slots.length > 0);
 

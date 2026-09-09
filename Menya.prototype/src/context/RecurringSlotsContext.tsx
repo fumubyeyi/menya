@@ -1,9 +1,12 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { GRADE_GROUPS } from "../lib/constants";
+import { GRADE_GROUPS, PREFERENCE_DAYS } from "../lib/constants";
 import { CURRENT_TUTOR_ID } from "../data";
 
 const RECURRING_SLOTS_KEY = "menya:recurringSlots";
-const RECURRING_DEFAULT_DAYS = ["Monday", "Wednesday"];
+const SKIPPED_OCCURRENCES_KEY = "menya:skippedOccurrences";
+// Same two days PREFERENCE_DAYS is built from — one shared source so this
+// template and the tutor-facing preference picker can't drift apart again.
+const RECURRING_DEFAULT_DAYS = PREFERENCE_DAYS;
 const RECURRING_DEFAULT_TIME = "18:00";
 // Grade band assigned to the default tutor login for today's weekday (see below) —
 // [10,11,12] is the band that overlaps her seed `grades: [9,10,11,12]`.
@@ -61,17 +64,38 @@ function readRecurringSlots(): RecurringSlot[] {
   return defaultRecurringSlots();
 }
 
+// A single projected (not-yet-published) occurrence of a slot that a tutor has
+// cancelled — e.g. "slot-Monday-10,11,12|2026-09-15". Distinct from deleteSlot,
+// which removes the whole standing weekly commitment; this only skips one date.
+function occurrenceKey(slotId: string, date: string): string {
+  return `${slotId}|${date}`;
+}
+
+function readSkippedOccurrences(): string[] {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SKIPPED_OCCURRENCES_KEY) ?? "null");
+    if (Array.isArray(saved)) return saved;
+  } catch {
+    // fall through
+  }
+  return [];
+}
+
 interface RecurringSlotsContextValue {
   recurringSlots: RecurringSlot[];
   toggleSlotTutor: (slotId: string, tutorId: number) => void;
   saveSlot: (fields: { day: string; time: string; grades: number[] }, editingId?: string) => void;
   deleteSlot: (slotId: string) => void;
+  skippedOccurrences: string[];
+  skipOccurrence: (slotId: string, date: string) => void;
+  isOccurrenceSkipped: (slotId: string, date: string) => boolean;
 }
 
 const RecurringSlotsContext = createContext<RecurringSlotsContextValue | null>(null);
 
 export function RecurringSlotsProvider({ children }: { children: ReactNode }) {
   const [recurringSlots, setRecurringSlots] = useState<RecurringSlot[]>(readRecurringSlots);
+  const [skippedOccurrences, setSkippedOccurrences] = useState<string[]>(readSkippedOccurrences);
 
   const toggleSlotTutor = (slotId: string, tutorId: number) => {
     setRecurringSlots((prev) => {
@@ -103,8 +127,20 @@ export function RecurringSlotsProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const skipOccurrence = (slotId: string, date: string) => {
+    setSkippedOccurrences((prev) => {
+      const key = occurrenceKey(slotId, date);
+      if (prev.includes(key)) return prev;
+      const next = [...prev, key];
+      localStorage.setItem(SKIPPED_OCCURRENCES_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const isOccurrenceSkipped = (slotId: string, date: string) => skippedOccurrences.includes(occurrenceKey(slotId, date));
+
   return (
-    <RecurringSlotsContext.Provider value={{ recurringSlots, toggleSlotTutor, saveSlot, deleteSlot }}>
+    <RecurringSlotsContext.Provider value={{ recurringSlots, toggleSlotTutor, saveSlot, deleteSlot, skippedOccurrences, skipOccurrence, isOccurrenceSkipped }}>
       {children}
     </RecurringSlotsContext.Provider>
   );

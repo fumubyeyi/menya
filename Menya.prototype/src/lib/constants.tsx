@@ -15,10 +15,12 @@ export const courseColor: Record<string, string> = {
 
 export const ALL_COURSES = Object.keys(courseColor);
 export const TUTOR_GRADES = [6, 7, 8, 9, 10, 11, 12];
-// The only two days a tutor can set a tutoring-day preference for, whether
-// entered by Program at registration (AddTutorModal) or self-service on the
-// tutor's own Home page.
-export const PREFERENCE_DAYS = ["Monday", "Tuesday"];
+// The only two days the program runs recurring slots on (see
+// RECURRING_DEFAULT_DAYS in RecurringSlotsContext, which reuses this same
+// list) — also the only two days a tutor can set a tutoring-day preference
+// for, whether entered by Program at registration (AddTutorModal) or
+// self-service on the tutor's own Home page.
+export const PREFERENCE_DAYS = ["Monday", "Wednesday"];
 
 // In-person sessions are planned and rolled up by grade band, not individual grade —
 // see the Recurring Slots table under Program > Schedule. Anything filtering or
@@ -293,6 +295,13 @@ export function nextDateForWeekday(day: string, from: Date = new Date()): string
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+// "2026-09-15" -> "Mon" — the actual weekday for a session's date, distinct from
+// formatSessionTime's "Today"/"Tomorrow"/"Sep 15" label, so a list spanning more
+// than a few days (e.g. this week + next week) still reads unambiguously.
+export function weekdayName(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", { weekday: "short" });
+}
+
 export function formatSessionTime(dateStr: string, timeStr: string): { time: string; clock: string } {
   const target = new Date(`${dateStr}T${timeStr}`);
   const today = new Date();
@@ -311,41 +320,6 @@ export function formatSessionTime(dateStr: string, timeStr: string): { time: str
   return { time, clock };
 }
 
-// Reverses formatSessionTime — a session usually only carries display labels
-// ("Today"/"Tomorrow"/"Jun 22" + a 12h clock string), not a full datetime, so
-// reconstructing when it actually starts (for the 24h cancel cutoff below)
-// means parsing those labels back into a real Date. Returns null when there's
-// not enough information to do that reliably.
-export function sessionStartsAt(session: Session): Date | null {
-  const match = session.clock?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!match) return null;
-  const [, hStr, mStr, period] = match;
-  let h = parseInt(hStr, 10) % 12;
-  if (period.toUpperCase() === "PM") h += 12;
-  const m = parseInt(mStr, 10);
-
-  let day: Date;
-  if (session.date) {
-    day = new Date(`${session.date}T00:00:00`);
-  } else if (session.time === "Today") {
-    day = new Date();
-  } else if (session.time === "Tomorrow") {
-    day = new Date();
-    day.setDate(day.getDate() + 1);
-  } else {
-    day = new Date(`${session.time} ${new Date().getFullYear()}`);
-  }
-  if (Number.isNaN(day.getTime())) return null;
-
-  day.setHours(h, m, 0, 0);
-  return day;
-}
-
-// A session can only be canceled at least 24 hours before it starts.
-export function canCancelSession(session: Session): boolean {
-  const start = sessionStartsAt(session);
-  return start !== null && start.getTime() - Date.now() >= 24 * 60 * 60 * 1000;
-}
 
 // An in-person group booking publishes one Session record per assigned tutor —
 // same student/course/date/time, different tutorId. This key identifies "the same

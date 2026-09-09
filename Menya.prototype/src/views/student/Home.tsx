@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Minus, BookPlus } from "lucide-react";
 import { Link } from "react-router";
 import ZoomModal from "../../components/ZoomModal";
 import SessionStatusPill from "../../components/SessionStatusPill";
@@ -12,21 +12,30 @@ import { useSessions } from "../../context/SessionsContext";
 import { useStudentGoals } from "../../hooks/useStudentGoals";
 import { useStudentActivity } from "../../context/StudentActivityContext";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
+import { useEnrollment } from "../../hooks/useEnrollment";
+
+const TREND_META = {
+  up:   { Icon: TrendingUp,   cls: "text-emerald-600" },
+  down: { Icon: TrendingDown, cls: "text-red-600" },
+  flat: { Icon: Minus,        cls: "text-muted-foreground" },
+} as const;
 
 export default function StudentHome() {
   const student = useCurrentStudent();
   const [modal, setModal] = useState(false);
-  const [zoomOpen, setZoomOpen] = useState(false);
   const { sessions, updateSession } = useSessions();
   const { goals } = useStudentGoals();
+  const { courses: enrolledCourses } = useEnrollment();
   const { streak, sessionsAttendedTotal, studyDaysThisWeek, sessionsThisWeek, logSessionAttended } = useStudentActivity();
 
   const courseDetails = studentCourseDetail[student.id] ?? [];
   const sessionHistory = studentSessionHistory[student.id] ?? [];
   const studyHours = Math.round(sessionHistory.reduce((sum, h) => sum + h.duration, 0) / 60);
+  const notStartedCourses = enrolledCourses.filter((c) => !courseDetails.some((cd) => cd.course === c));
 
   const studentSessions = sessions.filter((s) => s.student === student.name);
-  const todaySession = studentSessions.find((s) => s.time === "Today");
+  const upcomingSessions = studentSessions.filter((s) => s.status !== "completed").slice(0, 3);
+  const [activeSession, setActiveSession] = useState<typeof upcomingSessions[number] | null>(null);
   const earnedAchievements = achievements.filter((a) => a.condition({ streak, progress: student.progress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal }));
   const lockedAchievements = achievements.filter((a) => !a.condition({ streak, progress: student.progress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal }));
 
@@ -49,30 +58,35 @@ export default function StudentHome() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          {/* Today's Focus */}
-          {todaySession && (
+          {/* Upcoming Sessions — not just today, so this card isn't empty on
+              non-session days; the full list still lives on the Schedule page. */}
+          {upcomingSessions.length > 0 && (
             <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Today's Focus</h2>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${courseColor[todaySession.course] ?? "#5E6B72"}18` }}>
-                  <span style={{ color: courseColor[todaySession.course] ?? "#5E6B72" }}>
-                    {getCourseIcon(todaySession.course)}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{todaySession.course}</p>
-                  <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(todaySession.tutorId)} · {todaySession.clock}</p>
-                </div>
-                <SessionStatusPill status={todaySession.status} />
-                {todaySession.status === "in-progress" && todaySession.meetingId && (
-                  <button
-                    onClick={() => setZoomOpen(true)}
-                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
-                  >
-                    Join
-                  </button>
-                )}
+              <h2 className="text-sm font-semibold text-foreground mb-3">Upcoming Sessions</h2>
+              <div className="divide-y divide-border">
+                {upcomingSessions.map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${courseColor[s.course] ?? "#5E6B72"}18` }}>
+                      <span style={{ color: courseColor[s.course] ?? "#5E6B72" }}>
+                        {getCourseIcon(s.course)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{s.course}</p>
+                      <p className="text-[11px] font-mono text-muted-foreground">{tutorNameById(s.tutorId)} · {s.time} · {s.clock}</p>
+                    </div>
+                    <SessionStatusPill status={s.status} />
+                    {s.status === "in-progress" && s.meetingId && (
+                      <button
+                        onClick={() => setActiveSession(s)}
+                        className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        Join
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -81,21 +95,38 @@ export default function StudentHome() {
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-foreground mb-3">Course Progress</h2>
             <div className="space-y-3">
-              {courseDetails.map((sd) => (
-                <div key={sd.course}>
-                  <div className="flex justify-between items-center mb-1">
-                    <div className="flex items-center gap-2">
-                      <span style={{ color: courseColor[sd.course] ?? "#5E6B72" }}>{getCourseIcon(sd.course)}</span>
-                      <span className="text-sm font-medium text-foreground">{sd.course}</span>
+              {courseDetails.map((sd) => {
+                const trend = TREND_META[sd.trend];
+                return (
+                  <div key={sd.course}>
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="flex items-center gap-2">
+                        <span style={{ color: courseColor[sd.course] ?? "#5E6B72" }}>{getCourseIcon(sd.course)}</span>
+                        <span className="text-sm font-medium text-foreground">{sd.course}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <trend.Icon className={`w-3 h-3 ${trend.cls}`} />
+                        <span className="text-xs font-mono text-muted-foreground">{sd.score}%</span>
+                      </div>
                     </div>
-                    <span className="text-xs font-mono text-muted-foreground">{sd.score}%</span>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${sd.score}%`, backgroundColor: courseColor[sd.course] ?? "#5E6B72" }} />
+                    </div>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${sd.score}%`, backgroundColor: courseColor[sd.course] ?? "#5E6B72" }} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+            {notStartedCourses.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-border flex items-center gap-2.5">
+                <BookPlus className="w-4 h-4 text-primary flex-shrink-0" />
+                <p className="text-xs text-muted-foreground flex-1">
+                  {notStartedCourses.length === 1
+                    ? `You're enrolled in ${notStartedCourses[0]} but haven't started yet.`
+                    : `You're enrolled in ${notStartedCourses.length} courses you haven't started yet.`}
+                </p>
+                <Link to="/student/learning" className="text-xs font-medium text-primary hover:underline flex-shrink-0">Start now</Link>
+              </div>
+            )}
           </div>
 
         </div>
@@ -178,16 +209,16 @@ export default function StudentHome() {
       </div>
 
       {modal && <ScheduleModal defaultStudent={student.name} onClose={() => setModal(false)} />}
-      {zoomOpen && todaySession?.meetingId && (
+      {activeSession?.meetingId && (
         <ZoomModal
-          meetingId={todaySession.meetingId}
-          password={todaySession.password ?? ""}
+          meetingId={activeSession.meetingId}
+          password={activeSession.password ?? ""}
           userName={student.name}
-          course={todaySession.course}
+          course={activeSession.course}
           onClose={() => {
-            updateSession({ ...todaySession, status: "completed" });
+            updateSession({ ...activeSession, status: "completed" });
             logSessionAttended();
-            setZoomOpen(false);
+            setActiveSession(null);
           }}
         />
       )}

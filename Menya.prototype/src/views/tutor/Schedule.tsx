@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Clock, Plus, CalendarClock, Users as GroupIcon, X } from "lucide-react";
+import { Fragment, useState } from "react";
+import { Clock, Plus, CalendarClock, Users as GroupIcon, School, X, Pencil, ChevronRight } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
@@ -7,6 +7,7 @@ import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
+import EditDayPreferenceModal from "../../components/EditDayPreferenceModal";
 import { useSessions } from "../../context/SessionsContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
@@ -14,8 +15,7 @@ import { useStudents } from "../../context/StudentsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { getTutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID } from "../../data";
-import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, canCancelSession, nextDateForWeekday, formatSessionTime } from "../../lib/constants";
-import { WEEKDAYS } from "../program/RecurringSlotModal";
+import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, nextDateForWeekday, formatSessionTime, weekdayName, PREFERENCE_DAYS } from "../../lib/constants";
 import { mondayOf, toISODate } from "../program/Schedule";
 import type { AttendanceSession, Student } from "../../types";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
@@ -102,20 +102,21 @@ export default function TutorSchedule() {
   const { sessions, removeSession } = useSessions();
   const { students } = useStudents();
   const { attendanceSessions } = useAttendance();
-  const { recurringSlots } = useRecurringSlots();
+  const { recurringSlots, skipOccurrence, isOccurrenceSkipped } = useRecurringSlots();
   const tutorSessions = sessions.filter((s) => s.tutorId === tutorId);
   const [mode, setMode] = useState<Mode>("in-person");
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [notesModalSession, setNotesModalSession] = useState<Session | null>(null);
+  const [dayPrefModal, setDayPrefModal] = useState(false);
   const currentTutor = getTutorById(tutors, tutorId);
   const tutorStudents = getTutorStudents(tutorId);
 
   const modeSessions = tutorSessions.filter((s) => (mode === "online" ? s.location !== "in-person" : s.location === "in-person"));
 
-  const mySlots = WEEKDAYS
+  const mySlots = PREFERENCE_DAYS
     .flatMap((day) => recurringSlots.filter((s) => s.day === day && s.tutorIds.includes(tutorId)))
-    .sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) || a.time.localeCompare(b.time));
+    .sort((a, b) => PREFERENCE_DAYS.indexOf(a.day) - PREFERENCE_DAYS.indexOf(b.day) || a.time.localeCompare(b.time));
 
   // "Upcoming" is bounded to this week + next week and sorted soonest-first, rather
   // than dumping every session for the mode in whatever order it was created —
@@ -129,6 +130,12 @@ export default function TutorSchedule() {
   const windowEnd = mondayOf(todayDate);
   windowEnd.setDate(windowEnd.getDate() + 13);
   const windowEndISO = toISODate(windowEnd);
+  // Sunday of the current week — projected occurrences on or before this date are
+  // this week's, and get the confident "scheduled" pill; anything past it is next
+  // week's and still just a standing commitment Program hasn't published yet.
+  const thisWeekEnd = mondayOf(todayDate);
+  thisWeekEnd.setDate(thisWeekEnd.getDate() + 6);
+  const thisWeekEndISO = toISODate(thisWeekEnd);
 
   const effectiveDate = (s: Session): string =>
     s.date ?? (s.time === "Today" ? todayISOForUpcoming : s.time === "Tomorrow" ? tomorrowISO : "");
@@ -151,7 +158,7 @@ export default function TutorSchedule() {
         const [fy, fm, fd] = first.split("-").map(Number);
         const second = toISODate(new Date(fy, fm - 1, fd + 7));
         return [first, second]
-          .filter((date) => date <= windowEndISO && !bookedInPersonDates.has(date))
+          .filter((date) => date <= windowEndISO && !bookedInPersonDates.has(date) && !isOccurrenceSkipped(slot.id, date))
           .map((date) => ({ slot, date }));
       })
     : [];
@@ -172,14 +179,50 @@ export default function TutorSchedule() {
     }),
   ].sort((a, b) => a.date.localeCompare(b.date) || clockMinutes(a.clock) - clockMinutes(b.clock));
 
-  const history = tutorStudents.flatMap((s) =>
-    (studentSessionHistory[s.id] ?? []).map((h) => ({ ...h, studentName: s.name }))
-  );
+  // Online history grouped by student — each student's course sessions nest
+  // underneath their row once expanded.
+  const onlineHistoryGroups = tutorStudents
+    .map((s) => ({ student: s, records: (studentSessionHistory[s.id] ?? []).slice().sort((a, b) => b.date.localeCompare(a.date)) }))
+    .filter((g) => g.records.length > 0);
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const inPersonHistory = tutorSessions
     .filter((s) => s.location === "in-person" && !!s.date && s.date <= todayISO)
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+
+  // Same idea for In-Person — grouped by the recurring grade-group/course label
+  // (e.g. "Grades 6, 7 Group"), with each occurrence's own course tag nested
+  // underneath as a child row.
+  const inPersonHistoryGroups = Object.values(
+    inPersonHistory.reduce<Record<string, { key: string; label: string; sessions: Session[] }>>((acc, s) => {
+      const key = s.student;
+      (acc[key] ??= { key, label: groupLabel(s), sessions: [] }).sessions.push(s);
+      return acc;
+    }, {})
+  );
+
+  // Session History is grouped hierarchically — a parent row per student (Online)
+  // or per recurring grade group (In-Person), with that group's individual course
+  // sessions nested underneath. The first row of each starts expanded so the
+  // table isn't just a wall of collapsed headers on first load.
+  const [expandedOnlineGroups, setExpandedOnlineGroups] = useState<Set<number>>(
+    () => new Set(onlineHistoryGroups.length > 0 ? [onlineHistoryGroups[0].student.id] : [])
+  );
+  const [expandedInPersonGroups, setExpandedInPersonGroups] = useState<Set<string>>(
+    () => new Set(inPersonHistoryGroups.length > 0 ? [inPersonHistoryGroups[0].key] : [])
+  );
+  const toggleOnlineGroup = (id: number) =>
+    setExpandedOnlineGroups((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toggleInPersonGroup = (key: string) =>
+    setExpandedInPersonGroups((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -195,22 +238,34 @@ export default function TutorSchedule() {
         </button>
       </PageHeaderActions>
 
-      {/* Recurring slots this tutor is assigned to — a standing weekly reference,
-          managed by Program staff under Program > Schedule. */}
-      {mySlots.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-primary" /> My Recurring Slots
+      {/* Recurring slots this tutor is assigned to — the assignment itself is a
+          standing weekly reference managed by Program staff under Program >
+          Schedule, but the tutor can edit their own day preference (which days
+          they're willing to be assigned) right here. */}
+      <div className="bg-card border border-border rounded-xl p-4 max-w-sm">
+        <div className="flex items-center justify-between mb-2.5 gap-3">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <CalendarClock className="w-4 h-4 text-primary" /> Recurring Availability
           </h2>
+          <button
+            onClick={() => setDayPrefModal(true)}
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline font-mono"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Edit
+          </button>
+        </div>
+        {mySlots.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {mySlots.map((slot) => (
-              <span key={slot.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-muted text-foreground border border-border">
-                {slot.day} · {gradesSummary(slot.grades)} · {formatTime12h(slot.time)}
+              <span key={slot.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-muted text-foreground border border-border">
+                {slot.day} · {formatTime12h(slot.time)}
               </span>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-sm text-muted-foreground">Not currently assigned to a recurring slot.</p>
+        )}
+      </div>
 
       {/* Mode Tabs */}
       <div className="flex gap-1 border-b border-border">
@@ -229,8 +284,11 @@ export default function TutorSchedule() {
         ))}
       </div>
 
-      {/* Upcoming Sessions */}
-      <div className="bg-card border border-border rounded-xl p-5">
+      {/* Tab panel — Upcoming Sessions + Session History share one container per
+          mode, so switching In-Person/Online swaps both sections together instead
+          of only the list above while a separate card underneath stays put. */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="p-5">
         <h2 className="text-sm font-semibold text-foreground mb-4">Upcoming {mode === "online" ? "Online" : "In-Person"} Sessions</h2>
         {upcomingRows.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">No upcoming {mode === "online" ? "online" : "in-person"} sessions this week or next.</p>
@@ -239,21 +297,29 @@ export default function TutorSchedule() {
             {upcomingRows.map((row) => {
               if (row.kind === "projected") {
                 const { time } = formatSessionTime(row.date, row.slot.time);
+                const isThisWeek = row.date <= thisWeekEndISO;
                 return (
                   <div key={`${row.slot.id}-${row.date}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <GroupIcon className="w-4 h-4 text-primary" />
+                      <School className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">{gradesSummary(row.slot.grades)} Group</p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[11px] font-semibold text-foreground font-mono">{weekdayName(row.date)}</span>
                         <span className="text-[11px] text-muted-foreground font-mono">{time}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
                       <Clock className="w-3.5 h-3.5" /> {row.clock}
                     </div>
-                    <span className="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-1 rounded-full">Recurring · Not yet scheduled</span>
+                    <SessionStatusPill status={isThisWeek ? "scheduled" : "upcoming"} />
+                    <button
+                      onClick={() => skipOccurrence(row.slot.id, row.date)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 );
               }
@@ -266,6 +332,7 @@ export default function TutorSchedule() {
                     <p className="text-sm font-medium text-foreground">{s.student}</p>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <CourseTag course={s.course} />
+                      <span className="text-[11px] font-semibold text-foreground font-mono">{weekdayName(row.date)}</span>
                       <span className="text-[11px] text-muted-foreground font-mono">{s.time}</span>
                     </div>
                   </div>
@@ -283,22 +350,12 @@ export default function TutorSchedule() {
                     </button>
                   )}
                   {s.status !== "in-progress" && s.status !== "completed" && (
-                    canCancelSession(s) ? (
-                      <button
-                        onClick={() => removeSession(s.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    ) : (
-                      <button
-                        disabled
-                        title="Sessions can only be canceled at least 24 hours in advance"
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground border border-border opacity-50 cursor-not-allowed"
-                      >
-                        Cancel
-                      </button>
-                    )
+                    <button
+                      onClick={() => removeSession(s.id)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                    >
+                      Cancel
+                    </button>
                   )}
                 </div>
               );
@@ -307,8 +364,8 @@ export default function TutorSchedule() {
         )}
       </div>
 
-      {/* Session History Table */}
-      <div className="bg-card border border-border rounded-xl p-5">
+      {/* Session History */}
+      <div className="p-5 border-t border-border">
         <h2 className="text-sm font-semibold text-foreground mb-4">Session History</h2>
         {mode === "in-person" ? (
           <div className="overflow-x-auto">
@@ -323,49 +380,68 @@ export default function TutorSchedule() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {inPersonHistory.map((s) => {
-                  const attendance = attendanceForSession(s, sessions, attendanceSessions);
-                  const notes = noteEntries(attendance, students);
+                {inPersonHistoryGroups.map((group) => {
+                  const expanded = expandedInPersonGroups.has(group.key);
                   return (
-                    <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-2.5 pr-4 align-top">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <GroupIcon className="w-3.5 h-3.5 text-primary" />
+                    <Fragment key={group.key}>
+                      <tr
+                        onClick={() => toggleInPersonGroup(group.key)}
+                        className="cursor-pointer hover:bg-muted/30 transition-colors"
+                      >
+                        <td colSpan={5} className="py-2.5">
+                          <div className="flex items-center gap-2">
+                            <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-90" : ""}`} />
+                            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <GroupIcon className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <span className="font-medium text-foreground text-xs">{group.label}</span>
+                            <span className="text-[11px] font-mono text-muted-foreground">
+                              {group.sessions.length} session{group.sessions.length === 1 ? "" : "s"}
+                            </span>
                           </div>
-                          <span className="font-medium text-foreground text-xs">{groupLabel(s)}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground whitespace-nowrap align-top">{s.date} · {s.clock}</td>
-                      <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground align-top">{s.duration}m</td>
-                      <td className="py-2.5 pr-4 align-top">
-                        <SessionStatusPill status={s.status} />
-                      </td>
-                      <td className="py-2.5 max-w-xs align-top">
-                        {!attendance ? (
-                          <span className="text-xs text-muted-foreground">Not logged yet</span>
-                        ) : notes.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">No notes</span>
-                        ) : (
-                          <div className="space-y-1">
-                            {notes.slice(0, 2).map((n) => (
-                              <p key={n.studentId} className="text-xs text-muted-foreground truncate">
-                                <span className="font-medium text-foreground">{n.studentName}:</span> {n.note}
-                              </p>
-                            ))}
-                            <button type="button" onClick={() => setNotesModalSession(s)}
-                              className="text-[11px] font-mono text-primary hover:underline">
-                              {notes.length > 2 ? `+${notes.length - 2} more · View all` : "View all"}
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
+                      {expanded && group.sessions.map((s) => {
+                        const attendance = attendanceForSession(s, sessions, attendanceSessions);
+                        const notes = noteEntries(attendance, students);
+                        return (
+                          <tr key={s.id} className="bg-muted/10 hover:bg-muted/20 transition-colors">
+                            <td className="py-2 pl-11 pr-4 align-top">
+                              <CourseTag course={s.course} />
+                            </td>
+                            <td className="py-2 pr-4 font-mono text-xs text-muted-foreground whitespace-nowrap align-top">{s.date} · {s.clock}</td>
+                            <td className="py-2 pr-4 font-mono text-xs text-muted-foreground align-top">{s.duration}m</td>
+                            <td className="py-2 pr-4 align-top">
+                              <SessionStatusPill status={s.status} />
+                            </td>
+                            <td className="py-2 max-w-xs align-top">
+                              {!attendance ? (
+                                <span className="text-xs text-muted-foreground">Not logged yet</span>
+                              ) : notes.length === 0 ? (
+                                <span className="text-xs text-muted-foreground">No notes</span>
+                              ) : (
+                                <div className="space-y-1">
+                                  {notes.slice(0, 2).map((n) => (
+                                    <p key={n.studentId} className="text-xs text-muted-foreground truncate">
+                                      <span className="font-medium text-foreground">{n.studentName}:</span> {n.note}
+                                    </p>
+                                  ))}
+                                  <button type="button" onClick={() => setNotesModalSession(s)}
+                                    className="text-[11px] font-mono text-primary hover:underline">
+                                    {notes.length > 2 ? `+${notes.length - 2} more · View all` : "View all"}
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
                   );
                 })}
               </tbody>
             </table>
-            {inPersonHistory.length === 0 && (
+            {inPersonHistoryGroups.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">No past in-person sessions yet.</p>
             )}
           </div>
@@ -383,29 +459,50 @@ export default function TutorSchedule() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {history.map((h, i) => (
-                  <tr key={i} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-2.5 pr-4">
-                      <div className="flex items-center gap-2">
-                        <Avatar name={h.studentName} size={7} />
-                        <span className="font-medium text-foreground text-xs">{h.studentName}</span>
-                      </div>
-                    </td>
-                    <td className="py-2.5 pr-4">
-                      <CourseTag course={h.course} />
-                    </td>
-                    <td className={`py-2.5 pr-4 font-mono font-semibold text-xs ${scoreCls(h.score)}`}>{h.score}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.date}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{h.duration}m</td>
-                    <td className="py-2.5">
-                      <SessionArtifacts artifacts={h.artifacts} />
-                    </td>
-                  </tr>
-                ))}
+                {onlineHistoryGroups.map(({ student, records }) => {
+                  const expanded = expandedOnlineGroups.has(student.id);
+                  return (
+                    <Fragment key={student.id}>
+                      <tr
+                        onClick={() => toggleOnlineGroup(student.id)}
+                        className="cursor-pointer hover:bg-muted/30 transition-colors"
+                      >
+                        <td colSpan={6} className="py-2.5">
+                          <div className="flex items-center gap-2">
+                            <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-90" : ""}`} />
+                            <Avatar name={student.name} size={7} />
+                            <span className="font-medium text-foreground text-xs">{student.name}</span>
+                            <span className="text-[11px] font-mono text-muted-foreground">
+                              {records.length} session{records.length === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                      {expanded && records.map((h, i) => (
+                        <tr key={i} className="bg-muted/10 hover:bg-muted/20 transition-colors">
+                          <td className="py-2 pl-11"></td>
+                          <td className="py-2 pr-4">
+                            <CourseTag course={h.course} />
+                          </td>
+                          <td className={`py-2 pr-4 font-mono font-semibold text-xs ${scoreCls(h.score)}`}>{h.score}</td>
+                          <td className="py-2 pr-4 font-mono text-xs text-muted-foreground">{h.date}</td>
+                          <td className="py-2 pr-4 font-mono text-xs text-muted-foreground">{h.duration}m</td>
+                          <td className="py-2">
+                            <SessionArtifacts artifacts={h.artifacts} />
+                          </td>
+                        </tr>
+                      ))}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
+            {onlineHistoryGroups.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No past online sessions yet.</p>
+            )}
           </div>
         )}
+      </div>
       </div>
 
       {notesModalSession && (() => {
@@ -425,6 +522,9 @@ export default function TutorSchedule() {
           course={activeSession.course}
           onClose={() => setActiveSession(null)}
         />
+      )}
+      {dayPrefModal && currentTutor && (
+        <EditDayPreferenceModal tutor={currentTutor} onClose={() => setDayPrefModal(false)} />
       )}
     </div>
   );
