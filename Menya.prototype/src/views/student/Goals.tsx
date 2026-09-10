@@ -40,71 +40,61 @@ export default function Goals() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-card border border-border rounded-xl divide-y divide-border">
           {goals.map((g) => {
             const { current, target, pct } = goalProgress(g, { studyDaysThisWeek, sessionsThisWeek });
             return (
-              <div key={g.id} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs font-mono text-muted-foreground leading-snug">{goalLabel(g)}</p>
-                  <button onClick={() => removeGoal(g.id)} aria-label="Remove goal"
-                    className="text-muted-foreground hover:text-red-600 transition-colors flex-shrink-0">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+              <div key={g.id} className="flex items-center gap-4 px-5 py-3.5">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <p className="text-sm font-medium text-foreground truncate">{goalLabel(g)}</p>
+                    <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">{current}/{target} this week</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all bg-brand-amber" style={{ width: `${pct}%` }} />
+                  </div>
                 </div>
-                <p className="text-4xl font-display font-bold leading-none text-primary">{pct}%</p>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all bg-primary" style={{ width: `${pct}%` }} />
-                </div>
-                <div className="flex justify-between text-[11px] font-mono text-muted-foreground">
-                  <span>{current} this week</span>
-                  <span>Target: {target}/week</span>
-                </div>
+                <p className="text-lg font-display font-bold text-primary w-12 text-right flex-shrink-0">{pct}%</p>
+                <button onClick={() => removeGoal(g.id)} aria-label="Remove goal"
+                  className="text-muted-foreground hover:text-red-600 transition-colors flex-shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Earned Achievements */}
+      {/* Achievements — an inline badge strip rather than a card per achievement,
+          so a full trophy case reads as one compact shelf instead of a grid of
+          near-empty tiles. */}
       <div className="bg-card border border-border rounded-xl p-5">
         <h2 className="text-sm font-semibold text-foreground mb-4">
-          Achievements Earned
-          <span className="ml-2 text-xs font-mono text-muted-foreground">({earnedAchievements.length}/{achievements.length})</span>
+          Achievements
+          <span className="ml-2 text-xs font-mono text-muted-foreground">({earnedAchievements.length}/{achievements.length} earned)</span>
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="flex flex-wrap gap-2">
           {earnedAchievements.map((a) => (
-            <div key={a.id} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/30 border border-border text-center">
+            <div key={a.id} className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-border bg-muted/30">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center"
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `${a.color}18` }}
               >
-                <a.Icon className="w-5 h-5" style={{ color: a.color }} />
+                <a.Icon className="w-3.5 h-3.5" style={{ color: a.color }} />
               </div>
-              <p className="text-[11px] font-medium text-foreground leading-tight">{a.label}</p>
-              <p className="text-[10px] font-mono text-emerald-600">Earned ✓</p>
+              <span className="text-xs font-medium text-foreground">{a.label}</span>
+            </div>
+          ))}
+          {lockedAchievements.map((a) => (
+            <div key={a.id} className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-border bg-muted/10 opacity-50">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-muted">
+                <a.Icon className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">{a.label}</span>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Locked Achievements */}
-      {lockedAchievements.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Locked</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 opacity-50">
-            {lockedAchievements.map((a) => (
-              <div key={a.id} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/20 border border-border text-center">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-muted">
-                  <a.Icon className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <p className="text-[11px] font-medium text-muted-foreground leading-tight">{a.label}</p>
-                <p className="text-[10px] font-mono text-muted-foreground">Locked</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {addOpen && <AddGoalModal onSave={addGoal} onClose={() => setAddOpen(false)} />}
     </div>

@@ -429,7 +429,7 @@ export default function ModuleWorkspace() {
               <span className="text-xs font-mono font-semibold text-foreground">{xp}/{maxXp}</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${maxXp ? Math.min(100, (xp / maxXp) * 100) : 0}%` }} />
+              <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${maxXp ? Math.min(100, (xp / maxXp) * 100) : 0}%` }} />
             </div>
           </div>
         </div>
@@ -446,9 +446,19 @@ export default function ModuleWorkspace() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
         {/* Content / Exercises modes — only one focus at a time */}
         <Tabs value={mode} onValueChange={(v) => setMode(v as "content" | "exercises")}>
-          <TabsList>
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="exercises">Exercises</TabsTrigger>
+          <TabsList className="bg-transparent p-0 h-auto w-full justify-start gap-1 rounded-none border-b border-border">
+            <TabsTrigger
+              value="content"
+              className="flex-none rounded-t-lg rounded-b-none border-0 border-b-2 border-transparent -mb-px px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground"
+            >
+              Content
+            </TabsTrigger>
+            <TabsTrigger
+              value="exercises"
+              className="flex-none rounded-t-lg rounded-b-none border-0 border-b-2 border-transparent -mb-px px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground"
+            >
+              Exercises
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="content" className="space-y-5 mt-4">

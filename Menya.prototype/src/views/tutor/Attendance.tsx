@@ -10,7 +10,7 @@ import { useTutors } from "../../context/TutorsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { studentsForAttendanceScope, attendanceRate, getTutorById, CURRENT_TUTOR_ID } from "../../data";
-import { parseGroupLabel, gradesSummary, attendanceForSession, formatTime12h, formatSessionTime } from "../../lib/constants";
+import { parseGroupLabel, gradesSummary, attendanceForSession, formatTime12h, formatSessionTime, shortDate } from "../../lib/constants";
 import type { Session, AttendanceMark, AttendanceEntry, AttendanceSession, Student, Tutor } from "../../types";
 import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
 
@@ -339,9 +339,10 @@ export default function TutorAttendance() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{gradesSummary(slot.grades)} Group</p>
                   <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground font-mono">
-                    <CalendarClock className="w-3 h-3" /> {slot.day} · {formatTime12h(slot.time)} · not yet scheduled
+                    <CalendarClock className="w-3 h-3" /> {slot.day}, {shortDate(todayISO)} · {formatTime12h(slot.time)}
                   </div>
                 </div>
+                <SessionStatusPill status="scheduled" />
                 <button
                   onClick={() => takeAttendanceForSlot(slot)}
                   className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"

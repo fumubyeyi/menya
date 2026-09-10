@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { Clock, Plus, CalendarClock, Users as GroupIcon, School, X, Pencil, ChevronRight } from "lucide-react";
+import { Clock, Plus, Users as GroupIcon, School, X, ChevronRight } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
 import Avatar from "../../components/Avatar";
@@ -7,7 +7,6 @@ import CourseTag from "../../components/CourseTag";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import SessionArtifacts from "../../components/SessionArtifacts";
-import EditDayPreferenceModal from "../../components/EditDayPreferenceModal";
 import { useSessions } from "../../context/SessionsContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTutors } from "../../context/TutorsContext";
@@ -15,7 +14,7 @@ import { useStudents } from "../../context/StudentsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { getTutorStudents, studentSessionHistory, getTutorById, CURRENT_TUTOR_ID } from "../../data";
-import { formatTime12h, gradesSummary, parseGroupLabel, attendanceForSession, nextDateForWeekday, formatSessionTime, weekdayName, PREFERENCE_DAYS } from "../../lib/constants";
+import { gradesSummary, parseGroupLabel, attendanceForSession, nextDateForWeekday, formatSessionTime, weekdayName, shortDate, PREFERENCE_DAYS } from "../../lib/constants";
 import { mondayOf, toISODate } from "../program/Schedule";
 import type { AttendanceSession, Student } from "../../types";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
@@ -108,7 +107,6 @@ export default function TutorSchedule() {
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [notesModalSession, setNotesModalSession] = useState<Session | null>(null);
-  const [dayPrefModal, setDayPrefModal] = useState(false);
   const currentTutor = getTutorById(tutors, tutorId);
   const tutorStudents = getTutorStudents(tutorId);
 
@@ -238,35 +236,6 @@ export default function TutorSchedule() {
         </button>
       </PageHeaderActions>
 
-      {/* Recurring slots this tutor is assigned to — the assignment itself is a
-          standing weekly reference managed by Program staff under Program >
-          Schedule, but the tutor can edit their own day preference (which days
-          they're willing to be assigned) right here. */}
-      <div className="bg-card border border-border rounded-xl p-4 max-w-sm">
-        <div className="flex items-center justify-between mb-2.5 gap-3">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-primary" /> Recurring Availability
-          </h2>
-          <button
-            onClick={() => setDayPrefModal(true)}
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline font-mono"
-          >
-            <Pencil className="w-3.5 h-3.5" /> Edit
-          </button>
-        </div>
-        {mySlots.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {mySlots.map((slot) => (
-              <span key={slot.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-muted text-foreground border border-border">
-                {slot.day} · {formatTime12h(slot.time)}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Not currently assigned to a recurring slot.</p>
-        )}
-      </div>
-
       {/* Mode Tabs */}
       <div className="flex gap-1 border-b border-border">
         {MODES.map(({ key, label }) => (
@@ -296,27 +265,23 @@ export default function TutorSchedule() {
           <div className="divide-y divide-border">
             {upcomingRows.map((row) => {
               if (row.kind === "projected") {
-                const { time } = formatSessionTime(row.date, row.slot.time);
                 const isThisWeek = row.date <= thisWeekEndISO;
                 return (
-                  <div key={`${row.slot.id}-${row.date}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <div key={`${row.slot.id}-${row.date}`} className="grid grid-cols-[2.25rem_1fr_10.5rem_3.5rem_6.5rem_5.5rem] items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <School className="w-4 h-4 text-primary" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{gradesSummary(row.slot.grades)} Group</p>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span className="text-[11px] font-semibold text-foreground font-mono">{weekdayName(row.date)}</span>
-                        <span className="text-[11px] text-muted-foreground font-mono">{time}</span>
-                      </div>
+                    <p className="text-sm font-medium text-foreground truncate">{gradesSummary(row.slot.grades)} Group</p>
+                    <div className="flex items-center gap-1.5 text-xs font-mono whitespace-nowrap">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="font-semibold text-foreground">{weekdayName(row.date)}, {shortDate(row.date)}</span>
+                      <span className="text-muted-foreground">· {row.clock}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-                      <Clock className="w-3.5 h-3.5" /> {row.clock}
-                    </div>
+                    <span />
                     <SessionStatusPill status={isThisWeek ? "scheduled" : "upcoming"} />
                     <button
                       onClick={() => skipOccurrence(row.slot.id, row.date)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                      className="justify-self-start px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
                     >
                       Cancel
                     </button>
@@ -326,37 +291,37 @@ export default function TutorSchedule() {
 
               const s = row.session;
               return (
-                <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <div key={s.id} className="grid grid-cols-[2.25rem_1fr_10.5rem_3.5rem_6.5rem_5.5rem] items-center gap-3 py-3 first:pt-0 last:pb-0">
                   <Avatar name={s.student} size={9} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{s.student}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <CourseTag course={s.course} />
-                      <span className="text-[11px] font-semibold text-foreground font-mono">{weekdayName(row.date)}</span>
-                      <span className="text-[11px] text-muted-foreground font-mono">{s.time}</span>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{s.student}</p>
+                    <CourseTag course={s.course} />
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-                    <Clock className="w-3.5 h-3.5" /> {s.clock}
+                  <div className="flex items-center gap-1.5 text-xs font-mono whitespace-nowrap">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                    <span className="font-semibold text-foreground">{weekdayName(row.date)}, {shortDate(row.date)}</span>
+                    <span className="text-muted-foreground">· {s.clock}</span>
                   </div>
-                  <span className="text-[11px] font-mono text-muted-foreground hidden sm:block">{s.duration}m</span>
+                  <span className="text-[11px] font-mono text-muted-foreground">{s.duration}m</span>
                   <SessionStatusPill status={s.status} />
-                  {s.status === "in-progress" && s.meetingId && (
-                    <button
-                      onClick={() => setActiveSession(s)}
-                      className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
-                    >
-                      Start
-                    </button>
-                  )}
-                  {s.status !== "in-progress" && s.status !== "completed" && (
-                    <button
-                      onClick={() => removeSession(s.id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  )}
+                  <div className="justify-self-start">
+                    {s.status === "in-progress" && s.meetingId && (
+                      <button
+                        onClick={() => setActiveSession(s)}
+                        className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        Start
+                      </button>
+                    )}
+                    {s.status !== "in-progress" && s.status !== "completed" && (
+                      <button
+                        onClick={() => removeSession(s.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -364,9 +329,11 @@ export default function TutorSchedule() {
         )}
       </div>
 
-      {/* Session History */}
-      <div className="p-5 border-t border-border">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Session History</h2>
+      {/* Session History — muted relative to Upcoming Sessions above so the
+          part a tutor actually needs to act on keeps visual priority; this is
+          reference material, not a call to action. */}
+      <div className="p-5 border-t border-border bg-muted/30">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-4">Session History</h2>
         {mode === "in-person" ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -522,9 +489,6 @@ export default function TutorSchedule() {
           course={activeSession.course}
           onClose={() => setActiveSession(null)}
         />
-      )}
-      {dayPrefModal && currentTutor && (
-        <EditDayPreferenceModal tutor={currentTutor} onClose={() => setDayPrefModal(false)} />
       )}
     </div>
   );

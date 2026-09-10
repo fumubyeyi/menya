@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router";
 import { CheckCircle2, Circle, ChevronRight, Settings2, BookPlus } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
 import ModuleStatusRow from "../../components/ModuleStatusRow";
@@ -8,7 +8,7 @@ import EnrollmentModal from "../../components/EnrollmentModal";
 import {
   studentCourseDetail, studentModules,
 } from "../../data";
-import { getCourseIcon, courseColor, chapterAction, courseCompletion } from "../../lib/constants";
+import { getCourseIcon, courseColor, chapterAction, courseCompletion, courseSlug } from "../../lib/constants";
 import { useEnrollment } from "../../hooks/useEnrollment";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import { useCurriculum } from "../../context/CurriculumContext";
@@ -35,6 +35,16 @@ export default function Learning() {
   const { courses: enrolledCourses, updateEnrollment } = useEnrollment();
   const { courses } = useCurriculum();
   const student = useCurrentStudent();
+  const location = useLocation();
+
+  // Deep-link support: Course Progress on Home links here as
+  // /student/learning#<course-slug> so a click on a course jumps straight to
+  // its card instead of just landing on the page.
+  useEffect(() => {
+    if (!location.hash) return;
+    const el = document.getElementById(location.hash.slice(1));
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [location.hash]);
 
   const knownDetails = studentCourseDetail[student.id] ?? [];
   const modules = studentModules[student.id] ?? [];
@@ -82,7 +92,7 @@ export default function Learning() {
           const completion = courseCompletion(courses, sd.course);
 
           return (
-            <div key={sd.course} className="bg-card border border-border rounded-xl overflow-hidden">
+            <div key={sd.course} id={courseSlug(sd.course)} className="bg-card border border-border rounded-xl overflow-hidden scroll-mt-20">
               {/* Colored top bar */}
               <div className="h-1.5 w-full" style={{ backgroundColor: color }} />
 
@@ -104,7 +114,7 @@ export default function Learning() {
                 </div>
 
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-4">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${completion}%`, backgroundColor: color }} />
+                  <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${completion}%` }} />
                 </div>
 
                 {/* Related modules */}

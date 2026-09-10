@@ -33,6 +33,17 @@ export const sessions: Session[] = [
   { id: 9,  student: "DeShawn Williams", tutorId: 5, course: "Pre-Calculus",  time: "Jun 22",   clock: "4:30 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   { id: 10, student: "Sofia Patel",      tutorId: 5, course: "Pre-Alg",       time: "Jun 23",   clock: "3:00 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   { id: 11, student: "DeShawn Williams", tutorId: 5, course: "Pre-Calculus",  time: "Today",    clock: "1:00 PM", duration: 60, status: "upcoming", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  // Real dated sessions (this week/next week) so Francoise's (tutorId 5) Home >
+  // Upcoming Sessions has more than just the two "Today" ones to show. IDs are
+  // deliberately far outside the normal 1-19 seed range — a browser that has
+  // already published real sessions (Notify Tutors / Add Session) via the live
+  // app has its own autoincrementing ids starting from the old max seed id, and
+  // a low seed id here could collide with one of those, silently losing this
+  // session to readSessions()'s "id already saved" backfill check.
+  { id: 9001, student: "DeShawn Williams", tutorId: 5, course: "Pre-Calculus",  date: "2026-09-11", time: "Sep 11", clock: "3:00 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 9002, student: "Sofia Patel",      tutorId: 5, course: "Pre-Alg",       date: "2026-09-12", time: "Sep 12", clock: "2:00 PM", duration: 45, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 9003, student: "Noah Fitzgerald",  tutorId: 5, course: "Calculus",      date: "2026-09-15", time: "Sep 15", clock: "4:00 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 9004, student: "DeShawn Williams", tutorId: 5, course: "Pre-Calculus",  date: "2026-09-16", time: "Sep 16", clock: "1:30 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   // In-person group sessions — same shape "Add Session"/Notify Tutors publish, but
   // pre-seeded with past dates so a tutor's Schedule > In-Person > Session History
   // isn't empty on first load.

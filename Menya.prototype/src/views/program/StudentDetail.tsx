@@ -138,7 +138,7 @@ export default function StudentDetail() {
                       <span className="text-lg font-display font-bold text-foreground">{sub.score}%</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden mb-2">
-                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${sub.score}%` }} />
+                      <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${sub.score}%` }} />
                     </div>
                     <p className="text-xs text-muted-foreground">{sub.sessions} sessions · Last: {sub.lastSession}</p>
                   </div>

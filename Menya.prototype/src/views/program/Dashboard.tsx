@@ -256,7 +256,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#708090" }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#F0981E" }} />
                 </div>
                 <span className="text-[11px] font-mono text-muted-foreground tabular-nums w-8 text-right shrink-0">{pct}%</span>
               </div>

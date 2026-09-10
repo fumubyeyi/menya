@@ -65,6 +65,12 @@ export function chapterAction(chapter: CurriculumChapter): { label: "Resume" | "
   return { label: "Completed" };
 }
 
+// Anchor id for a course's card on My Courses (Learning.tsx), e.g. "Algebra II"
+// -> "algebra-ii" — lets other pages deep-link straight to that course's card.
+export function courseSlug(course: string): string {
+  return course.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
 // Percentage of a course's modules (across every chapter) marked completed.
 export function courseCompletion(courses: CurriculumCourse[], course: string): number {
   const modules = courses.find((c) => c.name === course)?.chapters.flatMap((ch) => ch.modules) ?? [];
@@ -300,6 +306,13 @@ export function nextDateForWeekday(day: string, from: Date = new Date()): string
 // than a few days (e.g. this week + next week) still reads unambiguously.
 export function weekdayName(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", { weekday: "short" });
+}
+
+// "2026-09-09" -> "Sep 9" — the calendar date to pair with weekdayName above,
+// so a session row can read "Wed, Sep 9" instead of a bare weekday that repeats
+// every week.
+export function shortDate(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function formatSessionTime(dateStr: string, timeStr: string): { time: string; clock: string } {

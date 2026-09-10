@@ -203,7 +203,7 @@ export default function Students() {
                                     <td className="py-1.5">
                                       <div className="flex items-center gap-2">
                                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: "#708090" }} />
+                                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: "#F0981E" }} />
                                         </div>
                                         <span className="text-muted-foreground font-mono tabular-nums w-8 text-right shrink-0">{pct}%</span>
                                       </div>
