@@ -12,7 +12,7 @@ export default function PublicHeader() {
   return (
     <header className="flex items-center justify-between gap-3 flex-wrap px-4 sm:px-10 py-4 sm:py-5">
       <Link to="/about" className="flex items-center gap-2">
-        <img src="/menya_logo.ico" alt="" className="w-11 h-11 flex-shrink-0" />
+        <img src="/logo.svg" alt="" className="w-11 h-11 flex-shrink-0" />
         <span className="font-display font-bold text-foreground text-2xl leading-none">Menya</span>
       </Link>
       <div className="flex items-center gap-3 sm:gap-4 flex-wrap">

@@ -127,7 +127,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
         {/* Logo */}
         <div className="px-5 pt-5 pb-4 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/menya_logo.ico" alt="" className="w-11 h-11 flex-shrink-0" />
+            <img src="/logo.svg" alt="" className="w-11 h-11 flex-shrink-0" />
             <div className="leading-none">
               <span className="font-display font-bold text-sidebar-foreground text-lg block">Menya</span>
             </div>

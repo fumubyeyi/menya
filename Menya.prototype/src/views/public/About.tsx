@@ -9,6 +9,7 @@ import {
   CalendarCheck,
   ClipboardCheck,
   TrendingUp,
+  ZoomIn,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import PublicHeader from "../../components/PublicHeader";
@@ -22,14 +23,14 @@ const KEY_FEATURES = [
     role: "Students",
     img: "/preview-student.png",
     caption: "The student home — progress, streaks, and today's focus.",
-    tags: ["Course progress tracking", "Personal schedule", "Tutor-approved homework", "Badges & practice streaks"],
+    tags: ["Course progress tracking", "Personal schedule", "Program curriculum", "Badges & practice streaks"],
   },
   {
     Icon: UserCheck,
     role: "Tutors",
     img: "/preview-tutor.png",
     caption: "The tutor home — caseload, sessions, and assignment review.",
-    tags: ["Caseload visibility", "Full session history", "Personal scheduling", "AI-assisted assignments (with sign-off)"],
+    tags: ["Caseload visibility", "Full session history", "Personal scheduling", "AI-assisted curriculum library search"],
   },
   {
     Icon: LayoutDashboard,
@@ -39,7 +40,7 @@ const KEY_FEATURES = [
     tags: [
       "Org-wide dashboard",
       "Student roster & status",
-      "AI-assisted curriculum library",
+      "Curriculum library",
       "Analytics for funder reporting",
       "Alumni tracking",
     ],
@@ -61,7 +62,19 @@ function BrowserFrame({ src, alt }: { src: string; alt: string }) {
         <span className="w-2.5 h-2.5 rounded-full bg-primary/40" />
         <span className="ml-3 text-[11px] text-muted-foreground font-mono">app.menya.org/program/dashboard</span>
       </div>
-      <img src={src} alt={alt} className="w-full block" />
+      <div className="group/preview relative cursor-zoom-in">
+        <img src={src} alt={alt} className="w-full block" />
+        {/* Hover affordance on the thumbnail itself */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/preview:bg-black/25 transition-colors duration-200 pointer-events-none">
+          <div className="w-9 h-9 rounded-full bg-white/0 group-hover/preview:bg-white/95 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-all duration-200 scale-90 group-hover/preview:scale-100">
+            <ZoomIn className="w-4.5 h-4.5 text-foreground" />
+          </div>
+        </div>
+        {/* Large readable preview, shown on hover */}
+        <div className="hidden group-hover/preview:flex fixed inset-0 z-50 items-center justify-center bg-black/60 p-8 pointer-events-none">
+          <img src={src} alt={`${alt}, enlarged`} className="max-w-4xl w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -159,12 +172,28 @@ export default function About() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             {KEY_FEATURES.map(({ Icon, role, img, caption, tags }) => (
               <div key={role} className="bg-[#F4F3EF] border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                <div className="bg-white border-b border-border p-4">
-                  <img
-                    src={img}
-                    alt={`Menya ${role.toLowerCase()} view`}
-                    className="w-full rounded-lg border border-border aspect-[16/10] object-cover object-top"
-                  />
+                <div className="group/preview relative bg-white border-b border-border p-4 cursor-zoom-in">
+                  <div className="w-full rounded-lg border border-border aspect-[16/10] overflow-hidden">
+                    <img
+                      src={img}
+                      alt={`Menya ${role.toLowerCase()} view`}
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </div>
+                  {/* Hover affordance on the thumbnail itself */}
+                  <div className="absolute inset-4 rounded-lg flex items-center justify-center bg-black/0 group-hover/preview:bg-black/25 transition-colors duration-200 pointer-events-none">
+                    <div className="w-9 h-9 rounded-full bg-white/0 group-hover/preview:bg-white/95 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-all duration-200 scale-90 group-hover/preview:scale-100">
+                      <ZoomIn className="w-4.5 h-4.5 text-foreground" />
+                    </div>
+                  </div>
+                  {/* Large readable preview, shown on hover */}
+                  <div className="hidden group-hover/preview:flex fixed inset-0 z-50 items-center justify-center bg-black/60 p-8 pointer-events-none">
+                    <img
+                      src={img}
+                      alt={`Menya ${role.toLowerCase()} view, enlarged`}
+                      className="max-w-4xl w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+                    />
+                  </div>
                 </div>
                 <div className="p-6 flex flex-col gap-3 flex-1">
                   <div className="flex items-center gap-2.5">
