@@ -40,9 +40,10 @@ tags:
   - name: Attendance
     description: Tutor-led roll calls for a whole grade or course at once.
   - name: Schedule Notices
-  - name: Homework
-  - name: AI Projects
-    description: AI-generated practice, pending tutor review.
+  - name: Recurring Slots
+    description: Standing weekly in-person slot template (grade band, day, time, assigned tutors).
+  - name: Library Search
+    description: Tutor-initiated Curriculum Library search, pending tutor decision.
   - name: Alumni
   - name: Help Requests
 
@@ -250,9 +251,10 @@ paths:
       operationId: updateStudent
       summary: Update a student.
       description: >
-        `progress`, `streak`, and `sessionCount` are server-computed from
-        `SESSIONS` and read-only here — see the note on cached columns in
-        `database-schema.md`.
+        `progress` and `sessionCount` are server-computed from `SESSIONS`;
+        `streak` is server-computed from `/students/{studentId}/activity`
+        instead. All three are read-only here — see the note on cached
+        columns in `database-schema.md`.
       requestBody:
         required: true
         content:
@@ -323,6 +325,95 @@ paths:
       responses:
         "204": { description: Removed. }
         "404": { $ref: "#/components/responses/NotFound" }
+
+  /students/{studentId}/goals:
+    parameters:
+      - $ref: "#/components/parameters/StudentId"
+    get:
+      tags: [Students]
+      operationId: listStudentGoals
+      summary: This student's self-set goals (study-time or session-attendance).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/StudentGoal" }
+    post:
+      tags: [Students]
+      operationId: addStudentGoal
+      summary: Add a goal.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StudentGoalCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentGoal" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+
+  /students/{studentId}/goals/{goalId}:
+    parameters:
+      - $ref: "#/components/parameters/StudentId"
+      - name: goalId
+        in: path
+        required: true
+        schema: { type: integer }
+    delete:
+      tags: [Students]
+      operationId: removeStudentGoal
+      summary: Remove a goal.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /students/{studentId}/activity:
+    parameters:
+      - $ref: "#/components/parameters/StudentId"
+    get:
+      tags: [Students]
+      operationId: listStudentActivity
+      summary: This student's daily study/session-attendance log.
+      description: >
+        The source `streak`, weekly goal progress, and achievements are all
+        computed from — see the note on `STUDENT_ACTIVITY_ENTRIES` in
+        `database-schema.md`.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/StudentActivityEntry" }
+    post:
+      tags: [Students]
+      operationId: logStudentActivity
+      summary: Log today's study or session-attendance activity.
+      description: >
+        Idempotent per `(date, source)` — logging the same source again on
+        the same day is a no-op rather than a duplicate entry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source]
+              properties:
+                source: { $ref: "#/components/schemas/ActivitySource" }
+      responses:
+        "201":
+          description: Logged.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentActivityEntry" }
 
   # -------------------------------------------------------------- Tutors
   /tutors:
@@ -827,8 +918,12 @@ paths:
           schema: { $ref: "#/components/schemas/AttendanceScope" }
         - name: grade
           in: query
+          description: Match roll calls whose `grades` band includes this grade.
           schema: { type: integer }
         - name: courseId
+          in: query
+          schema: { type: integer }
+        - name: sessionId
           in: query
           schema: { type: integer }
         - name: dateFrom
@@ -846,8 +941,11 @@ paths:
       operationId: createAttendanceSession
       summary: Submit a roll call (the tutor's "Take Roll Call" action).
       description: >
-        `grade` and `courseId` are mutually exclusive, set by `scope` — see
-        the note on `ATTENDANCE_SESSIONS` in `database-schema.md`.
+        `grades` and `courseId` are mutually exclusive, set by `scope`.
+        `sessionId` is set when the roll call is taken directly against a
+        published `Session`; `slotId` instead when it's taken against a
+        `RecurringSlot` occurrence that hasn't been published as a session
+        yet — see the note on `ATTENDANCE_SESSIONS` in `database-schema.md`.
       requestBody:
         required: true
         content:
@@ -973,22 +1071,12 @@ paths:
               schema: { $ref: "#/components/schemas/ScheduleNotice" }
         "404": { $ref: "#/components/responses/NotFound" }
 
-  # ---------------------------------------------------------- Homework
-  /homework:
+  # --------------------------------------------------- Recurring Slots
+  /recurring-slots:
     get:
-      tags: [Homework]
-      operationId: listHomework
-      summary: List homework items.
-      parameters:
-        - name: studentId
-          in: query
-          schema: { type: integer }
-        - name: courseId
-          in: query
-          schema: { type: integer }
-        - name: status
-          in: query
-          schema: { $ref: "#/components/schemas/HomeworkStatus" }
+      tags: [Recurring Slots]
+      operationId: listRecurringSlots
+      summary: List the standing weekly slot template.
       responses:
         "200":
           description: OK
@@ -996,150 +1084,171 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/HomeworkItem" }
+                items: { $ref: "#/components/schemas/RecurringSlot" }
     post:
-      tags: [Homework]
-      operationId: assignHomework
-      summary: Assign homework to a student.
+      tags: [Recurring Slots]
+      operationId: createRecurringSlot
+      summary: Add a slot to the template.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/HomeworkItemCreate" }
-      responses:
-        "201":
-          description: Assigned.
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/HomeworkItem" }
-
-  /homework/{homeworkId}:
-    parameters:
-      - name: homeworkId
-        in: path
-        required: true
-        schema: { type: integer }
-    get:
-      tags: [Homework]
-      operationId: getHomework
-      summary: Get a homework item.
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/HomeworkItem" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    patch:
-      tags: [Homework]
-      operationId: updateHomework
-      summary: Update status/completion (typically the student's own progress).
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                status: { $ref: "#/components/schemas/HomeworkStatus" }
-                completion: { type: integer, minimum: 0, maximum: 100 }
-      responses:
-        "200":
-          description: Updated.
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/HomeworkItem" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    delete:
-      tags: [Homework]
-      operationId: deleteHomework
-      summary: Remove a homework item.
-      responses:
-        "204": { description: Deleted. }
-        "404": { $ref: "#/components/responses/NotFound" }
-
-  # -------------------------------------------------------- AI Projects
-  /ai-projects:
-    get:
-      tags: [AI Projects]
-      operationId: listAIProjects
-      summary: List AI-generated projects.
-      parameters:
-        - name: studentId
-          in: query
-          schema: { type: integer }
-        - name: status
-          in: query
-          schema: { $ref: "#/components/schemas/ProjectStatus" }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/AIProject" }
-    post:
-      tags: [AI Projects]
-      operationId: createAIProject
-      summary: Record a newly-generated AI project, queued for tutor review.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/AIProjectCreate" }
+            schema: { $ref: "#/components/schemas/RecurringSlotCreate" }
       responses:
         "201":
           description: Created.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AIProject" }
+              schema: { $ref: "#/components/schemas/RecurringSlot" }
 
-  /ai-projects/{projectId}:
+  /recurring-slots/{slotId}:
     parameters:
-      - name: projectId
-        in: path
+      - $ref: "#/components/parameters/SlotId"
+    patch:
+      tags: [Recurring Slots]
+      operationId: updateRecurringSlot
+      summary: Update a slot's day/time/grade band.
+      requestBody:
         required: true
-        schema: { type: integer }
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecurringSlotCreate" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecurringSlot" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Recurring Slots]
+      operationId: deleteRecurringSlot
+      summary: Remove the standing weekly commitment entirely.
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /recurring-slots/{slotId}/tutors/{tutorId}:
+    parameters:
+      - $ref: "#/components/parameters/SlotId"
+      - $ref: "#/components/parameters/TutorId"
+    put:
+      tags: [Recurring Slots]
+      operationId: assignSlotTutor
+      summary: Assign a tutor to this slot.
+      responses:
+        "200":
+          description: Assigned.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecurringSlot" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Recurring Slots]
+      operationId: unassignSlotTutor
+      summary: Unassign a tutor from this slot.
+      responses:
+        "200":
+          description: Unassigned.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecurringSlot" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /recurring-slots/{slotId}/skips:
+    parameters:
+      - $ref: "#/components/parameters/SlotId"
     get:
-      tags: [AI Projects]
-      operationId: getAIProject
-      summary: Get an AI project.
+      tags: [Recurring Slots]
+      operationId: listSkippedOccurrences
+      summary: Dates this slot's occurrence was cancelled without deleting the slot.
       responses:
         "200":
           description: OK
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AIProject" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    patch:
-      tags: [AI Projects]
-      operationId: reviewAIProject
-      summary: A tutor's review decision — approve, request revision, or reject.
+              schema:
+                type: array
+                items: { type: string, format: date }
+    post:
+      tags: [Recurring Slots]
+      operationId: skipOccurrence
+      summary: Cancel one projected (not-yet-published) occurrence.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [status]
+              required: [date]
               properties:
-                status: { $ref: "#/components/schemas/ProjectStatus" }
-                tutorNote: { type: string }
-                dueDate: { type: string, format: date }
+                date: { type: string, format: date }
+      responses:
+        "201": { description: Skipped. }
+
+  # ----------------------------------------------------- Library Search
+  /library-search-queries:
+    get:
+      tags: [Library Search]
+      operationId: listLibrarySearchQueries
+      summary: A tutor's Curriculum Library search history.
+      parameters:
+        - name: tutorId
+          in: query
+          schema: { type: integer }
+        - name: decision
+          in: query
+          schema: { $ref: "#/components/schemas/SearchDecision" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LibrarySearchQuery" }
+    post:
+      tags: [Library Search]
+      operationId: createLibrarySearchQuery
+      summary: Run a search, recording the prompt and its best-effort result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LibrarySearchQueryCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LibrarySearchQuery" }
+
+  /library-search-queries/{queryId}:
+    parameters:
+      - name: queryId
+        in: path
+        required: true
+        schema: { type: integer }
+    patch:
+      tags: [Library Search]
+      operationId: decideLibrarySearchQuery
+      summary: The tutor's decision — approve or reject a search result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { $ref: "#/components/schemas/SearchDecision" }
+                rejectNote: { type: string, nullable: true }
       responses:
         "200":
           description: Updated.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AIProject" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    delete:
-      tags: [AI Projects]
-      operationId: deleteAIProject
-      summary: Remove an AI project.
-      responses:
-        "204": { description: Deleted. }
+              schema: { $ref: "#/components/schemas/LibrarySearchQuery" }
         "404": { $ref: "#/components/responses/NotFound" }
 
   # -------------------------------------------------------------- Alumni
@@ -1383,6 +1492,12 @@ components:
       in: path
       required: true
       schema: { type: integer }
+    SlotId:
+      name: slotId
+      in: path
+      required: true
+      description: Natural/generated string key (e.g. `"Monday-6,7"`), not a surrogate int.
+      schema: { type: string }
 
   responses:
     NotFound:
@@ -1517,8 +1632,10 @@ components:
     AttendanceScope: { type: string, enum: [grade, course] }
     AttendanceMark: { type: string, enum: [present, absent] }
     SessionArtifactType: { type: string, enum: [notes, whiteboard] }
-    HomeworkStatus: { type: string, enum: [not-started, in-progress, submitted] }
-    ProjectStatus: { type: string, enum: [pending, approved, revision, rejected] }
+    StudentGoalType: { type: string, enum: [study-time, session-attendance] }
+    ActivitySource: { type: string, enum: [study, session] }
+    MatchStrength: { type: string, enum: [strong, weak, none] }
+    SearchDecision: { type: string, enum: [pending, approved, rejected] }
     ExitReason: { type: string, enum: [graduated, left-program] }
     AlumniOutcome:
       type: string
@@ -1607,7 +1724,7 @@ components:
     # ----------------------------------------------------------- Tutors
     Tutor:
       type: object
-      required: [id, firstName, lastName, courses, grades, studentCount, sessionCount, description]
+      required: [id, firstName, lastName, courses, grades, description]
       properties:
         id: { type: integer, readOnly: true }
         userId: { type: integer, nullable: true }
@@ -1621,9 +1738,16 @@ components:
           type: array
           items: { type: integer }
           description: Grades this tutor covers.
-        studentCount: { type: integer, readOnly: true, description: "Cached; derived from SESSIONS." }
-        sessionCount: { type: integer, readOnly: true }
         description: { type: string }
+        profession:
+          type: string
+          nullable: true
+          description: Day-job/background, shown on the tutor profile banner.
+        preferredDays:
+          type: array
+          items: { type: string }
+          nullable: true
+          description: Which day(s) this tutor prefers to run in-person sessions — self-service, set by the tutor on their own Schedule page.
         createdAt: { type: string, format: date-time, readOnly: true }
     TutorCreate:
       type: object
@@ -1634,6 +1758,7 @@ components:
         courses: { type: array, items: { type: string } }
         grades: { type: array, items: { type: integer } }
         description: { type: string }
+        profession: { type: string, nullable: true }
         userId: { type: integer, nullable: true }
     TutorUpdate:
       type: object
@@ -1643,6 +1768,8 @@ components:
         courses: { type: array, items: { type: string } }
         grades: { type: array, items: { type: integer } }
         description: { type: string }
+        profession: { type: string, nullable: true }
+        preferredDays: { type: array, items: { type: string }, nullable: true }
 
     # ------------------------------------------------------- Curriculum
     Course:
@@ -1820,6 +1947,7 @@ components:
         id: { type: integer, readOnly: true, description: "Surrogate id, not present in the prototype's client-side shape." }
         studentId: { type: integer }
         status: { $ref: "#/components/schemas/AttendanceMark" }
+        notes: { type: string, nullable: true, description: Per-student tutor note. }
 
     AttendanceSession:
       type: object
@@ -1828,8 +1956,14 @@ components:
         id: { type: integer, readOnly: true }
         tutorId: { type: integer }
         scope: { $ref: "#/components/schemas/AttendanceScope" }
-        grade: { type: integer, nullable: true, description: Set when scope = grade. }
+        grades:
+          type: array
+          items: { type: integer }
+          nullable: true
+          description: Set when scope = grade — the grade band covered, e.g. [6, 7].
         courseId: { type: integer, nullable: true, description: Set when scope = course. }
+        sessionId: { type: integer, nullable: true, description: Set when taken directly against a published Session. }
+        slotId: { type: string, nullable: true, description: Set when taken against a not-yet-published RecurringSlot occurrence. }
         date: { type: string, format: date }
         notes: { type: string, nullable: true }
         entries:
@@ -1842,8 +1976,10 @@ components:
       properties:
         tutorId: { type: integer }
         scope: { $ref: "#/components/schemas/AttendanceScope" }
-        grade: { type: integer, nullable: true }
+        grades: { type: array, items: { type: integer }, nullable: true }
         courseId: { type: integer, nullable: true }
+        sessionId: { type: integer, nullable: true }
+        slotId: { type: string, nullable: true }
         date: { type: string, format: date }
         notes: { type: string, nullable: true }
         entries:
@@ -1855,6 +1991,7 @@ components:
             properties:
               studentId: { type: integer }
               status: { $ref: "#/components/schemas/AttendanceMark" }
+              notes: { type: string, nullable: true }
 
     # -------------------------------------------------- Schedule Notices
     ScheduleNotice:
@@ -1864,6 +2001,11 @@ components:
         id: { type: integer, readOnly: true }
         tutorId: { type: integer }
         weekLabel: { type: string, example: "Aug 17 - Aug 23" }
+        weekStart:
+          type: string
+          format: date
+          nullable: true
+          description: Monday starting the week — lets Plan Week match a notice back to it reliably. Null on notices created before this field existed.
         sessionCount: { type: integer }
         createdAt: { type: string, format: date-time, readOnly: true }
         seen: { type: boolean, default: false }
@@ -1873,67 +2015,148 @@ components:
       properties:
         tutorId: { type: integer }
         weekLabel: { type: string }
+        weekStart: { type: string, format: date, nullable: true }
         sessionCount: { type: integer }
 
-    # ---------------------------------------------------------- Homework
-    HomeworkItem:
+    # ------------------------------------------------------ Student Goals
+    # A discriminated union, same shape as `StudentGoal` in types/index.ts —
+    # `minutesPerSession`/`timesPerWeek` and `targetPerWeek` are mutually
+    # exclusive, selected by `type`.
+    StudentGoal:
+      oneOf:
+        - $ref: "#/components/schemas/StudyTimeGoal"
+        - $ref: "#/components/schemas/SessionAttendanceGoal"
+      discriminator:
+        propertyName: type
+        mapping:
+          study-time: "#/components/schemas/StudyTimeGoal"
+          session-attendance: "#/components/schemas/SessionAttendanceGoal"
+    StudyTimeGoal:
       type: object
-      required: [id, studentId, courseId, assignedByTutorId, title, assignedAt, dueDate, status, completion]
+      required: [id, type, minutesPerSession, timesPerWeek, createdAt]
       properties:
         id: { type: integer, readOnly: true }
-        studentId: { type: integer }
-        courseId: { type: integer }
-        assignedByTutorId: { type: integer }
-        title: { type: string }
-        assignedAt: { type: string, format: date-time, readOnly: true }
-        dueDate: { type: string, format: date }
-        status:
-          allOf: [{ $ref: "#/components/schemas/HomeworkStatus" }]
-          default: not-started
-        completion: { type: integer, minimum: 0, maximum: 100, default: 0 }
-    HomeworkItemCreate:
+        type: { type: string, enum: [study-time] }
+        minutesPerSession: { type: integer }
+        timesPerWeek: { type: integer }
+        createdAt: { type: string, format: date-time, readOnly: true }
+    SessionAttendanceGoal:
       type: object
-      required: [studentId, courseId, assignedByTutorId, title, dueDate]
+      required: [id, type, targetPerWeek, createdAt]
       properties:
-        studentId: { type: integer }
-        courseId: { type: integer }
-        assignedByTutorId: { type: integer }
-        title: { type: string }
-        dueDate: { type: string, format: date }
+        id: { type: integer, readOnly: true }
+        type: { type: string, enum: [session-attendance] }
+        targetPerWeek: { type: integer }
+        createdAt: { type: string, format: date-time, readOnly: true }
+    StudentGoalCreate:
+      oneOf:
+        - $ref: "#/components/schemas/StudyTimeGoalCreate"
+        - $ref: "#/components/schemas/SessionAttendanceGoalCreate"
+      discriminator:
+        propertyName: type
+        mapping:
+          study-time: "#/components/schemas/StudyTimeGoalCreate"
+          session-attendance: "#/components/schemas/SessionAttendanceGoalCreate"
+    StudyTimeGoalCreate:
+      type: object
+      required: [type, minutesPerSession, timesPerWeek]
+      properties:
+        type: { type: string, enum: [study-time] }
+        minutesPerSession: { type: integer }
+        timesPerWeek: { type: integer }
+    SessionAttendanceGoalCreate:
+      type: object
+      required: [type, targetPerWeek]
+      properties:
+        type: { type: string, enum: [session-attendance] }
+        targetPerWeek: { type: integer }
 
-    # ------------------------------------------------------- AI Projects
-    AIProject:
+    StudentActivityEntry:
       type: object
-      required: [id, studentId, courseId, moduleTitle, title, difficulty, estimatedMins, status, generatedAt, aiNote, tasks]
+      required: [id, studentId, date, source]
+      description: >
+        One day's logged study or session-attendance activity — the source
+        `streak`, weekly goal progress, and achievements are computed from.
       properties:
         id: { type: integer, readOnly: true }
-        studentId: { type: integer }
-        courseId: { type: integer }
-        moduleTitle: { type: string, description: Denormalized reference into the curriculum. }
-        title: { type: string }
-        difficulty: { $ref: "#/components/schemas/Difficulty" }
-        estimatedMins: { type: integer }
-        status:
-          allOf: [{ $ref: "#/components/schemas/ProjectStatus" }]
-          default: pending
-        generatedAt: { type: string, format: date-time, readOnly: true }
-        aiNote: { type: string }
-        tasks: { type: array, items: { type: string } }
-        assignedAt: { type: string, format: date-time, nullable: true }
-        dueDate: { type: string, format: date, nullable: true }
-        tutorNote: { type: string, nullable: true }
-    AIProjectCreate:
+        studentId: { type: integer, readOnly: true }
+        date: { type: string, format: date }
+        source: { $ref: "#/components/schemas/ActivitySource" }
+
+    # ---------------------------------------------------- Recurring Slots
+    RecurringSlot:
       type: object
-      required: [studentId, courseId, moduleTitle, title, difficulty, estimatedMins, aiNote, tasks]
+      required: [id, day, time, grades, tutorIds]
       properties:
-        studentId: { type: integer }
-        courseId: { type: integer }
-        moduleTitle: { type: string }
-        title: { type: string }
-        difficulty: { $ref: "#/components/schemas/Difficulty" }
-        estimatedMins: { type: integer }
+        id:
+          type: string
+          readOnly: true
+          description: Natural/generated key (e.g. "Monday-6,7"), not a surrogate int.
+        day: { type: string, description: Weekday name. }
+        time: { type: string, example: "18:00" }
+        grades:
+          type: array
+          items: { type: integer }
+          description: Grade band covered, e.g. [6, 7].
+        tutorIds:
+          type: array
+          items: { type: integer }
+          readOnly: true
+          description: Manage via PUT/DELETE on /recurring-slots/{slotId}/tutors/{tutorId}.
+    RecurringSlotCreate:
+      type: object
+      required: [day, time, grades]
+      properties:
+        day: { type: string }
+        time: { type: string }
+        grades: { type: array, items: { type: integer } }
+
+    # ----------------------------------------------------- Library Search
+    LibrarySearchResult:
+      type: object
+      required: [matchStrength, aiNote, description, content, exercises]
+      description: >
+        A "strong" match surfaces a real authored module (`course`/
+        `chapterTitle`/`moduleTitle` populated); "weak"/"none" instead drafts
+        new practice content and doubles as a library-gap signal, leaving
+        those three null.
+      properties:
+        matchStrength: { $ref: "#/components/schemas/MatchStrength" }
+        course: { type: string, nullable: true }
+        chapterTitle: { type: string, nullable: true }
+        moduleTitle: { type: string, nullable: true }
+        difficulty:
+          allOf: [{ $ref: "#/components/schemas/Difficulty" }]
+          nullable: true
         aiNote: { type: string }
-        tasks: { type: array, items: { type: string } }
+        description: { type: string }
+        content: { type: array, items: { type: string } }
+        workedExample:
+          allOf: [{ $ref: "#/components/schemas/PracticeItemCreate" }]
+          nullable: true
+        exercises:
+          type: array
+          items: { $ref: "#/components/schemas/PracticeItemCreate" }
+    LibrarySearchQuery:
+      type: object
+      required: [id, tutorId, promptText, createdAt, result, decision]
+      properties:
+        id: { type: integer, readOnly: true }
+        tutorId: { type: integer }
+        promptText: { type: string }
+        createdAt: { type: string, format: date-time, readOnly: true }
+        result: { $ref: "#/components/schemas/LibrarySearchResult" }
+        decision:
+          allOf: [{ $ref: "#/components/schemas/SearchDecision" }]
+          default: pending
+        rejectNote: { type: string, nullable: true }
+    LibrarySearchQueryCreate:
+      type: object
+      required: [tutorId, promptText, result]
+      properties:
+        tutorId: { type: integer }
+        promptText: { type: string }
+        result: { $ref: "#/components/schemas/LibrarySearchResult" }
 
     # ------------------------------------------------------------ Alumni
     AlumniCheckIn:

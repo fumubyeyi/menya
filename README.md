@@ -43,7 +43,7 @@ session data underneath.
 - **My Home** — progress snapshot, streak, and achievements.
 - **My Courses** — enrolled courses and chapter/module progress.
 - **Module Workspace** — self-directed lessons with worked examples, auto-graded and free-response practice, inline diagrams (graphs, number lines, shapes, etc.), hints, and an in-module "I'm stuck" flag that raises a help request to their tutor.
-- **My Schedule** — upcoming sessions and assigned homework.
+- **My Schedule** — upcoming sessions, this student's recurring in-person slots, and session history.
 - **Goals & Achievements** — progress toward personal goals and earned badges.
 
 ### Public site
@@ -56,6 +56,14 @@ session data underneath.
 - Role-based auth with a program-staff/admin distinction (view-only staff vs. staff who can add/edit records).
 - Virtual sessions via embedded Zoom, or in-person sessions tracked the same way.
 - Client-side persistence (localStorage) over the same data shapes a real backend would use — see [`docs/schema/database-schema.md`](docs/schema/database-schema.md) for the relational model.
+
+## Architecture
+
+The prototype is client-only today; the diagram below is the target
+architecture for a production Menya deployment, from user traffic down to
+data storage and the surrounding external services.
+
+![Menya system architecture](docs/architecture/system%20architecture.png)
 
 ## Getting started
 

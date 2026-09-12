@@ -1,0 +1,30 @@
+%%{init: {'themeVariables': {'fontSize': '24px'}, 'flowchart': {'nodeSpacing': 50, 'rankSpacing': 55, 'padding': 12}}}%%
+flowchart TB
+  subgraph TOP[" "]
+    direction LR
+    USER["<b>user</b><br/>students&nbsp;·&nbsp;tutors&nbsp;·&nbsp;directors"] --> WEB["<b>Web App</b><br/>role-based&nbsp;access"]
+    WEB -->|"HTTPS&nbsp;/&nbsp;REST"| APPL["<b>Application Layer</b><br/>API&nbsp;+&nbsp;domain&nbsp;services"]
+    APPL -->|"reads&nbsp;/&nbsp;writes"| DATA["<b>Data Layer</b><br/>encrypted&nbsp;at&nbsp;rest"]
+  end
+
+  subgraph BOTTOM[" "]
+    direction LR
+    EXT["<b>External Services</b><br/>identity&nbsp;·&nbsp;email&nbsp;·&nbsp;AI&nbsp;provider&nbsp;·&nbsp;practice&nbsp;tools"] ~~~ OPS["<b>Azure Monitor</b><br/>logs&nbsp;·&nbsp;metrics&nbsp;·&nbsp;alerts"]
+  end
+
+  TOP -->|"identity,&nbsp;email,&nbsp;AI&nbsp;&nbsp;·&nbsp;&nbsp;logs&nbsp;&amp;&nbsp;metrics"| BOTTOM
+
+  classDef user fill:#E4EDF1,stroke:#2F4F4F,color:#2F4F4F;
+  classDef app fill:#2F4F4F,stroke:#2F4F4F,color:#FFFFFF;
+  classDef data fill:#FFFFFF,stroke:#4E5E65,color:#2F4F4F;
+  classDef ext fill:#FFFFFF,stroke:#90A4AE,color:#5E6B72,stroke-dasharray:3 3;
+  classDef ops fill:#E4EDF1,stroke:#4E5E65,color:#2F4F4F;
+  classDef wrapper fill:none,stroke:none;
+
+  class USER user;
+  class WEB data;
+  class APPL app;
+  class DATA data;
+  class EXT ext;
+  class OPS ops;
+  class TOP,BOTTOM wrapper;

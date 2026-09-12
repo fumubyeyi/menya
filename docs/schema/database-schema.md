@@ -8,49 +8,22 @@ tables.
 
 ## Entity-Relationship Diagram
 
+The full schema is 23 tables, too many to read as one diagram, so it's split
+below into six subject-area diagrams that roughly track the feature areas in
+the [top-level README](../../README.md). An entity is drawn with its full
+columns in the diagram it "belongs" to, and as a plain box (name only, no
+columns) anywhere else it's referenced, so you can still see how the areas
+connect without repeating every column.
+
+### Identity & Roles
+
+`USERS` is the login/auth record; `STUDENTS` and `TUTORS` are role profiles
+optionally linked back to one.
+
 ```mermaid
 erDiagram
     USERS ||--o| STUDENTS : "has profile"
     USERS ||--o| TUTORS : "has profile"
-    USERS ||--o{ ALUMNI : "assigned staff for"
-
-    STUDENTS ||--o{ SESSIONS : attends
-    TUTORS   ||--o{ SESSIONS : leads
-    COURSES  ||--o{ SESSIONS : covers
-    SESSIONS ||--o{ SESSION_ARTIFACTS : produces
-
-    TUTORS   ||--o{ ATTENDANCE_SESSIONS : "takes roll call for"
-    COURSES  ||--o{ ATTENDANCE_SESSIONS : "covers (course scope)"
-    ATTENDANCE_SESSIONS ||--o{ ATTENDANCE_ENTRIES : records
-    STUDENTS ||--o{ ATTENDANCE_ENTRIES : "marked in"
-
-    TUTORS ||--o{ SCHEDULE_NOTICES : "notified by"
-
-    STUDENTS ||--o{ ENROLLMENTS : enrolls
-    COURSES  ||--o{ ENROLLMENTS : "enrolled via"
-
-    TUTORS  ||--o{ TUTOR_COURSES : prefers
-    COURSES ||--o{ TUTOR_COURSES : "preferred by"
-    TUTORS  ||--o{ TUTOR_GRADES : prefers
-
-    COURSES  ||--o{ CHAPTERS : contains
-    CHAPTERS ||--o{ MODULES : contains
-    MODULES  ||--o{ PRACTICE_ITEMS : "exercises / worked example"
-    CHAPTERS ||--o{ PRACTICE_ITEMS : "chapter test"
-
-    STUDENTS ||--o{ HOMEWORK_ITEMS : "assigned to"
-    TUTORS   ||--o{ HOMEWORK_ITEMS : assigns
-    COURSES  ||--o{ HOMEWORK_ITEMS : "for course"
-
-    STUDENTS ||--o{ AI_PROJECTS : "generated for"
-    COURSES  ||--o{ AI_PROJECTS : "in course"
-
-    STUDENTS ||--o| ALUMNI : "becomes (optional)"
-    ALUMNI   ||--o{ ALUMNI_CHECK_INS : "tracked by"
-
-    STUDENTS ||--o{ HELP_REQUESTS : raises
-    COURSES  ||--o{ HELP_REQUESTS : "about course"
-    CHAPTERS ||--o{ HELP_REQUESTS : "about chapter"
 
     USERS {
         int      id PK
@@ -81,20 +54,33 @@ erDiagram
         string   first_name
         string   last_name
         text     description
-        int      student_count "cached"
-        int      session_count "cached"
+        string   profession "nullable; day-job/background shown on the tutor profile banner"
+        json     preferred_days "nullable; array of weekday names, self-service on the tutor's own Schedule page"
         datetime created_at
     }
+```
 
-    TUTOR_COURSES {
-        int tutor_id PK, FK
-        int course_id PK, FK
-    }
+### Curriculum & Enrollment
 
-    TUTOR_GRADES {
-        int tutor_id PK, FK
-        int grade PK
-    }
+The course/chapter/module library, students' course enrollment, tutors'
+course/grade coverage preferences, and the AI-assisted curriculum search
+tutors use to pull material into a session.
+
+```mermaid
+erDiagram
+    STUDENTS ||--o{ ENROLLMENTS : enrolls
+    COURSES  ||--o{ ENROLLMENTS : "enrolled via"
+
+    TUTORS  ||--o{ TUTOR_COURSES : prefers
+    COURSES ||--o{ TUTOR_COURSES : "preferred by"
+    TUTORS  ||--o{ TUTOR_GRADES : prefers
+
+    COURSES  ||--o{ CHAPTERS : contains
+    CHAPTERS ||--o{ MODULES : contains
+    MODULES  ||--o{ PRACTICE_ITEMS : "exercises / worked example"
+    CHAPTERS ||--o{ PRACTICE_ITEMS : "chapter test"
+
+    TUTORS ||--o{ LIBRARY_SEARCH_QUERIES : searches
 
     COURSES {
         int    id PK
@@ -143,6 +129,74 @@ erDiagram
         datetime enrolled_at
     }
 
+    TUTOR_COURSES {
+        int tutor_id PK, FK
+        int course_id PK, FK
+    }
+
+    TUTOR_GRADES {
+        int tutor_id PK, FK
+        int grade PK
+    }
+
+    LIBRARY_SEARCH_QUERIES {
+        int      id PK
+        int      tutor_id FK
+        text     prompt_text
+        datetime created_at
+        string   match_strength "strong | weak | none"
+        string   course "nullable; denormalized course name"
+        string   chapter_title "nullable"
+        string   module_title "nullable"
+        string   difficulty "nullable; Beginner | Intermediate | Advanced"
+        text     ai_note
+        text     description
+        json     content "array of drafted body text blocks"
+        json     worked_example "nullable; optional PracticeItem"
+        json     exercises "array of PracticeItem"
+        string   decision "pending | approved | rejected"
+        text     reject_note "nullable"
+    }
+```
+
+### Scheduling & Sessions
+
+The standing weekly `RECURRING_SLOTS` template, the batch-publish flow that
+turns a slot occurrence into a dated `SESSIONS` row (notifying tutors via
+`SCHEDULE_NOTICES`), and what a session itself tracks.
+
+```mermaid
+erDiagram
+    STUDENTS ||--o{ SESSIONS : attends
+    TUTORS   ||--o{ SESSIONS : leads
+    COURSES  ||--o{ SESSIONS : covers
+    SESSIONS ||--o{ SESSION_ARTIFACTS : produces
+
+    TUTORS ||--o{ SCHEDULE_NOTICES : "notified by"
+
+    RECURRING_SLOTS ||--o{ RECURRING_SLOT_TUTORS : assigns
+    TUTORS          ||--o{ RECURRING_SLOT_TUTORS : "assigned to"
+    RECURRING_SLOTS ||--o{ RECURRING_SLOT_SKIPS : "skipped on"
+    RECURRING_SLOTS ||--o{ ATTENDANCE_SESSIONS : "unpublished occurrence for"
+
+    RECURRING_SLOTS {
+        string id PK
+        string day "weekday name"
+        string time "HH:MM"
+        json   grades "array of ints — the grade band covered, e.g. [6, 7]"
+    }
+
+    RECURRING_SLOT_TUTORS {
+        string slot_id PK, FK
+        int    tutor_id PK, FK
+    }
+
+    RECURRING_SLOT_SKIPS {
+        int    id PK
+        string slot_id FK
+        date   date
+    }
+
     SESSIONS {
         int      id PK
         int      student_id FK
@@ -168,12 +222,40 @@ erDiagram
         string url
     }
 
+    SCHEDULE_NOTICES {
+        int      id PK
+        int      tutor_id FK
+        string   week_label "denormalized display range, e.g. 'Aug 17 - Aug 23'"
+        date     week_start "nullable; Monday starting the week, lets Plan Week match a notice back to it reliably"
+        int      session_count
+        datetime created_at
+        boolean  seen
+    }
+```
+
+### Attendance
+
+Roll call: one `ATTENDANCE_SESSIONS` row per tutor-led group or 1:1
+gathering, taken either against a published `SESSIONS` row or an
+unpublished `RECURRING_SLOTS` occurrence, with a per-student
+`ATTENDANCE_ENTRIES` mark underneath it.
+
+```mermaid
+erDiagram
+    TUTORS   ||--o{ ATTENDANCE_SESSIONS : "takes roll call for"
+    COURSES  ||--o{ ATTENDANCE_SESSIONS : "covers (course scope)"
+    SESSIONS ||--o| ATTENDANCE_SESSIONS : "roll call for"
+    ATTENDANCE_SESSIONS ||--o{ ATTENDANCE_ENTRIES : records
+    STUDENTS ||--o{ ATTENDANCE_ENTRIES : "marked in"
+
     ATTENDANCE_SESSIONS {
         int      id PK
         int      tutor_id FK
         string   scope "grade | course"
-        int      grade "nullable; set when scope = grade"
+        json     grades "nullable; set when scope = grade — the grade band covered, e.g. [6, 7]"
         int      course_id FK "nullable; set when scope = course"
+        int      session_id FK "nullable -> SESSIONS.id; roll call taken directly against a published session"
+        string   slot_id FK "nullable -> RECURRING_SLOTS.id; roll call taken against a not-yet-published slot occurrence"
         date     date
         text     notes
         datetime created_at
@@ -184,45 +266,65 @@ erDiagram
         int    attendance_session_id FK
         int    student_id FK
         string status "present | absent"
+        text   notes "nullable; per-student tutor note"
     }
+```
 
-    SCHEDULE_NOTICES {
+### Student Engagement
+
+A student's help requests to their tutor, self-set goals, and the daily
+activity log that streaks and goal progress are computed from.
+
+```mermaid
+erDiagram
+    STUDENTS ||--o{ HELP_REQUESTS : raises
+    COURSES  ||--o{ HELP_REQUESTS : "about course"
+    CHAPTERS ||--o{ HELP_REQUESTS : "about chapter"
+
+    STUDENTS ||--o{ STUDENT_GOALS : sets
+    STUDENTS ||--o{ STUDENT_ACTIVITY_ENTRIES : logs
+
+    HELP_REQUESTS {
         int      id PK
-        int      tutor_id FK
-        string   week_label "denormalized display range, e.g. 'Aug 17 - Aug 23'"
-        int      session_count
+        int      student_id FK
+        int      course_id FK
+        int      chapter_id FK
+        int      module_index "position within chapter; modules aren't independently addressable today"
+        text     note
         datetime created_at
-        boolean  seen
+        string   status "open | resolved"
+        datetime resolved_at
     }
 
-    HOMEWORK_ITEMS {
+    STUDENT_GOALS {
         int      id PK
         int      student_id FK
-        int      course_id FK
-        int      assigned_by_tutor_id FK
-        string   title
-        datetime assigned_at
-        date     due_date
-        string   status "not-started | in-progress | submitted"
-        int      completion "0-100"
+        string   type "study-time | session-attendance"
+        int      minutes_per_session "nullable; study-time only"
+        int      times_per_week "nullable; study-time only"
+        int      target_per_week "nullable; session-attendance only"
+        datetime created_at
     }
 
-    AI_PROJECTS {
-        int      id PK
-        int      student_id FK
-        int      course_id FK
-        string   module_title "denormalized reference into curriculum"
-        string   title
-        string   difficulty "Beginner | Intermediate | Advanced"
-        int      estimated_mins
-        string   status "pending | approved | revision | rejected"
-        datetime generated_at
-        text     ai_note
-        json     tasks "array of task strings"
-        datetime assigned_at
-        date     due_date
-        text     tutor_note
+    STUDENT_ACTIVITY_ENTRIES {
+        int    id PK
+        int    student_id FK
+        date   date
+        string source "study | session"
     }
+```
+
+### Alumni & Outcomes
+
+Post-program tracking: an optional link from a former student to their
+`ALUMNI` record, the staff member assigned to follow up, and dated
+`ALUMNI_CHECK_INS`.
+
+```mermaid
+erDiagram
+    USERS    ||--o{ ALUMNI : "assigned staff for"
+    STUDENTS ||--o| ALUMNI : "becomes (optional)"
+    ALUMNI   ||--o{ ALUMNI_CHECK_INS : "tracked by"
 
     ALUMNI {
         int     id PK
@@ -258,28 +360,21 @@ erDiagram
         string verification "self-reported | verified"
         text   note
     }
-
-    HELP_REQUESTS {
-        int      id PK
-        int      student_id FK
-        int      course_id FK
-        int      chapter_id FK
-        int      module_index "position within chapter; modules aren't independently addressable today"
-        text     note
-        datetime created_at
-        string   status "open | resolved"
-        datetime resolved_at
-    }
 ```
 
 ## Notes
 
-- **Cached/denormalized columns** (`STUDENTS.progress/streak/session_count`,
-  `TUTORS.student_count/session_count`) mirror fields the prototype stores
-  directly rather than computing on read. A real backend could instead derive
-  these with aggregate queries over `SESSIONS`; keeping them as columns is a
-  read-performance tradeoff for dashboard-heavy pages, refreshed by triggers
-  or a background job.
+- **Cached/denormalized columns** (`STUDENTS.progress/streak/session_count`)
+  mirror fields the prototype stores directly rather than computing on read.
+  `progress`/`session_count` could be derived with aggregate queries over
+  `SESSIONS`; `streak` is derived from `STUDENT_ACTIVITY_ENTRIES` instead — a
+  broader daily log covering both self-study and session-attendance days, not
+  just `SESSIONS` — since a streak should count a day the student studied on
+  their own too. Keeping all three as columns is a read-performance tradeoff
+  for dashboard-heavy pages, refreshed by triggers or a background job.
+  `TUTORS` has no equivalent cached counts today — the prototype computes a
+  tutor's caseload/session totals live from `SESSIONS` rather than storing
+  them.
 - **Enums** are written as string comments for portability; use native
   `ENUM`/`CHECK` constraints (Postgres) or a lookup table per enum, depending
   on the target database.
@@ -295,19 +390,59 @@ erDiagram
   surrogate `id` so `HELP_REQUESTS` and `PRACTICE_ITEMS` can reference a
   specific module directly instead of via `module_index`, except where
   `HELP_REQUESTS` still carries `module_index` to match today's app behavior.
-- **`ATTENDANCE_SESSIONS`** represents one in-person roll call a tutor takes
-  for an entire grade or course at once — distinct from `SESSIONS`, which is
-  always one tutor with one student. `grade` and `course_id` are mutually
-  exclusive, set by `scope`, the same pattern as `SESSIONS.meeting_id`/
-  `meeting_password` being set only for virtual sessions.
+- **`ATTENDANCE_SESSIONS`** represents one tutor-led roll call — an in-person
+  group (grade band or course) or a single 1:1 online session — distinct from
+  `SESSIONS`, which tracks the booking itself rather than who showed up.
+  `grades` and `course_id` are mutually exclusive, set by `scope`, the same
+  pattern as `SESSIONS.meeting_id`/`meeting_password` being set only for
+  virtual sessions. `session_id` is set when the roll call is taken directly
+  against a published `SESSIONS` row (the normal path — one card per session
+  on the tutor's Attendance page); `slot_id` is set instead when it's taken
+  against a `RECURRING_SLOTS` occurrence that hasn't been published as a real
+  session yet (the "log a custom roll call" fallback path). Both are nullable
+  and, in practice, mutually exclusive.
 - **`ATTENDANCE_ENTRIES`** has no natural id in the current TypeScript model
-  (an entry is just `{ student_id, status }` inside an `AttendanceSession`);
-  this schema adds a surrogate `id` for the same reason as `MODULES` above,
-  and a `(attendance_session_id, student_id)` unique constraint would enforce
-  one mark per student per roll call.
+  (an entry is just `{ student_id, status, notes? }` inside an
+  `AttendanceSession`); this schema adds a surrogate `id` for the same reason
+  as `MODULES` above, and a `(attendance_session_id, student_id)` unique
+  constraint would enforce one mark per student per roll call. `notes` is a
+  per-student comment a tutor can leave alongside the present/absent mark.
 - **`SCHEDULE_NOTICES`** is created one-per-tutor when program staff publish a
   batch of `SESSIONS` for an upcoming week (the "Plan Week" flow), so a
   tutor's notification bell can say "N new sessions" without joining across
-  every session in that batch. `week_label` is denormalized display text
-  rather than a `week_start`/`week_end` pair because the prototype only ever
-  renders it, never queries by date range.
+  every session in that batch. `week_label` stays denormalized display text
+  (e.g. "Aug 17 - Aug 23") for rendering; `week_start` was added alongside it
+  so the Plan Week page can reliably match a notice back to a specific week —
+  `week_label` alone has no year and isn't sortable. `week_start` is nullable
+  because notices created before that column existed predate it.
+- **`RECURRING_SLOTS`** is a standing weekly template ("most in-person
+  sessions land on the same recurring slot by grade band") — assigning a
+  tutor via `RECURRING_SLOT_TUTORS` just sets who's expected on that slot; it
+  only becomes a real dated `SESSIONS` row (and, from there, an
+  `ATTENDANCE_SESSIONS` row) once program staff publish that week's
+  occurrence. `id` is a natural/generated string key (e.g. `"Monday-6,7"`)
+  rather than a surrogate int, matching the prototype's client-generated ids.
+  `RECURRING_SLOT_SKIPS` records one cancelled projected occurrence (a
+  specific date a tutor skipped) without deleting the standing slot itself —
+  a `(slot_id, date)` unique constraint would enforce one skip per occurrence.
+- **`STUDENT_GOALS`** holds a student's self-set commitment — either a
+  self-study time goal or a session-attendance target. `minutes_per_session`/
+  `times_per_week` and `target_per_week` are mutually exclusive, set by
+  `type`, the same discriminated pattern as `ATTENDANCE_SESSIONS.grades`/
+  `course_id`. Progress toward a goal is computed live from
+  `STUDENT_ACTIVITY_ENTRIES`, not stored on the goal itself.
+- **`STUDENT_ACTIVITY_ENTRIES`** is the source-of-truth daily log ("did this
+  student study or attend a session today") that streaks, weekly goal
+  progress, and achievements are all computed from — the real-data
+  replacement for what used to be a static seeded streak. A
+  `(student_id, date, source)` unique constraint would enforce at most one
+  entry per source per day.
+- **`LIBRARY_SEARCH_QUERIES`** logs a tutor's Curriculum Library search
+  (prompt in, best-effort result out) along with their approve/reject
+  decision on it. The result is stored as a denormalized blob — `content`,
+  `worked_example`, `exercises` — the same simplification `MODULES.content`/
+  `diagram` make, rather than normalizing a drafted-but-maybe-never-approved
+  result into `PRACTICE_ITEMS`. A `"strong"` `match_strength` surfaces a real
+  authored module (`course`/`chapter_title`/`module_title` populated); a
+  `"weak"`/`"none"` match instead drafts new practice content and doubles as
+  a library-gap signal, leaving those three columns null.
