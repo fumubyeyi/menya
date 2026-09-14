@@ -9,9 +9,10 @@ import {
   CalendarCheck,
   ClipboardCheck,
   TrendingUp,
-  ZoomIn,
+  Expand,
+  X,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import PublicHeader from "../../components/PublicHeader";
 import Avatar from "../../components/Avatar";
 import { useAlumni } from "../../context/AlumniContext";
@@ -53,7 +54,19 @@ function Eyebrow({ children }: { children: ReactNode }) {
   );
 }
 
-function BrowserFrame({ src, alt }: { src: string; alt: string }) {
+function ExpandButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/90 border border-border shadow-sm flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-white transition-colors">
+      <Expand className="w-4 h-4" />
+    </button>
+  );
+}
+
+function BrowserFrame({ src, alt, onExpand }: { src: string; alt: string; onExpand: () => void }) {
   return (
     <div className="rounded-2xl border border-border bg-white shadow-xl overflow-hidden">
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-border bg-[#F1F4F5]">
@@ -62,19 +75,40 @@ function BrowserFrame({ src, alt }: { src: string; alt: string }) {
         <span className="w-2.5 h-2.5 rounded-full bg-primary/40" />
         <span className="ml-3 text-[11px] text-muted-foreground font-mono">app.menya.org/program/dashboard</span>
       </div>
-      <div className="group/preview relative cursor-zoom-in">
+      <div className="relative">
         <img src={src} alt={alt} className="w-full block" />
-        {/* Hover affordance on the thumbnail itself */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/preview:bg-black/25 transition-colors duration-200 pointer-events-none">
-          <div className="w-9 h-9 rounded-full bg-white/0 group-hover/preview:bg-white/95 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-all duration-200 scale-90 group-hover/preview:scale-100">
-            <ZoomIn className="w-4.5 h-4.5 text-foreground" />
-          </div>
-        </div>
-        {/* Large readable preview, shown on hover */}
-        <div className="hidden group-hover/preview:flex fixed inset-0 z-50 items-center justify-center bg-black/60 p-8 pointer-events-none">
-          <img src={src} alt={`${alt}, enlarged`} className="max-w-4xl w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
-        </div>
+        <ExpandButton onClick={onExpand} label={`Expand ${alt}`} />
       </div>
+    </div>
+  );
+}
+
+function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 sm:p-10"
+      onClick={onClose}>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close preview"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 w-9 h-9 rounded-full bg-white/95 flex items-center justify-center text-foreground hover:bg-white transition-colors">
+        <X className="w-4.5 h-4.5" />
+      </button>
+      <img
+        src={src}
+        alt={`${alt}, enlarged`}
+        onClick={(e) => e.stopPropagation()}
+        className="max-w-5xl w-full max-h-[88vh] object-contain rounded-xl shadow-2xl"
+      />
     </div>
   );
 }
@@ -82,6 +116,7 @@ function BrowserFrame({ src, alt }: { src: string; alt: string }) {
 export default function About() {
   const { alumni } = useAlumni();
   const featuredStory = alumni.find((a) => a.isSuccessStory && a.testimonial);
+  const [expanded, setExpanded] = useState<{ src: string; alt: string } | null>(null);
 
   return (
     <div className="min-h-screen bg-[#F1F4F5]" style={{ fontFamily: "Manrope, sans-serif" }}>
@@ -124,7 +159,11 @@ export default function About() {
             </div>
           </div>
           <div className="max-w-2xl lg:justify-self-end">
-            <BrowserFrame src="/preview-program.png" alt="Menya program director dashboard" />
+            <BrowserFrame
+              src="/preview-program.png"
+              alt="Menya program director dashboard"
+              onExpand={() => setExpanded({ src: "/preview-program.png", alt: "Menya program director dashboard" })}
+            />
             <p className="text-xs text-muted-foreground mt-3">
               The program director's view — every student, session, and outcome in one place.
             </p>
@@ -172,7 +211,7 @@ export default function About() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             {KEY_FEATURES.map(({ Icon, role, img, caption, tags }) => (
               <div key={role} className="bg-[#F4F3EF] border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                <div className="group/preview relative bg-white border-b border-border p-4 cursor-zoom-in">
+                <div className="relative bg-white border-b border-border p-4">
                   <div className="w-full rounded-lg border border-border aspect-[16/10] overflow-hidden">
                     <img
                       src={img}
@@ -180,20 +219,10 @@ export default function About() {
                       className="w-full h-full object-cover object-top"
                     />
                   </div>
-                  {/* Hover affordance on the thumbnail itself */}
-                  <div className="absolute inset-4 rounded-lg flex items-center justify-center bg-black/0 group-hover/preview:bg-black/25 transition-colors duration-200 pointer-events-none">
-                    <div className="w-9 h-9 rounded-full bg-white/0 group-hover/preview:bg-white/95 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-all duration-200 scale-90 group-hover/preview:scale-100">
-                      <ZoomIn className="w-4.5 h-4.5 text-foreground" />
-                    </div>
-                  </div>
-                  {/* Large readable preview, shown on hover */}
-                  <div className="hidden group-hover/preview:flex fixed inset-0 z-50 items-center justify-center bg-black/60 p-8 pointer-events-none">
-                    <img
-                      src={img}
-                      alt={`Menya ${role.toLowerCase()} view, enlarged`}
-                      className="max-w-4xl w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
-                    />
-                  </div>
+                  <ExpandButton
+                    onClick={() => setExpanded({ src: img, alt: `Menya ${role.toLowerCase()} view` })}
+                    label={`Expand Menya ${role.toLowerCase()} view`}
+                  />
                 </div>
                 <div className="p-6 flex flex-col gap-3 flex-1">
                   <div className="flex items-center gap-2.5">
@@ -263,6 +292,10 @@ export default function About() {
           <Mail className="w-3.5 h-3.5" />Request a pilot
         </Link>
       </div>
+
+      {expanded && (
+        <Lightbox src={expanded.src} alt={expanded.alt} onClose={() => setExpanded(null)} />
+      )}
     </div>
   );
 }
