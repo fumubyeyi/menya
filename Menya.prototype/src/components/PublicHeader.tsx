@@ -1,5 +1,12 @@
 import { Link, useNavigate } from "react-router";
-import { LogIn } from "lucide-react";
+import { LogIn, ChevronDown, UserCheck, GraduationCap } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../app/components/ui/dropdown-menu";
+import { GRADE_GROUPS, gradeGroupId } from "../lib/constants";
+
+// Demo grade band the kiosks always have a live session for (see SessionsContext's
+// demoTodaySessions) — lets this link work for anyone opening it cold, without first
+// needing a real session published for today.
+const DEMO_STUDENT_KIOSK_HREF = `/kiosk/students/grade/${gradeGroupId(GRADE_GROUPS[GRADE_GROUPS.length - 1])}`;
 
 // Shared header for every unauthenticated page (Login, About, Success Stories) —
 // previously each one duplicated its own version of this, so editing one (like
@@ -22,6 +29,25 @@ export default function PublicHeader() {
         <Link to="/contact" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
           Contact
         </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-primary transition-colors">
+              Check-In<ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link to="/kiosk/tutors" className="cursor-pointer">
+                <UserCheck />Tutor Check-In
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to={DEMO_STUDENT_KIOSK_HREF} className="cursor-pointer">
+                <GraduationCap />Student Check-In
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <button
           onClick={() => navigate("/login")}
           className="flex items-center gap-1.5 text-sm font-medium text-foreground border border-border px-4 py-2 rounded-lg hover:bg-white transition-colors"

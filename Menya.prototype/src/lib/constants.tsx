@@ -3,7 +3,8 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Flame, Trophy, Target, Star, BookMarked,
   GraduationCap, Briefcase, Shield, Clock, HelpCircle, BadgeCheck, MessageCircleMore,
 } from "lucide-react";
-import type { StudentStatus, Difficulty, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor, Session, AttendanceSession, MatchStrength, SearchDecision, LibrarySearchResult, StudentGoal } from "../types";
+import { studentsForAttendanceScope } from "../data";
+import type { StudentStatus, Difficulty, CurriculumCourse, CurriculumChapter, CurriculumModule, AlumniOutcome, FollowUpStatus, ExitReason, VerificationSource, PracticeItem, DiagramSpec, Tutor, Session, AttendanceSession, MatchStrength, SearchDecision, LibrarySearchResult, StudentGoal, Student } from "../types";
 
 // Math courses only, matching the Program > Curriculum library. Courses are
 // distinguished by icon alone now — one shared neutral slate, no per-course hue.
@@ -33,6 +34,21 @@ export const GRADE_GROUPS: number[][] = [[6, 7], [8, 9], [10, 11, 12]];
 // single-grade band so callers never have to null-check.
 export function gradeGroupFor(grade: number): number[] {
   return GRADE_GROUPS.find((band) => band.includes(grade)) ?? [grade];
+}
+
+// Stable per-band integer id for the app's fixed grade groups (just GRADE_GROUPS'
+// own index, 1-based) — used in the student kiosk's URL instead of a raw grade
+// list, so a room's bookmarked kiosk link is a plain id like "3" rather than a
+// %2C-encoded ("10%2C11%2C12") or dash-joined ("10-11-12") restating of the grades.
+export function gradeGroupId(grades: number[]): number {
+  const index = GRADE_GROUPS.findIndex((g) => sameGrades(g, grades));
+  return index === -1 ? -1 : index + 1;
+}
+
+// Reverse of gradeGroupId — resolves a kiosk URL's id back to the grade band it
+// names, or undefined if it doesn't match one of the app's defined groups.
+export function gradesForGroupId(id: number): number[] | undefined {
+  return GRADE_GROUPS[id - 1];
 }
 
 // Shared tutor-matching score used by both the booking flow and session
@@ -315,6 +331,26 @@ export function shortDate(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Builds the Session fields for a recurring slot's occurrence on a given date —
+// shared by "Take Attendance" (a tutor turning today's uncovered slot into a real
+// session) and the demo seed data below, so a slot always publishes into the same
+// shape of Session regardless of which of those two places does the publishing.
+export function sessionFieldsForSlot(slot: { grades: number[]; time: string }, tutorId: number, date: string): Omit<Session, "id"> {
+  const { time, clock } = formatSessionTime(date, slot.time);
+  return {
+    student: `${gradesSummary(slot.grades)} Group`,
+    tutorId,
+    course: "All Courses",
+    date,
+    time,
+    clock,
+    duration: 120,
+    status: "scheduled",
+    type: "tutoring",
+    location: "in-person",
+  };
+}
+
 export function formatSessionTime(dateStr: string, timeStr: string): { time: string; clock: string } {
   const target = new Date(`${dateStr}T${timeStr}`);
   const today = new Date();
@@ -351,6 +387,43 @@ export function attendanceForSession(session: Session, sessions: Session[], atte
   const key = sessionGroupKey(session);
   const siblingIds = new Set(sessions.filter((s) => sessionGroupKey(s) === key).map((s) => s.id));
   return attendanceSessions.find((a) => a.sessionId !== undefined && siblingIds.has(a.sessionId));
+}
+
+// A session's expected attendees — the one named student for an online 1:1, or the
+// whole grade band / course roster for an in-person group (reversed from the label
+// "Add Session" gave it, same as editing a group re-derives its original target).
+// Shared by the tutor's Attendance page and the classroom kiosk, which both need to
+// derive the same roster from a Session record.
+export function rosterForSession(session: Session, students: Student[]): Student[] {
+  if (session.location !== "in-person") {
+    const s = students.find((st) => st.name === session.student);
+    return s ? [s] : [];
+  }
+  const parsed = parseGroupLabel(session.student, session.course);
+  return parsed.scope === "grade"
+    ? studentsForAttendanceScope(students, "grade", parsed.grades.join(","))
+    : studentsForAttendanceScope(students, "course", parsed.courseValue);
+}
+
+export function sessionGroupLabel(session: Session): string {
+  if (session.location !== "in-person") return session.student;
+  const parsed = parseGroupLabel(session.student, session.course);
+  return parsed.scope === "grade" ? gradesSummary(parsed.grades) : parsed.courseValue;
+}
+
+// Local calendar date as YYYY-MM-DD — not toISOString()'s UTC one, which can roll
+// over a day early/late depending on the viewer's timezone.
+export function localISODate(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+// Grade bands are stored as-authored, not sorted, so two lists naming the same
+// band (e.g. a slot's [10,11,12] vs a URL param's [11,10,12]) need order-independent
+// comparison — shared by the tutor's Attendance page and the student kiosk, which
+// both need to match a grade band against one already on hand.
+export function sameGrades(a: number[], b: number[]): boolean {
+  return a.length === b.length && [...a].sort().every((g, i) => g === [...b].sort()[i]);
 }
 
 // Status is derived from progress rather than hand-picked, so the two can't

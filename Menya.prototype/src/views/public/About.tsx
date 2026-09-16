@@ -12,9 +12,10 @@ import {
   Expand,
   X,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import PublicHeader from "../../components/PublicHeader";
 import Avatar from "../../components/Avatar";
+import Eyebrow from "../../components/Eyebrow";
 import { useAlumni } from "../../context/AlumniContext";
 import { alumniOutcomeMeta } from "../../lib/constants";
 
@@ -47,12 +48,6 @@ const KEY_FEATURES = [
     ],
   },
 ];
-
-function Eyebrow({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-xs font-mono uppercase tracking-[0.18em] text-primary/70 mb-3">{children}</p>
-  );
-}
 
 function ExpandButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (

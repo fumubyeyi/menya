@@ -44,6 +44,10 @@ export interface AttendanceEntry {
   studentId: number;
   status: AttendanceMark;
   notes?: string;
+  // Set when the student self-checked in at their classroom's kiosk, rather than
+  // the tutor marking them present/absent after the fact — distinguishes a
+  // self-report from a tutor-logged mark on the same entry.
+  checkedInAt?: string;
 }
 
 // A tutor-led roll call covering a whole scheduled session at once — an in-person
@@ -67,6 +71,9 @@ export interface AttendanceSession {
   notes?: string;
   entries: AttendanceEntry[];
   createdAt: string;
+  // Set when the tutor checked in at the entrance kiosk for this session —
+  // separate from the per-student entries above, which track who showed up.
+  tutorCheckedInAt?: string;
 }
 
 export interface Session {

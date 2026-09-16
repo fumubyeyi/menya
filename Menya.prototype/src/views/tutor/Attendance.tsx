@@ -9,13 +9,10 @@ import { useStudents } from "../../context/StudentsContext";
 import { useTutors } from "../../context/TutorsContext";
 import { useAttendance } from "../../context/AttendanceContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
-import { studentsForAttendanceScope, attendanceRate, getTutorById, CURRENT_TUTOR_ID } from "../../data";
-import { parseGroupLabel, gradesSummary, attendanceForSession, formatTime12h, formatSessionTime, shortDate } from "../../lib/constants";
+import { attendanceRate, getTutorById, CURRENT_TUTOR_ID } from "../../data";
+import { parseGroupLabel, gradesSummary, attendanceForSession, rosterForSession, sessionGroupLabel, sameGrades, sessionFieldsForSlot, formatTime12h, shortDate } from "../../lib/constants";
 import type { Session, AttendanceMark, AttendanceEntry, AttendanceSession, Student, Tutor } from "../../types";
 import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
-
-const sameGrades = (a: number[], b: number[]) =>
-  a.length === b.length && [...a].sort().every((g, i) => g === [...b].sort()[i]);
 
 const MODES = [
   { key: "in-person", label: "In-Person" },
@@ -27,26 +24,6 @@ function rateCls(rate: number) {
   if (rate >= 90) return "text-emerald-700 bg-emerald-50";
   if (rate >= 75) return "text-amber-700 bg-amber-50";
   return "text-red-700 bg-red-50";
-}
-
-// A session's expected attendees — the one named student for an online 1:1, or the
-// whole grade band / course roster for an in-person group (reversed from the label
-// "Add Session" gave it, same as editing a group re-derives its original target).
-function rosterForSession(session: Session, students: Student[]): Student[] {
-  if (session.location !== "in-person") {
-    const s = students.find((st) => st.name === session.student);
-    return s ? [s] : [];
-  }
-  const parsed = parseGroupLabel(session.student, session.course);
-  return parsed.scope === "grade"
-    ? studentsForAttendanceScope(students, "grade", parsed.grades.join(","))
-    : studentsForAttendanceScope(students, "course", parsed.courseValue);
-}
-
-function groupLabel(session: Session): string {
-  if (session.location !== "in-person") return session.student;
-  const parsed = parseGroupLabel(session.student, session.course);
-  return parsed.scope === "grade" ? gradesSummary(parsed.grades) : parsed.courseValue;
 }
 
 interface SessionCardProps {
@@ -91,7 +68,7 @@ function SessionCard({ session, roster, existing, loggedByTutor, onSave, default
           <Avatar name={session.student} size={9} />
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground truncate">{groupLabel(session)}{isGroup ? " Group" : ""}</p>
+          <p className="text-sm font-medium text-foreground truncate">{sessionGroupLabel(session)}{isGroup ? " Group" : ""}</p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <CourseTag course={session.course} />
             <span className="text-[11px] text-muted-foreground font-mono">{session.time} · {session.clock}</span>
@@ -266,20 +243,9 @@ export default function TutorAttendance() {
   // created, it's real: it shows up on Program's Sessions view and this tutor's
   // own Schedule too, not just here.
   const takeAttendanceForSlot = (slot: (typeof recurringSlots)[number]) => {
-    const { time, clock } = formatSessionTime(todayISO, slot.time);
-    addSession({
-      student: `${gradesSummary(slot.grades)} Group`,
-      tutorId,
-      course: "All Courses",
-      date: todayISO,
-      time,
-      clock,
-      duration: 120,
-      status: "scheduled",
-      type: "tutoring",
-      location: "in-person",
-    });
-    setPendingExpandClock(clock);
+    const fields = sessionFieldsForSlot(slot, tutorId, todayISO);
+    addSession(fields);
+    setPendingExpandClock(fields.clock);
   };
 
   return (

@@ -5,6 +5,8 @@ import LoginView from "../views/auth/LoginView";
 import SuccessStories from "../views/public/SuccessStories";
 import About from "../views/public/About";
 import Contact from "../views/public/Contact";
+import TutorCheckInKiosk from "../views/kiosk/TutorCheckInKiosk";
+import StudentCheckInKiosk from "../views/kiosk/StudentCheckInKiosk";
 
 // Program views
 import ProgramDashboard  from "../views/program/Dashboard";
@@ -47,6 +49,8 @@ export const router = createBrowserRouter([
       { path: "/success-stories",  Component: SuccessStories },
       { path: "/about",            Component: About },
       { path: "/contact",          Component: Contact },
+      { path: "/kiosk/tutors",             Component: TutorCheckInKiosk },
+      { path: "/kiosk/students/:scope/:value", Component: StudentCheckInKiosk },
       { path: "/",                 element: <Navigate to="/about" replace /> },
 
       // Program Director routes

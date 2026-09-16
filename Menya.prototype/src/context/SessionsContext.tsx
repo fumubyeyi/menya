@@ -1,8 +1,31 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { sessions } from "../data";
+import { sessions, CURRENT_TUTOR_ID } from "../data";
+import { GRADE_GROUPS, sessionFieldsForSlot, localISODate } from "../lib/constants";
 import type { Session } from "../types";
 
 const SESSIONS_KEY = "menya:sessions";
+const DEMO_SESSION_TIME = "18:00";
+// One demo session per grade band, each with a tutor whose seed `grades` actually
+// cover it — so the front desk kiosk always has a few different tutors to check in
+// as, not just the one default tutor login. [10,11,12] keeps CURRENT_TUTOR_ID
+// (Francoise) so she still matches RecurringSlotsContext's own demoSlotForToday.
+const DEMO_TUTOR_BY_BAND: Record<string, number> = {
+  "6,7": 1,         // Jennifer Chen
+  "8,9": 4,         // Andrew Kim
+  "10,11,12": CURRENT_TUTOR_ID, // Francoise Umubyeyi
+};
+// Reserved negative ids for the demo rows above — Math.max(...) in addSessions
+// ignores them, so real sessions keep incrementing from the highest positive seed
+// id instead of jumping past them (same convention as AttendanceContext's demo rows).
+const DEMO_SESSION_IDS = GRADE_GROUPS.map((_, i) => -(i + 1));
+
+function demoTodaySessions(): Session[] {
+  const today = localISODate();
+  return GRADE_GROUPS.map((grades, i) => ({
+    id: DEMO_SESSION_IDS[i],
+    ...sessionFieldsForSlot({ grades, time: DEMO_SESSION_TIME }, DEMO_TUTOR_BY_BAND[grades.join(",")] ?? CURRENT_TUTOR_ID, today),
+  }));
+}
 
 // Same client-side-state-with-persistence pattern as CurriculumContext/AlumniContext
 // — see CurriculumContext.tsx for why this needs to be a context rather than a
@@ -16,12 +39,16 @@ function readSessions(): Session[] {
       // it already has, so nothing a user has since edited or removed gets clobbered.
       const savedIds = new Set(saved.map((s: Session) => s.id));
       const missingSeed = sessions.filter((s) => !savedIds.has(s.id));
-      return missingSeed.length > 0 ? [...saved, ...missingSeed] : saved;
+      // Drop any previously-saved copy of the demo rows before re-adding fresh ones —
+      // their dates need to track the real calendar, not whatever day it was the last
+      // time this browser saved state.
+      const withoutStaleDemo = [...saved, ...missingSeed].filter((s: Session) => !DEMO_SESSION_IDS.includes(s.id));
+      return [...withoutStaleDemo, ...demoTodaySessions()];
     }
   } catch {
     // fall through to seed data
   }
-  return sessions;
+  return [...sessions, ...demoTodaySessions()];
 }
 
 interface SessionsContextValue {
