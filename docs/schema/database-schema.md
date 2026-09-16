@@ -258,6 +258,7 @@ erDiagram
         string   slot_id FK "nullable -> RECURRING_SLOTS.id; roll call taken against a not-yet-published slot occurrence"
         date     date
         text     notes
+        datetime tutor_checked_in_at "nullable; set when the tutor checked in at the front desk kiosk"
         datetime created_at
     }
 
@@ -267,6 +268,7 @@ erDiagram
         int    student_id FK
         string status "present | absent"
         text   notes "nullable; per-student tutor note"
+        datetime checked_in_at "nullable; set when the student self-checked in at their group's kiosk"
     }
 ```
 
@@ -400,13 +402,19 @@ erDiagram
   on the tutor's Attendance page); `slot_id` is set instead when it's taken
   against a `RECURRING_SLOTS` occurrence that hasn't been published as a real
   session yet (the "log a custom roll call" fallback path). Both are nullable
-  and, in practice, mutually exclusive.
+  and, in practice, mutually exclusive. `tutor_checked_in_at` is stamped when
+  the tutor taps in at the front-desk check-in kiosk, which is also what
+  unlocks student self-check-in on that group's own kiosk — it records that the
+  tutor arrived on site, separately from the per-student marks below.
 - **`ATTENDANCE_ENTRIES`** has no natural id in the current TypeScript model
   (an entry is just `{ student_id, status, notes? }` inside an
   `AttendanceSession`); this schema adds a surrogate `id` for the same reason
   as `MODULES` above, and a `(attendance_session_id, student_id)` unique
   constraint would enforce one mark per student per roll call. `notes` is a
   per-student comment a tutor can leave alongside the present/absent mark.
+  `checked_in_at` is set only when the student checked themselves in at their
+  group's kiosk, so a self-reported arrival stays distinguishable from a mark
+  the tutor entered on their behalf afterward.
 - **`SCHEDULE_NOTICES`** is created one-per-tutor when program staff publish a
   batch of `SESSIONS` for an upcoming week (the "Plan Week" flow), so a
   tutor's notification bell can say "N new sessions" without joining across

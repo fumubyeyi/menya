@@ -49,7 +49,15 @@ session data underneath.
 ### Public site
 - **About** — the public landing page: mission, how Menya works, a featured alumni story, program stats, and a "Sign In" call to action into the app.
 - **Alumni Stories** — full wall of verified alumni success stories and outcomes.
-- Both share one header (logo, About, Alumni Stories, Sign In) so navigation stays consistent across every unauthenticated page, including the mobile view of the sign-in screen itself.
+- All share one header (logo, About, Contact, a Check-In menu into the kiosks below, Sign In) so navigation stays consistent across every unauthenticated page, including the mobile view of the sign-in screen itself.
+
+### Check-in kiosks
+
+Unauthenticated, tablet-facing screens for in-person sessions, reached from the public header's Check-In menu.
+- **Front desk** (`/kiosk/tutors`) — one shared kiosk at the site entrance listing today's in-person sessions; a tutor taps "Check In" on arrival, which stamps their arrival on that session's roll call.
+- **Group kiosk** (`/kiosk/students/grade/:groupId`, `/kiosk/students/course/:course`) — one per group, keyed to the grade band or course rather than a room, so the tablet can travel with the group and its bookmarked link survives the session being re-published each day. Students tap their own name to check in.
+- A group kiosk stays locked until that group's tutor has checked in at the front desk, so a room can't collect student check-ins with no tutor confirmed on site.
+- Both write into the same roll-call records the tutor sees on their Attendance page, and a kiosk check-in stays distinguishable from a present/absent mark the tutor entered after the fact.
 
 ### Cross-cutting
 - A notification bell (tutor role) surfaces newly-published weekly schedules ("N new sessions scheduled") alongside at-risk student alerts.

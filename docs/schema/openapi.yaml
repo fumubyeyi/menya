@@ -1948,6 +1948,7 @@ components:
         studentId: { type: integer }
         status: { $ref: "#/components/schemas/AttendanceMark" }
         notes: { type: string, nullable: true, description: Per-student tutor note. }
+        checkedInAt: { type: string, format: date-time, nullable: true, description: "Set when the student self-checked in at their group's kiosk, rather than being marked by the tutor afterward." }
 
     AttendanceSession:
       type: object
@@ -1966,6 +1967,7 @@ components:
         slotId: { type: string, nullable: true, description: Set when taken against a not-yet-published RecurringSlot occurrence. }
         date: { type: string, format: date }
         notes: { type: string, nullable: true }
+        tutorCheckedInAt: { type: string, format: date-time, nullable: true, description: "Set when the tutor checked in at the front desk kiosk for this session; also what unlocks student self-check-in on the group's kiosk." }
         entries:
           type: array
           items: { $ref: "#/components/schemas/AttendanceEntry" }
@@ -1982,6 +1984,7 @@ components:
         slotId: { type: string, nullable: true }
         date: { type: string, format: date }
         notes: { type: string, nullable: true }
+        tutorCheckedInAt: { type: string, format: date-time, nullable: true }
         entries:
           type: array
           minItems: 1
@@ -1992,6 +1995,7 @@ components:
               studentId: { type: integer }
               status: { $ref: "#/components/schemas/AttendanceMark" }
               notes: { type: string, nullable: true }
+              checkedInAt: { type: string, format: date-time, nullable: true }
 
     # -------------------------------------------------- Schedule Notices
     ScheduleNotice:
