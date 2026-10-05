@@ -68,7 +68,7 @@ function BrowserFrame({ src, alt, onExpand }: { src: string; alt: string; onExpa
         <span className="w-2.5 h-2.5 rounded-full bg-destructive/40" />
         <span className="w-2.5 h-2.5 rounded-full bg-accent/50" />
         <span className="w-2.5 h-2.5 rounded-full bg-primary/40" />
-        <span className="ml-3 text-[11px] text-muted-foreground font-mono">app.menya.org/program/dashboard</span>
+        <span className="ml-3 text-[11px] text-muted-foreground font-mono">app.menya.example.org/program/dashboard</span>
       </div>
       <div className="relative">
         <img src={src} alt={alt} className="w-full block" />

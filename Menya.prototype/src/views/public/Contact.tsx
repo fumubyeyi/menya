@@ -35,7 +35,7 @@ export default function Contact() {
               </div>
               <div>
                 <p className="font-display font-semibold text-foreground leading-tight">Françoise Umubyeyi</p>
-                <p className="text-sm text-muted-foreground">contact@menya.com</p>
+                <p className="text-sm text-muted-foreground">contact@menya.example.org</p>
               </div>
             </a>
             <a

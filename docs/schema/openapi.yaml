@@ -25,7 +25,7 @@ info:
     nested resource under `/students/{studentId}/enrollments`.
 
 servers:
-  - url: https://api.menya.org/v1
+  - url: https://api.menya.example.org/v1
     description: Placeholder — no live API exists yet; the prototype is client-only.
 
 tags:

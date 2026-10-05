@@ -56,8 +56,8 @@ const ROLE_HOME: Record<Role, string> = {
 };
 
 const PROGRAM_STAFF: Record<"staff" | "admin", { name: string; email: string }> = {
-  staff: { name: "Taylor Reed",    email: "taylor.reed@menya.org" },
-  admin: { name: "Jordan Alvarez", email: "jordan.alvarez@menya.org" },
+  staff: { name: "Taylor Reed",    email: "taylor.reed@menya.example.org" },
+  admin: { name: "Jordan Alvarez", email: "jordan.alvarez@menya.example.org" },
 };
 
 // ── Create Account Modal ──────────────────────────────────────────────────────
