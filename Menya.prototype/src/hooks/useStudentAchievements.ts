@@ -3,7 +3,7 @@ import { studentCourseDetail } from "../data";
 import { achievements, nextAchievement, courseCompletion } from "../lib/constants";
 import { useCurrentStudent } from "./useCurrentStudent";
 import { useStudentActivity } from "../context/StudentActivityContext";
-import { useCurriculum } from "../context/CurriculumContext";
+import { useStudentCurriculum } from "./useStudentCurriculum";
 
 // One source of truth for a student's badges, shared by My Journey and Goals
 // so the two pages can never disagree about what's earned.
@@ -14,7 +14,7 @@ import { useCurriculum } from "../context/CurriculumContext";
 // on the journey map and on My Courses.
 export function useStudentAchievements() {
   const student = useCurrentStudent();
-  const { courses: curriculumCourses } = useCurriculum();
+  const curriculumCourses = useStudentCurriculum();
   const { streak, sessionsAttendedTotal } = useStudentActivity();
 
   const courseDetails = studentCourseDetail[student.id] ?? [];

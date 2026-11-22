@@ -2,233 +2,62 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import confetti from "canvas-confetti";
 import {
-  ArrowLeft, CheckCircle2, XCircle, NotebookPen, Dumbbell, ClipboardCheck,
-  Lightbulb, RotateCcw, Flame, Trophy, Sparkles, PartyPopper, ChevronRight, ChevronLeft, Lock,
-  AlertTriangle, HelpCircle, BookOpen,
+  ArrowLeft, ArrowRight, CheckCircle2, NotebookPen, ClipboardCheck, RotateCcw, Flame, Trophy, Sparkles,
+  PartyPopper, ChevronRight, ChevronLeft, Lock, AlertTriangle, HelpCircle, BookOpen,
 } from "lucide-react";
 import CourseTag from "../../components/CourseTag";
-import Diagram from "../../components/diagrams";
 import ContentDrawer, { ModuleContentBody } from "../../components/ContentDrawer";
 import RequestHelpModal from "../../components/RequestHelpModal";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../app/components/ui/tabs";
+import PracticeCard, { emptyItem, normalizeItem, type ItemState } from "../../components/student/workspace/PracticeCard";
+import ModuleStepper, { type Step, type StepId } from "../../components/student/workspace/ModuleStepper";
+import ModuleComplete from "../../components/student/workspace/ModuleComplete";
 import { useCurriculum } from "../../context/CurriculumContext";
 import { useStudentActivity } from "../../context/StudentActivityContext";
-import { getCourseIcon, diffCls, getModuleContent, getChapterTest, isNumericAnswerCorrect } from "../../lib/constants";
+import { useStudentAchievements } from "../../hooks/useStudentAchievements";
+import { useModuleTime } from "../../hooks/useModuleTime";
+import { getCourseIcon, diffCls, getModuleContent, getChapterTest } from "../../lib/constants";
 import { subjectColor, subjectTint } from "../../lib/subject";
+import { savedPracticeStatus, statusFromMarks, furthestStatus, progressKeys } from "../../lib/studentProgress";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
-import type { PracticeItem } from "../../types";
 
 const statusMeta = {
-  completed:    { label: "Completed",   cls: "text-emerald-700 bg-emerald-50" },
+  completed:    { label: "Completed",   cls: "text-emerald-700 bg-emerald-50 dark:text-emerald-200 dark:bg-emerald-950/40" },
   "in-progress":{ label: "In Progress", cls: "text-primary bg-primary/10" },
   "not-started":{ label: "Not Started", cls: "text-muted-foreground bg-muted" },
 };
 
-type Mark = "correct" | "practice" | null;
-// wrongAttempts survives a retry (only attempt/revealed/mark reset) — it's what
-// drives the "hint after a couple of tries" behavior below.
-interface ItemState { attempt: string; revealed: boolean; mark: Mark; wrongAttempts: number }
 interface PracticeState { exercises: ItemState[] }
 interface ChapterTestState { items: ItemState[]; started: boolean; step: number; complete: boolean }
-
-const emptyItem = (): ItemState => ({ attempt: "", revealed: false, mark: null, wrongAttempts: 0 });
-// Pre-upgrade localStorage entries won't have wrongAttempts — coalesce so counting
-// resumes at 0 instead of accumulating from `undefined`.
-const normalizeItem = (it: ItemState): ItemState => ({ ...it, wrongAttempts: it.wrongAttempts ?? 0 });
 
 // Reads a sibling module's saved exercise progress straight from localStorage so the
 // chapter test can tell whether every module in the chapter is actually done, not
 // just the one currently open.
-function isModuleExercisesDone(chapterId: string | undefined, moduleIndex: number): boolean {
-  try {
-    const saved = JSON.parse(localStorage.getItem(`menya:practice:${chapterId}:${moduleIndex}`) ?? "null");
-    return !!saved && Array.isArray(saved.exercises) && saved.exercises.length > 0 && saved.exercises.every((it: ItemState) => it.mark);
-  } catch {
-    return false;
-  }
+function isModuleExercisesDone(studentId: number, chapterId: string | undefined, moduleIndex: number): boolean {
+  return chapterId !== undefined && savedPracticeStatus(studentId, chapterId, moduleIndex) === "completed";
 }
 
-// One question and self-check — shared by both the exercise list and the chapter
-// test stepper so they behave identically. Free-response (the default when
-// `question.type` is unset) keeps today's flow: type an attempt, reveal the model
-// answer, self-mark honestly. True/false, multiple-choice, and numeric questions
-// grade themselves the instant the student answers — no self-report needed.
-function PracticeCard({ question, item, onAttemptChange, onReveal, onMark, onAnswer, onRetry }: {
-  question: PracticeItem;
-  item: ItemState;
-  onAttemptChange: (value: string) => void;
-  onReveal: () => void;
-  onMark: (mark: "correct" | "practice") => void;
-  onAnswer: (attempt: string, correct: boolean) => void;
-  onRetry: () => void;
-}) {
-  const type = question.type ?? "free-response";
-  const selectedIndex = item.attempt ? Number(item.attempt) : null;
-
-  // Auto-graded types reveal the hint once the student has genuinely missed it
-  // twice; free-response (never auto-graded) reveals it as soon as they've
-  // self-reported "Need Practice" once. Not gated by `item.revealed` so it stays
-  // visible through a retry rather than disappearing right when it'd help most.
-  const showHint = !!question.hint && (
-    type !== "free-response" ? item.wrongAttempts >= 2 : item.mark === "practice"
-  );
-  const hintBox = showHint ? (
-    <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 flex items-start gap-2">
-      <Lightbulb className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-      <p className="text-sm text-blue-800 leading-relaxed"><span className="font-semibold">Hint: </span>{question.hint}</p>
-    </div>
-  ) : null;
-
-  const cardCls = `rounded-lg border px-4 py-3.5 space-y-3 transition-colors ${
-    item.mark === "correct" ? "border-emerald-200 bg-emerald-50/40" :
-    item.mark === "practice" ? "border-amber-200 bg-amber-50/40" :
-    "border-border"
-  }`;
-
-  const explanationBox = question.answer.trim() ? (
-    <div className="rounded-lg bg-muted/50 border border-border px-3 py-2.5">
-      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">
-        {type === "free-response" ? "Model Answer" : "Explanation"}
-      </p>
-      <p className="text-sm text-foreground leading-relaxed">{question.answer}</p>
-    </div>
-  ) : null;
-
-  const statusRow = item.mark !== null && (
-    <div className="flex items-center justify-between flex-wrap gap-2">
-      <span className={`text-xs font-semibold flex items-center gap-1.5 ${item.mark === "correct" ? "text-emerald-700" : "text-amber-700"}`}>
-        {item.mark === "correct"
-          ? <><CheckCircle2 className="w-4 h-4" /> Marked correct · +20 XP</>
-          : <><RotateCcw className="w-4 h-4" /> Marked for practice · +10 XP</>}
-      </span>
-      <button type="button" onClick={onRetry} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">Try again</button>
-    </div>
-  );
-
-  if (type === "true-false" || type === "multiple-choice") {
-    const choices = type === "true-false" ? [{ label: "True" }, { label: "False" }] : question.choices ?? [];
-    const hasDiagrams = choices.some((c) => c.diagram);
-
-    return (
-      <div className={cardCls}>
-        <p className="text-sm text-foreground leading-relaxed">{question.prompt}</p>
-        {hintBox}
-        <div className={hasDiagrams ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2"}>
-          {choices.map((choice, i) => {
-            const isCorrect = i === question.correctIndex;
-            const isSelected = i === selectedIndex;
-            const state = !item.revealed ? "idle" : isCorrect ? "correct" : isSelected ? "wrong" : "muted";
-            const stateCls =
-              state === "correct" ? "border-emerald-300 bg-emerald-50" :
-              state === "wrong" ? "border-red-300 bg-red-50" :
-              state === "muted" ? "border-border opacity-50" :
-              "border-border hover:border-primary/40 hover:bg-muted/40";
-            return (
-              <button key={i} type="button" disabled={item.revealed} onClick={() => onAnswer(String(i), isCorrect)}
-                className={`rounded-lg border px-3 py-2.5 text-sm text-foreground transition-colors ${stateCls} ${hasDiagrams ? "flex flex-col items-center gap-1.5" : "flex items-center justify-between gap-2"}`}>
-                <span className={hasDiagrams ? "contents" : "flex items-center gap-2"}>
-                  {choice.diagram && <Diagram spec={choice.diagram} />}
-                  {choice.label && <span className={hasDiagrams ? "text-xs text-center" : ""}>{choice.label}</span>}
-                </span>
-                {state === "correct" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
-                {state === "wrong" && <XCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />}
-              </button>
-            );
-          })}
-        </div>
-        {item.revealed && explanationBox}
-        {statusRow}
-      </div>
-    );
-  }
-
-  if (type === "numeric") {
-    return (
-      <div className={cardCls}>
-        <p className="text-sm text-foreground leading-relaxed">{question.prompt}</p>
-        {hintBox}
-        {!item.revealed ? (
-          <>
-            <input
-              value={item.attempt}
-              onChange={(e) => onAttemptChange(e.target.value)}
-              placeholder="Enter your answer…"
-              inputMode="decimal"
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25"
-            />
-            <button type="button" onClick={() => onAnswer(item.attempt, isNumericAnswerCorrect(item.attempt, question.numericAnswer ?? ""))} disabled={!item.attempt.trim()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-              <Lightbulb className="w-3.5 h-3.5" /> Check Answer
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="rounded-lg bg-muted/50 border border-border px-3 py-2.5 flex items-center justify-between gap-2 flex-wrap text-sm">
-              <span className="text-foreground">Your answer: <strong>{item.attempt}</strong></span>
-              {item.mark !== "correct" && <span className="text-muted-foreground">Correct answer: <strong className="text-foreground">{question.numericAnswer}</strong></span>}
-            </div>
-            {explanationBox}
-            {statusRow}
-          </>
-        )}
-      </div>
-    );
-  }
-
-  // free-response — today's original attempt/reveal/self-mark flow, unchanged.
-  return (
-    <div className={cardCls}>
-      <p className="text-sm text-foreground leading-relaxed">{question.prompt}</p>
-      {hintBox}
-
-      {!item.revealed ? (
-        <>
-          <textarea
-            value={item.attempt}
-            onChange={(e) => onAttemptChange(e.target.value)}
-            placeholder="Type your answer or show your work…"
-            rows={2}
-            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
-          />
-          <button type="button" onClick={onReveal} disabled={!item.attempt.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-            <Lightbulb className="w-3.5 h-3.5" /> Check My Answer
-          </button>
-        </>
-      ) : (
-        <>
-          {explanationBox}
-          {item.mark === null ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-muted-foreground mr-1">Did you get it right?</span>
-              <button type="button" onClick={() => onMark("correct")}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Got it
-              </button>
-              <button type="button" onClick={() => onMark("practice")}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
-                <RotateCcw className="w-3.5 h-3.5" /> Need Practice
-              </button>
-            </div>
-          ) : statusRow}
-        </>
-      )}
-    </div>
-  );
-}
-
+// Keyed by the route so moving to the next module starts fresh: all of the
+// state below is initialised from that module's own saved progress.
 export default function ModuleWorkspace() {
+  const { chapterId, moduleIndex } = useParams();
+  return <ModuleWorkspaceInner key={`${chapterId}:${moduleIndex}`} />;
+}
+
+function ModuleWorkspaceInner() {
   const { chapterId, moduleIndex } = useParams();
   const { findChapterById } = useCurriculum();
   const { logStudy } = useStudentActivity();
+  const badges = useStudentAchievements();
   const student = useCurrentStudent();
   const found = findChapterById(Number(chapterId));
   const index = Number(moduleIndex);
   const courseModule = found?.chapter.modules[index];
 
-  const notesKey = `menya:notes:${chapterId}:${moduleIndex}`;
-  const practiceKey = `menya:practice:${chapterId}:${moduleIndex}`;
-  const chapterTestKey = `menya:chapterTest:${chapterId}`;
+  // All of this module's saved work is per student (lib/studentProgress.ts).
+  const notesKey = progressKeys.notes(student.id, chapterId ?? "", moduleIndex ?? "");
+  const practiceKey = progressKeys.practice(student.id, chapterId ?? "", moduleIndex ?? "");
+  const chapterTestKey = progressKeys.chapterTest(student.id, chapterId ?? "");
+  const seconds = useModuleTime(progressKeys.time(student.id, chapterId ?? "", moduleIndex ?? ""));
 
   const [notes, setNotes] = useState(() => localStorage.getItem(notesKey) ?? "");
   const workspace = courseModule && found ? getModuleContent(courseModule, found.chapter.title, found.course.name) : null;
@@ -237,7 +66,8 @@ export default function ModuleWorkspace() {
   const chapterTestAuthored = chapterTest_.isAuthored;
   const isLastModule = !!found && index === found.chapter.modules.length - 1;
 
-  const [mode, setMode] = useState<"content" | "exercises">("content");
+  const [mode, setMode] = useState<StepId>("learn");
+  const [visitedPractice, setVisitedPractice] = useState(false);
   const [contentDrawerOpen, setContentDrawerOpen] = useState(false);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
 
@@ -268,7 +98,8 @@ export default function ModuleWorkspace() {
   });
 
   const [combo, setCombo] = useState(0);
-  const [exerciseStep, setExerciseStep] = useState(0);
+  // Open practice on the first question still to do, not always the first.
+  const [exerciseStep, setExerciseStep] = useState(() => Math.max(0, practice.exercises.findIndex((it) => !it.mark)));
 
   const handleNotesChange = (value: string) => {
     setNotes(value);
@@ -320,31 +151,22 @@ export default function ModuleWorkspace() {
   const correctCount = practice.exercises.filter((it) => it.mark === "correct").length;
   const masteryPct = markedCount ? Math.round((correctCount / markedCount) * 100) : 0;
   const masteryTier =
-    markedCount === 0 ? { label: "Not Started",    cls: "text-muted-foreground bg-muted" } :
-    masteryPct < 50    ? { label: "Keep Practicing", cls: "text-amber-700 bg-amber-50"     } :
-    masteryPct < 90    ? { label: "Solid Grasp",     cls: "text-blue-700 bg-blue-50"        } :
-                          { label: "Mastered",        cls: "text-emerald-700 bg-emerald-50"  };
+    markedCount === 0 ? { label: "Not Started",     cls: "text-muted-foreground bg-muted" } :
+    masteryPct < 50    ? { label: "Keep Practicing", cls: "text-amber-800 bg-amber-50 dark:text-amber-200 dark:bg-amber-950/40" } :
+    masteryPct < 90    ? { label: "Solid Grasp",     cls: "text-sky-800 bg-sky-50 dark:text-sky-200 dark:bg-sky-950/40" } :
+                          { label: "Mastered",        cls: "text-emerald-800 bg-emerald-50 dark:text-emerald-200 dark:bg-emerald-950/40" };
 
-  const exercisesDone = practice.exercises.filter((it) => it.mark).length;
-  const allExercisesDone = practice.exercises.length > 0 && exercisesDone === practice.exercises.length;
+  const allExercisesDone = practice.exercises.length > 0 && markedCount === practice.exercises.length;
 
-  const modulesDoneCount = found ? found.chapter.modules.filter((_, i) => isModuleExercisesDone(chapterId, i)).length : 0;
+  const modulesDoneCount = found ? found.chapter.modules.filter((_, i) => isModuleExercisesDone(student.id, chapterId, i)).length : 0;
   const chapterExercisesComplete = !!found && modulesDoneCount === found.chapter.modules.length;
 
   const chapterTestPerfect = chapterTest.items.length > 0 && chapterTest.items.every((it) => it.mark === "correct");
 
-  const exerciseCelebrated = useRef(allExercisesDone);
-  useEffect(() => {
-    if (allExercisesDone && !exerciseCelebrated.current) {
-      confetti({ particleCount: 60, spread: 65, origin: { y: 0.7 } });
-    }
-    exerciseCelebrated.current = allExercisesDone;
-  }, [allExercisesDone]);
-
   const chapterTestCelebrated = useRef(chapterTest.complete);
   useEffect(() => {
     if (chapterTest.complete && !chapterTestCelebrated.current) {
-      confetti({ particleCount: chapterTestPerfect ? 160 : 90, spread: 85, origin: { y: 0.6 } });
+      confetti({ particleCount: chapterTestPerfect ? 160 : 90, spread: 85, origin: { y: 0.6 }, disableForReducedMotion: true });
     }
     chapterTestCelebrated.current = chapterTest.complete;
   }, [chapterTest.complete, chapterTestPerfect]);
@@ -363,7 +185,9 @@ export default function ModuleWorkspace() {
   const { course, chapter } = found;
   const color = subjectColor(course.name);
   const tint = subjectTint(course.name);
-  const status = statusMeta[courseModule.status];
+  // Live: moves to In Progress / Completed as the student answers, matching
+  // what My Journey and My Courses will show (lib/studentProgress.ts).
+  const status = statusMeta[furthestStatus(courseModule.status, statusFromMarks(practice.exercises.map((it) => it.mark)))];
 
   const chapterTestTotal = chapterTestQuestions.length;
   const currentChapterTestItem = chapterTest.items[chapterTest.step];
@@ -371,10 +195,38 @@ export default function ModuleWorkspace() {
   const isLastChapterTestQuestion = chapterTest.step === chapterTestTotal - 1;
   const chapterTestCorrectCount = chapterTest.items.filter((it) => it.mark === "correct").length;
 
-  const currentExerciseIndex = Math.min(exerciseStep, Math.max(workspace.exercises.length - 1, 0));
+  const exerciseCount = workspace.exercises.length;
+  const currentExerciseIndex = Math.min(exerciseStep, Math.max(exerciseCount - 1, 0));
   const currentExercise = workspace.exercises[currentExerciseIndex];
+  const currentExerciseItem = practice.exercises[currentExerciseIndex];
   const isFirstExercise = currentExerciseIndex === 0;
-  const isLastExercise = currentExerciseIndex === workspace.exercises.length - 1;
+  const isLastExercise = currentExerciseIndex === exerciseCount - 1;
+
+  // The module's steps. The chapter test only appears on the chapter's last
+  // module, and Finish unlocks once practice (and that test) are done.
+  const hasTest = isLastModule && chapterTestAuthored;
+  const moduleComplete = allExercisesDone && (!hasTest || chapterTest.complete);
+  const steps: Step[] = [
+    { id: "learn", label: "Learn", done: visitedPractice || markedCount > 0 },
+    { id: "practice", label: "Practice", detail: exerciseCount ? `${markedCount}/${exerciseCount}` : undefined, done: allExercisesDone },
+    ...(hasTest ? [{ id: "test" as const, label: "Chapter test", done: chapterTest.complete }] : []),
+    { id: "finish", label: "Finish", done: false, locked: !moduleComplete },
+  ];
+  const goTo = (id: StepId) => {
+    if (id !== "learn") setVisitedPractice(true);
+    setMode(id);
+  };
+
+  // Where "Next module" goes: the next module in this chapter, else the
+  // first module of the next chapter, else nowhere (back to My Journey).
+  const chapterPos = course.chapters.findIndex((c) => c.id === chapter.id);
+  const nextChapter = course.chapters[chapterPos + 1];
+  const nextTarget =
+    index + 1 < chapter.modules.length
+      ? { href: `/student/module/${chapter.id}/${index + 1}`, label: "Next module", title: chapter.modules[index + 1].title }
+      : nextChapter && nextChapter.modules.length > 0
+      ? { href: `/student/module/${nextChapter.id}/0`, label: "Start next chapter", title: `${nextChapter.title}: ${nextChapter.modules[0].title}` }
+      : null;
 
   const startChapterTest = () => patchChapterTest({ started: true });
   const advanceChapterTest = () => {
@@ -388,15 +240,11 @@ export default function ModuleWorkspace() {
     complete: false,
   });
 
-  const requestHelpButton = (
-    <button type="button" onClick={() => setHelpModalOpen(true)}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground border border-border hover:bg-muted transition-colors">
-      <HelpCircle className="w-3.5 h-3.5" /> Request Help
-    </button>
-  );
+  const primaryBtn = "flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold hover:brightness-110 motion-safe:transition";
+  const subjectBtn = { backgroundColor: color, color: "var(--card)" };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
+    <div className="max-w-5xl mx-auto space-y-5 pb-24">
       <Link to="/student/learning" className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Back to My Courses
       </Link>
@@ -421,147 +269,171 @@ export default function ModuleWorkspace() {
         </div>
       </div>
 
-      {/* Gamified progress strip */}
-      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-[160px]">
-          <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Module XP</span>
-              <span className="text-xs font-mono font-semibold text-foreground">{xp}/{maxXp}</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${maxXp ? Math.min(100, (xp / maxXp) * 100) : 0}%` }} />
+      {/* Steps + XP */}
+      <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+        <ModuleStepper steps={steps} current={mode} course={course.name} onSelect={goTo} />
+        <div className="flex items-center gap-4 flex-wrap pt-4 border-t border-border">
+          <div className="flex items-center gap-2 flex-1 min-w-[160px]">
+            <Sparkles className="w-4 h-4 text-brand-amber flex-shrink-0" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Module XP</span>
+                <span className="text-xs font-mono font-semibold text-foreground">{xp}/{maxXp}</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${maxXp ? Math.min(100, (xp / maxXp) * 100) : 0}%` }} />
+              </div>
             </div>
           </div>
-        </div>
-        <span className={`text-[11px] px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5 ${masteryTier.cls}`}>
-          <Trophy className="w-3 h-3" />{masteryTier.label}
-        </span>
-        {combo > 1 && (
-          <span className="text-[11px] px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5 text-brand-amber bg-brand-amber/10">
-            <Flame className="w-3 h-3" />{combo}x Combo
+          <span className={`text-[11px] px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5 ${masteryTier.cls}`}>
+            <Trophy className="w-3 h-3" />{masteryTier.label}
           </span>
-        )}
+          {combo > 1 && (
+            <span className="text-[11px] px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5 text-foreground bg-brand-amber/15">
+              <Flame className="w-3 h-3 text-brand-amber" />{combo}x Combo
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
-        {/* Content / Exercises modes — only one focus at a time */}
-        <Tabs value={mode} onValueChange={(v) => setMode(v as "content" | "exercises")}>
-          <TabsList className="bg-transparent p-0 h-auto w-full justify-start gap-1 rounded-none border-b border-border">
-            <TabsTrigger
-              value="content"
-              className="flex-none rounded-t-lg rounded-b-none border-0 border-b-2 border-transparent -mb-px px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground"
-            >
-              Content
-            </TabsTrigger>
-            <TabsTrigger
-              value="exercises"
-              className="flex-none rounded-t-lg rounded-b-none border-0 border-b-2 border-transparent -mb-px px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground"
-            >
-              Exercises
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="content" className="space-y-5 mt-4">
-            <div className="bg-card border border-border rounded-xl p-6">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Content</h2>
-              <ModuleContentBody workspace={workspace} />
-            </div>
-            <div className="flex justify-end">{requestHelpButton}</div>
-          </TabsContent>
-
-          <TabsContent value="exercises" className="space-y-5 mt-4">
-            <div className="flex justify-end">
-              <button type="button" onClick={() => setContentDrawerOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground border border-border hover:bg-muted transition-colors">
-                <BookOpen className="w-3.5 h-3.5" /> Review Content
-              </button>
-            </div>
-
-            {/* Exercises */}
-            <div className="bg-card border border-border rounded-xl p-6 space-y-3">
-              <div className="flex items-center gap-2">
-                <Dumbbell className="w-4 h-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold text-foreground">Exercises</h2>
-                {workspace.exercises.length > 0 && (
-                  <span className="text-[10px] font-mono text-muted-foreground ml-auto">Exercise {currentExerciseIndex + 1} of {workspace.exercises.length} · {exercisesDone} done</span>
+      {mode === "finish" && moduleComplete ? (
+        <ModuleComplete
+          course={course.name}
+          moduleTitle={courseModule.title}
+          correct={correctCount}
+          total={exerciseCount}
+          xp={xp}
+          seconds={seconds}
+          nextBadge={badges.next}
+          next={nextTarget}
+          onReview={() => goTo("practice")}
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
+          <div className="space-y-5 min-w-0">
+            {mode === "learn" && (
+              <>
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <h2 className="text-sm font-semibold text-foreground mb-3">Learn</h2>
+                  <ModuleContentBody workspace={workspace} />
+                </div>
+                {exerciseCount > 0 && (
+                  <div className="flex justify-end">
+                    <button type="button" onClick={() => goTo("practice")} className={primaryBtn} style={subjectBtn}>
+                      Start practising <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
-              </div>
-              {workspace.exercises.length === 0 ? (
-                <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-muted/40 border border-border">
-                  <AlertTriangle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">Exercises haven't been added for this module yet.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {workspace.exercises.map((_, i) => {
-                      const it = practice.exercises[i];
-                      const done = it?.mark === "correct" ? "bg-emerald-500" : it?.mark === "practice" ? "bg-amber-400" : "bg-border";
-                      return <div key={i} className={`h-1.5 rounded-full transition-all ${i === currentExerciseIndex ? "w-6 bg-primary" : `w-3 ${done}`}`} />;
-                    })}
-                  </div>
-                  <PracticeCard
-                    question={currentExercise}
-                    item={practice.exercises[currentExerciseIndex]}
-                    onAttemptChange={(v) => updateItem(currentExerciseIndex, { attempt: v })}
-                    onReveal={() => updateItem(currentExerciseIndex, { revealed: true })}
-                    onMark={(m) => markItem(currentExerciseIndex, m)}
-                    onAnswer={(attempt, correct) => answerItem(currentExerciseIndex, attempt, correct)}
-                    onRetry={() => retryItem(currentExerciseIndex)}
-                  />
-                  <div className="flex items-center justify-between gap-2">
-                    <button type="button" onClick={() => setExerciseStep((s) => Math.max(0, s - 1))} disabled={isFirstExercise}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors">
-                      <ChevronLeft className="w-3.5 h-3.5" /> Back
-                    </button>
-                    <button type="button" onClick={() => setExerciseStep((s) => Math.min(workspace.exercises.length - 1, s + 1))} disabled={isLastExercise}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors">
-                      Next <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </>
-              )}
-              {allExercisesDone && (
-                <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                  <PartyPopper className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                  <p className="text-sm text-emerald-700 font-medium">
-                    {isLastModule ? "All exercises done — nice work!" : "All exercises done — on to the next module."}
-                  </p>
-                </div>
-              )}
-            </div>
+              </>
+            )}
 
-            {/* Chapter Test — only surfaces on the last module of the chapter */}
-            {isLastModule && (
-              <div className="bg-card border border-border rounded-xl p-6 space-y-3">
+            {mode === "practice" && (
+              <>
+                <div className="flex justify-end">
+                  <button type="button" onClick={() => setContentDrawerOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-foreground border border-border hover:bg-muted transition-colors">
+                    <BookOpen className="w-3.5 h-3.5" /> Review the lesson
+                  </button>
+                </div>
+
+                <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold text-foreground">Practice</h2>
+                    {exerciseCount > 0 && (
+                      <span className="text-xs font-mono text-muted-foreground ml-auto">Question {currentExerciseIndex + 1} of {exerciseCount}</span>
+                    )}
+                  </div>
+                  {exerciseCount === 0 ? (
+                    <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-muted/40 border border-border">
+                      <AlertTriangle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <p className="text-sm text-muted-foreground">Exercises haven't been added for this module yet.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* One dot per question; click to jump */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {workspace.exercises.map((_, i) => {
+                          const it = practice.exercises[i];
+                          const isCur = i === currentExerciseIndex;
+                          const bg = isCur ? color
+                            : it?.mark === "correct" ? "#10B981"
+                            : it?.mark === "practice" ? "var(--brand-amber)"
+                            : "var(--border)";
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setExerciseStep(i)}
+                              aria-label={`Question ${i + 1}${it?.mark === "correct" ? ", right" : it?.mark === "practice" ? ", to practise" : ""}`}
+                              aria-current={isCur ? "step" : undefined}
+                              className={`h-2 rounded-full transition-all ${isCur ? "w-7" : "w-3.5 hover:opacity-70"}`}
+                              style={{ backgroundColor: bg }}
+                            />
+                          );
+                        })}
+                      </div>
+                      <PracticeCard
+                        key={currentExerciseIndex}
+                        question={currentExercise}
+                        item={currentExerciseItem}
+                        seed={currentExerciseIndex}
+                        combo={combo}
+                        onAttemptChange={(v) => updateItem(currentExerciseIndex, { attempt: v })}
+                        onReveal={() => updateItem(currentExerciseIndex, { revealed: true })}
+                        onMark={(m) => markItem(currentExerciseIndex, m)}
+                        onAnswer={(attempt, correct) => answerItem(currentExerciseIndex, attempt, correct)}
+                        onRetry={() => retryItem(currentExerciseIndex)}
+                      />
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <button type="button" onClick={() => setExerciseStep((s) => Math.max(0, s - 1))} disabled={isFirstExercise}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors">
+                          <ChevronLeft className="w-4 h-4" /> Back
+                        </button>
+                        {allExercisesDone ? (
+                          <button type="button" onClick={() => goTo(hasTest && !chapterTest.complete ? "test" : "finish")} className={primaryBtn} style={subjectBtn}>
+                            {hasTest && !chapterTest.complete ? "Take the chapter test" : "Finish module"} <ArrowRight className="w-4 h-4" />
+                          </button>
+                        ) : !isLastExercise ? (
+                          <button type="button" onClick={() => setExerciseStep((s) => Math.min(exerciseCount - 1, s + 1))}
+                            className={currentExerciseItem?.mark ? primaryBtn : "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-foreground hover:bg-muted transition-colors"}
+                            style={currentExerciseItem?.mark ? subjectBtn : undefined}>
+                            {currentExerciseItem?.mark ? "Next question" : "Skip for now"} <ChevronRight className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button type="button" onClick={() => setExerciseStep(Math.max(0, practice.exercises.findIndex((it) => !it.mark)))}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-foreground hover:bg-muted transition-colors">
+                            Go to unanswered <ChevronRight className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {mode === "test" && hasTest && (
+              <div className="bg-card border border-border rounded-xl p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
                   <h2 className="text-sm font-semibold text-foreground">Chapter Test</h2>
                   {chapterTest.started && !chapterTest.complete && (
-                    <span className="text-[10px] font-mono text-muted-foreground ml-auto">Question {chapterTest.step + 1} of {chapterTestTotal}</span>
+                    <span className="text-xs font-mono text-muted-foreground ml-auto">Question {chapterTest.step + 1} of {chapterTestTotal}</span>
                   )}
                 </div>
 
-                {!chapterTestAuthored ? (
-                  <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-amber-50 border border-amber-100">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                    <p className="text-sm text-amber-700">Chapter test not yet available.</p>
-                  </div>
-                ) : !chapterExercisesComplete ? (
+                {!chapterExercisesComplete ? (
                   <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-muted/40 border border-border">
                     <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <p className="text-sm text-muted-foreground">
-                      Complete the exercises in every module of {chapter.title} to unlock this test — {modulesDoneCount}/{found.chapter.modules.length} modules done.
+                      Finish the practice in every module of {chapter.title} to unlock this test. {modulesDoneCount}/{found.chapter.modules.length} modules done.
                     </p>
                   </div>
                 ) : !chapterTest.started ? (
                   <div className="flex flex-col items-start gap-3">
-                    <p className="text-sm text-muted-foreground">One test covering all of {chapter.title} — {chapterTestTotal} questions, one at a time. Work through each, check it against the model answer, then mark yourself honestly.</p>
-                    <button onClick={startChapterTest}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
-                      <ChevronRight className="w-4 h-4" /> Start Chapter Test
+                    <p className="text-sm text-muted-foreground">One test covering all of {chapter.title}: {chapterTestTotal} questions, one at a time.</p>
+                    <button onClick={startChapterTest} className={primaryBtn} style={subjectBtn}>
+                      Start chapter test <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 ) : !chapterTest.complete ? (
@@ -569,13 +441,19 @@ export default function ModuleWorkspace() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {chapterTestQuestions.map((_, i) => {
                         const it = chapterTest.items[i];
-                        const done = it?.mark === "correct" ? "bg-emerald-500" : it?.mark === "practice" ? "bg-amber-400" : "bg-border";
-                        return <div key={i} className={`h-1.5 rounded-full transition-all ${i === chapterTest.step ? "w-6" : "w-3"} ${i === chapterTest.step ? "bg-primary" : done}`} />;
+                        const bg = i === chapterTest.step ? color
+                          : it?.mark === "correct" ? "#10B981"
+                          : it?.mark === "practice" ? "var(--brand-amber)"
+                          : "var(--border)";
+                        return <div key={i} className={`h-2 rounded-full transition-all ${i === chapterTest.step ? "w-7" : "w-3.5"}`} style={{ backgroundColor: bg }} />;
                       })}
                     </div>
                     <PracticeCard
+                      key={`test-${chapterTest.step}`}
                       question={currentChapterTestQuestion}
                       item={currentChapterTestItem}
+                      seed={chapterTest.step}
+                      combo={combo}
                       onAttemptChange={(v) => updateChapterTestItem(chapterTest.step, { attempt: v })}
                       onReveal={() => updateChapterTestItem(chapterTest.step, { revealed: true })}
                       onMark={(m) => markChapterTestItem(chapterTest.step, m)}
@@ -583,64 +461,80 @@ export default function ModuleWorkspace() {
                       onRetry={() => retryChapterTestItem(chapterTest.step)}
                     />
                     {currentChapterTestItem.mark && (
-                      <button onClick={advanceChapterTest}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
-                        {isLastChapterTestQuestion ? "Finish Test" : "Next Question"} <ChevronRight className="w-4 h-4" />
-                      </button>
+                      <div className="flex justify-end">
+                        <button onClick={advanceChapterTest} className={primaryBtn} style={subjectBtn}>
+                          {isLastChapterTestQuestion ? "Finish test" : "Next question"} <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                      <PartyPopper className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm text-emerald-700 font-medium">
-                          Chapter test complete — you self-marked {chapterTestCorrectCount}/{chapterTestTotal} correct{chapterTestPerfect ? " · perfect score!" : ""}
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100">
+                      <PartyPopper className="w-4 h-4 flex-shrink-0" />
+                      <p className="text-sm font-medium">
+                        Chapter test done: {chapterTestCorrectCount}/{chapterTestTotal} right{chapterTestPerfect ? ". Perfect score!" : ""}
+                      </p>
                     </div>
                     <div className="space-y-2.5">
                       {chapterTestQuestions.map((q, i) => (
                         <div key={i} className="rounded-lg border border-border px-3 py-2.5">
                           <p className="text-sm text-foreground">{q.prompt}</p>
                           <p className="text-xs text-muted-foreground mt-1">{q.answer}</p>
-                          <span className={`inline-flex items-center gap-1 mt-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded-full ${chapterTest.items[i].mark === "correct" ? "text-emerald-700 bg-emerald-50" : "text-amber-700 bg-amber-50"}`}>
+                          <span className={`inline-flex items-center gap-1 mt-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded-full ${chapterTest.items[i].mark === "correct" ? "text-emerald-800 bg-emerald-50 dark:text-emerald-200 dark:bg-emerald-950/40" : "text-amber-800 bg-amber-50 dark:text-amber-200 dark:bg-amber-950/40"}`}>
                             {chapterTest.items[i].mark === "correct" ? <CheckCircle2 className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
-                            {chapterTest.items[i].mark === "correct" ? "Correct" : "Needs practice"}
+                            {chapterTest.items[i].mark === "correct" ? "Right" : "Worth practising"}
                           </span>
                         </div>
                       ))}
                     </div>
-                    <button onClick={retakeChapterTest} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      <RotateCcw className="w-3.5 h-3.5" /> Retake Test
-                    </button>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <button onClick={retakeChapterTest} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <RotateCcw className="w-3.5 h-3.5" /> Retake test
+                      </button>
+                      {moduleComplete && (
+                        <button onClick={() => goTo("finish")} className={primaryBtn} style={subjectBtn}>
+                          Finish module <ArrowRight className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             )}
-
-            <div className="flex justify-end">{requestHelpButton}</div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Notes — persistent alongside both modes, not tied to either one */}
-        <details open className="bg-card border border-border rounded-xl lg:sticky lg:top-4">
-          <summary className="flex items-center gap-2 p-5 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-            <NotebookPen className="w-4 h-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold text-foreground">Notes</h2>
-            <span className="text-[10px] font-mono text-muted-foreground ml-auto">Saved on this device</span>
-          </summary>
-          <div className="px-5 pb-5">
-            <textarea
-              value={notes}
-              onChange={(e) => handleNotesChange(e.target.value)}
-              rows={8}
-              placeholder="Jot down anything you want to remember about this module…"
-              className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
-            />
           </div>
-        </details>
-      </div>
+
+          {/* Notes — alongside every step, not tied to one */}
+          <details open className="bg-card border border-border rounded-xl lg:sticky lg:top-4">
+            <summary className="flex items-center gap-2 p-5 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+              <NotebookPen className="w-4 h-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold text-foreground">Notes</h2>
+              <span className="text-[10px] font-mono text-muted-foreground ml-auto">Saved on this device</span>
+            </summary>
+            <div className="px-5 pb-5">
+              <textarea
+                value={notes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                rows={8}
+                placeholder="Jot down anything you want to remember about this module…"
+                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
+              />
+            </div>
+          </details>
+        </div>
+      )}
+
+      {/* "I'm stuck": always one tap away, floating bottom-right, so asking
+          for help feels normal rather than like a last resort. */}
+      {mode !== "finish" && (
+        <button
+          type="button"
+          onClick={() => setHelpModalOpen(true)}
+          className="fixed bottom-5 right-5 z-30 flex items-center gap-2 pl-3 pr-4 py-3 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-lg hover:bg-primary/90 motion-safe:transition motion-safe:hover:-translate-y-0.5"
+        >
+          <HelpCircle className="w-5 h-5" /> I'm stuck
+        </button>
+      )}
 
       <ContentDrawer open={contentDrawerOpen} onOpenChange={setContentDrawerOpen} workspace={workspace} moduleTitle={courseModule.title} />
 

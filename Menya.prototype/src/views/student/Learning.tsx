@@ -11,7 +11,7 @@ import {
 import { getCourseIcon, chapterAction, courseCompletion, courseSlug } from "../../lib/constants";
 import { useEnrollment } from "../../hooks/useEnrollment";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
-import { useCurriculum } from "../../context/CurriculumContext";
+import { useStudentCurriculum } from "../../hooks/useStudentCurriculum";
 import { subjectColor, subjectTint } from "../../lib/subject";
 import type { CurriculumCourse, CurriculumChapter, CourseDetail } from "../../types";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
@@ -34,7 +34,7 @@ export default function Learning() {
   const [viewModulesFor, setViewModulesFor] = useState<{ course: string; chapter: CurriculumChapter } | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const { courses: enrolledCourses, updateEnrollment } = useEnrollment();
-  const { courses } = useCurriculum();
+  const courses = useStudentCurriculum();
   const student = useCurrentStudent();
   const location = useLocation();
 
@@ -142,7 +142,9 @@ export default function Learning() {
                                 <CourseTag course={mod.course} />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
-                                    Module {mod.currentModule}/{mod.totalModules} · {mod.completion}% complete
+                                    {chapter
+                                      ? `Module ${Math.min((action?.moduleIndex ?? chapter.modules.length - 1) + 1, chapter.modules.length)}/${chapter.modules.length} · ${Math.round((chapter.modules.filter((m) => m.status === "completed").length / Math.max(chapter.modules.length, 1)) * 100)}% complete`
+                                      : `Module ${mod.currentModule}/${mod.totalModules} · ${mod.completion}% complete`}
                                   </p>
                                 </div>
                               </div>

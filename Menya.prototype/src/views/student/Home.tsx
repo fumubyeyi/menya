@@ -20,7 +20,7 @@ import { useStudentGoals } from "../../hooks/useStudentGoals";
 import { useStudentActivity } from "../../context/StudentActivityContext";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import { useEnrollment } from "../../hooks/useEnrollment";
-import { useCurriculum } from "../../context/CurriculumContext";
+import { useStudentCurriculum } from "../../hooks/useStudentCurriculum";
 import { subjectColor, subjectTint } from "../../lib/subject";
 
 function greeting(date = new Date()): string {
@@ -54,7 +54,7 @@ export default function StudentHome() {
   const { sessions, updateSession } = useSessions();
   const { goals } = useStudentGoals();
   const { courses: enrolledCourses } = useEnrollment();
-  const { courses: curriculumCourses } = useCurriculum();
+  const curriculumCourses = useStudentCurriculum();
   const { streak, studyDaysThisWeek, sessionsThisWeek, logSessionAttended } = useStudentActivity();
   const badges = useStudentAchievements();
 

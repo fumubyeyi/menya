@@ -43,7 +43,7 @@ export default function RequestHelpModal({
       <div className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md flex flex-col">
         <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <div>
-            <h2 className="font-display font-semibold text-foreground text-lg leading-none">Request Help</h2>
+            <h2 className="font-display font-semibold text-foreground text-lg leading-none">Stuck? Ask your tutor</h2>
             <p className="text-[11px] font-mono text-muted-foreground mt-1">{course} · {chapterTitle} · {moduleTitle}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
@@ -57,8 +57,8 @@ export default function RequestHelpModal({
               <CheckCircle2 className="w-7 h-7 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground text-base">Request sent</h3>
-              <p className="text-sm text-muted-foreground mt-1">Your tutor will see this on their dashboard.</p>
+              <h3 className="font-semibold text-foreground text-base">Sent to your tutor</h3>
+              <p className="text-sm text-muted-foreground mt-1">Asking for help is a smart move. Your tutor will reach out soon.</p>
             </div>
             <button onClick={onClose} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">Done</button>
           </div>
@@ -69,7 +69,7 @@ export default function RequestHelpModal({
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="A quick note helps your tutor prep before reaching out…"
+                placeholder="e.g. I don't get step 2, or which formula to use"
                 rows={3}
                 className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
               />
@@ -77,7 +77,7 @@ export default function RequestHelpModal({
             <div className="flex items-center justify-end gap-3">
               <button type="button" onClick={onClose} className="px-4 py-2.5 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors font-medium">Cancel</button>
               <button type="submit" className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center gap-2">
-                <HelpCircle className="w-4 h-4" /> Send Request
+                <HelpCircle className="w-4 h-4" /> Ask for help
               </button>
             </div>
           </form>
