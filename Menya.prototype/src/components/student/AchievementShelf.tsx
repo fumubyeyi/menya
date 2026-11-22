@@ -3,7 +3,7 @@ import { HelpCircle } from "lucide-react";
 import { achievementHint, achievementTarget, achievementValue, type Achievement } from "../../lib/constants";
 import type { useStudentAchievements } from "../../hooks/useStudentAchievements";
 
-// The student's badge shelf: a small row on My Journey (earned + next, under
+// The student's badge shelf: a small row on Home (earned + next, under
 // the streak) and the full shelf on Goals.
 // - Earned badges are in full colour. One earned since the student last
 //   looked flips in with a burst of confetti and a "New!" tag, once.
@@ -112,7 +112,7 @@ export default function AchievementShelf({ data, variant }: { data: Achievements
     );
   });
 
-  // My Journey: kept calm on purpose. Just the earned badges and the one to
+  // Home: kept calm on purpose. Just the earned badges and the one to
   // aim for next, with one line about it underneath. Mystery badges and the
   // full set live on the Goals page ("See all"). Tapping or focusing an
   // earned badge swaps that line for its name, so names work on touch too.

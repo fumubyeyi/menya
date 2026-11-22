@@ -236,7 +236,7 @@ export default function AlumniTracking() {
           <p className="text-2xl font-display font-bold text-foreground">
             {stemAvgProgress ?? "—"}% <span className="text-muted-foreground text-base font-normal">vs</span> {otherAvgProgress ?? "—"}%
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">avg program score, linked roster records only</p>
+          <p className="text-xs text-muted-foreground mt-0.5">avg program progress, linked roster records only</p>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
 import confetti from "canvas-confetti";
-import { ArrowRight, RotateCcw, Trophy } from "lucide-react";
+import { RotateCcw, Trophy } from "lucide-react";
 import { achievementGapLabel } from "../../../lib/constants";
 import { formatMinutes } from "../../../hooks/useModuleTime";
 import type { useStudentAchievements } from "../../../hooks/useStudentAchievements";
@@ -88,11 +88,11 @@ export default function ModuleComplete({ course, moduleTitle, correct, total, xp
             className="flex items-center gap-2 px-7 py-3 rounded-full text-base font-bold hover:brightness-110 motion-safe:transition"
             style={{ backgroundColor: color, color: "var(--primary-foreground)" }}
           >
-            {next.label} <ArrowRight className="w-5 h-5" />
+            {next.label}
           </Link>
         ) : (
           <Link to="/student/home" className="flex items-center gap-2 px-7 py-3 rounded-full text-base font-bold bg-primary text-primary-foreground hover:bg-primary/90">
-            Back to My Journey <ArrowRight className="w-5 h-5" />
+            Back to Home
           </Link>
         )}
         <button type="button" onClick={onReview} className="flex items-center gap-1.5 px-4 py-3 rounded-full text-sm font-semibold text-foreground hover:bg-muted">

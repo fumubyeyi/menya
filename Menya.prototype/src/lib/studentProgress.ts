@@ -6,7 +6,7 @@ import type { CurriculumCourse, ModuleStatus } from "../types";
 // - the student's saved practice in the Module Workspace: any question
 //   answered → in progress, every question answered → completed.
 // Whichever is further along wins, so finishing practice moves the module
-// forward everywhere (My Journey, My Courses, Up next, badges), and saved
+// forward everywhere (Home, My Courses, Up next, badges), and saved
 // practice never pulls a module backwards.
 //
 // Practice lives in localStorage under the same key the workspace writes

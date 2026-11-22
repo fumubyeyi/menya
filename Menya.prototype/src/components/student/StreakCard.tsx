@@ -1,21 +1,21 @@
 import type { ReactNode } from "react";
 import { Flame } from "lucide-react";
 
-// The streak as the headline number on My Journey. The flame grows with the
+// The streak as the headline number on Home. The flame grows with the
 // streak (capped at 10 days so it never outgrows the card) and flickers
 // gently, except for students who've asked for reduced motion. Amber is the
 // brand's "win" colour, so it's used for the flame only; the number stays in
 // the foreground colour because amber text fails contrast on a light card.
 // `action` is an optional line under the streak text (e.g. "Set a weekly
 // goal" when the student has none); `children` render below the streak,
-// e.g. the badge icons on My Journey.
+// e.g. the badge icons on Home.
 export default function StreakCard({ streak, action, children }: { streak: number; action?: ReactNode; children?: ReactNode }) {
   const lit = streak > 0;
   const flameSize = 40 + Math.min(streak, 10) * 4;
 
   return (
     <div
-      className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4"
+      className="bg-card border border-border rounded-xl p-5 lg:bg-transparent lg:border-0 lg:rounded-none lg:px-0 lg:py-6 flex flex-col gap-4"
       style={lit ? { backgroundImage: "linear-gradient(135deg, color-mix(in srgb, var(--brand-amber) 16%, transparent), transparent 70%)" } : undefined}
     >
       <div className="flex items-center gap-4">

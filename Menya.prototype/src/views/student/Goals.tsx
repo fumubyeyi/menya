@@ -6,24 +6,26 @@ import { useStudentAchievements } from "../../hooks/useStudentAchievements";
 import { useStudentGoals } from "../../hooks/useStudentGoals";
 import { useStudentActivity } from "../../context/StudentActivityContext";
 import AddGoalModal from "../../components/AddGoalModal";
-import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
+import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
 
 export default function Goals() {
   const [addOpen, setAddOpen] = useState(false);
   const { goals, addGoal, removeGoal } = useStudentGoals();
   const { studyDaysThisWeek, sessionsThisWeek } = useStudentActivity();
-  // Shared with My Journey, so both pages agree on what's earned.
+  // Shared with Home, so both pages agree on what's earned.
   const badges = useStudentAchievements();
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
       <PageHeaderSubtitle>Set a goal, follow through, and it feeds your streak below</PageHeaderSubtitle>
-      <PageHeaderActions>
-        <button onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 px-3.5 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors flex-shrink-0">
-          <Plus className="w-4 h-4" /> Set a Goal
-        </button>
-      </PageHeaderActions>
+      {goals.length > 0 && (
+        <div className="flex justify-end">
+          <button onClick={() => setAddOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+            <Plus className="w-4 h-4" /> Set a Goal
+          </button>
+        </div>
+      )}
 
       {/* Goals Grid */}
       {goals.length === 0 ? (

@@ -161,7 +161,6 @@ export default function StudentDetail() {
                         <p className="text-sm text-foreground">{tutorNameById(h.tutorId)}</p>
                         <p className="text-xs text-muted-foreground">{h.date} · {h.duration}min</p>
                       </div>
-                      <span className="text-sm font-mono font-semibold text-foreground">{h.score}%</span>
                     </div>
                   ))}
                 </div>

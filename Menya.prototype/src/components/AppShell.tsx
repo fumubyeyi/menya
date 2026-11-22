@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, Navigate, useNavigate, useLocation } from "react-router";
 import {
-  LayoutDashboard, Users, BookOpen, Calendar,
+  LayoutDashboard, Users, BookOpen, Calendar, House,
   Bell, Plus, Menu, X, Trophy,
   Search, LogOut, Moon, Sun,
   Award, AlertTriangle, UserCog, CalendarRange, ExternalLink, Settings2, UserRound,
@@ -34,7 +34,7 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
     { to: "/tutor/search",      label: "Curriculum Search", Icon: Search },
   ],
   student: [
-    { to: "/student/home",     label: "My Journey",  Icon: LayoutDashboard },
+    { to: "/student/home",     label: "Home",        Icon: House           },
     { to: "/student/learning", label: "My Courses", Icon: BookOpen        },
     { to: "/student/schedule", label: "My Schedule", Icon: Calendar        },
     { to: "/student/goals",    label: "Goals",       Icon: Trophy          },
@@ -116,7 +116,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/tutor/schedule":     "Schedule",
     "/tutor/attendance":   "Attendance",
     "/tutor/search":       "Curriculum Library Search",
-    "/student/home":       "My Journey",
+    "/student/home":       "Home",
     "/student/learning":   "My Courses",
     "/student/schedule":   "My Schedule",
     "/student/goals":      "Goals",
@@ -125,25 +125,27 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
 
   const basePath = "/" + location.pathname.split("/").slice(1, 3).join("/");
   const pageTitle = titleMap[basePath] ?? "Dashboard";
-  // Inside a module the workspace has its own course outline, so on wide
-  // screens the app nav shrinks to icons to give the module room. (The phone
-  // drawer is unchanged.) My Courses stays highlighted while in a module.
-  const compactNav = basePath === "/student/module";
-  const navActive = (to: string, isActive: boolean) => isActive || (compactNav && to === "/student/learning");
+  // Students navigate from a top bar on wide screens (see the sidebar note).
+  const topNav = role === "student";
+  // My Courses stays highlighted while inside a module.
+  const inModule = basePath === "/student/module";
+  const navActive = (to: string, isActive: boolean) => isActive || (inModule && to === "/student/learning");
 
   return (
     <div className={`flex h-screen bg-background overflow-hidden ${theme === "dark" ? "dark" : ""} ${role === "student" ? "student-theme" : ""}`} style={{ colorScheme: theme }}>
       {mobileOpen && <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setMobileOpen(false)} />}
 
-      {/* Sidebar */}
+      {/* Sidebar. Students get a top bar on wide screens instead (4 links fit,
+          and their pages have a right side panel), so for them this is only
+          the phone drawer. */}
       <aside
-        className={`fixed lg:relative z-30 inset-y-0 left-0 flex flex-col w-60 ${compactNav ? "lg:w-[72px]" : ""} flex-shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+        className={`fixed lg:relative z-30 inset-y-0 left-0 flex flex-col w-60 ${topNav ? "lg:hidden" : ""} flex-shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         {/* Logo */}
-        <div className={`px-5 pt-5 pb-4 border-b border-sidebar-border flex items-center justify-between ${compactNav ? "lg:px-0 lg:justify-center" : ""}`}>
+        <div className="px-5 pt-5 pb-4 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/logo.svg" alt="" className="w-11 h-11 flex-shrink-0" />
-            <div className={`leading-none ${compactNav ? "lg:hidden" : ""}`}>
+            <div className="leading-none">
               <span className="font-brand font-bold text-sidebar-foreground text-lg block">Menya</span>
             </div>
           </div>
@@ -155,15 +157,15 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
           {nav.map(({ to, label, Icon, badge }) => (
-            <NavLink key={to} to={to} onClick={() => setMobileOpen(false)} title={compactNav ? label : undefined}
+            <NavLink key={to} to={to} onClick={() => setMobileOpen(false)}
               className={({ isActive: routeActive }) => { const isActive = navActive(to, routeActive); return (
-                `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${compactNav ? "lg:justify-center lg:px-0" : ""} ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/60"}`); }
+                `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/60"}`); }
               }>
               {({ isActive: routeActive }) => { const isActive = navActive(to, routeActive); return (
                 <>
                   <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? (role === "student" ? "text-primary" : "text-accent") : ""}`} />
-                  <span className={compactNav ? "lg:sr-only" : ""}>{label}</span>
-                  {compactNav ? null : badge && badge > 0 && !isActive
+                  <span>{label}</span>
+                  {badge && badge > 0 && !isActive
                     ? <span className="ml-auto bg-accent text-white text-[10px] font-mono font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">{badge}</span>
                     : isActive ? <div className={`ml-auto w-1 h-1 rounded-full ${role === "student" ? "bg-primary" : "bg-accent"}`} /> : null}
                 </>
@@ -183,9 +185,28 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
             <button onClick={() => setMobileOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
               <Menu className="w-5 h-5" />
             </button>
-            <div className="min-w-0">
+            {topNav && (
+              <div className="hidden lg:flex items-center gap-2 mr-4 flex-shrink-0">
+                <img src="/logo.svg" alt="" className="w-9 h-9" />
+                <span className="font-brand font-bold text-foreground text-lg">Menya</span>
+              </div>
+            )}
+            {/* For students on wide screens the highlighted link names the
+                page, so the title is kept for screen readers only. */}
+            <div className={`min-w-0 ${topNav ? "lg:sr-only" : ""}`}>
               <h1 className="font-display font-semibold text-foreground text-xl leading-tight truncate">{pageTitle}</h1>
             </div>
+            {topNav && (
+              <nav className="hidden lg:flex items-center gap-1" aria-label="Main">
+                {nav.map(({ to, label, Icon }) => (
+                  <NavLink key={to} to={to}
+                    className={({ isActive: routeActive }) => `flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${navActive(to, routeActive) ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  >
+                    <Icon className="w-4 h-4" /> {label}
+                  </NavLink>
+                ))}
+              </nav>
+            )}
           </div>
           <div className="flex items-center gap-2 relative flex-shrink-0">
             <div ref={setActionsEl} className="flex items-center gap-2 flex-wrap justify-end empty:hidden" />

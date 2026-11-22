@@ -293,7 +293,7 @@ export default function LoginView() {
   const STATS: [string, string][] = [
     [String(roster.length), "Students"],
     [String(tutors.length), "Tutors"],
-    [`${avgProgress}%`, "Avg Score"],
+    [`${avgProgress}%`, "Avg Progress"],
   ];
   const [selectedRole, setSelectedRole] = useState<Role | null>(
     null,

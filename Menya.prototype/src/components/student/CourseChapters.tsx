@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Check, CheckCircle2, ChevronDown, ArrowRight } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown } from "lucide-react";
 import type { CurriculumChapter, CurriculumCourse, CurriculumModule } from "../../types";
 
 // A course's chapters as rows, each opening onto its modules drawn as a trail:
@@ -93,8 +93,6 @@ export default function CourseChapters({ course, chapters = course.chapters, win
   // to "open if it's the current chapter".
   const [toggled, setToggled] = useState<Record<number, boolean>>({});
   const isOpen = (id: number) => toggled[id] ?? id === currentChapterId;
-  // Chapters showing every module rather than the window
-  const [allModules, setAllModules] = useState<Record<number, boolean>>({});
 
   return (
     <ul className="divide-y divide-border">
@@ -129,13 +127,13 @@ export default function CourseChapters({ course, chapters = course.chapters, win
             </div>
             )}
             {open && (() => {
-              const [from, to] = !windowed || allModules[ch.id]
+              const [from, to] = !windowed
                 ? [0, ch.modules.length]
                 : moduleWindow(ch.modules.length, next?.chapterId === ch.id ? next.index : null);
               const clipped = to - from < ch.modules.length;
               return (
               <>
-              <ul id={panelId} className={clipped || allModules[ch.id] ? "" : "pb-2"}>
+              <ul id={panelId} className={clipped ? "" : "pb-2"}>
                 {ch.modules.slice(from, to).map((m, k) => {
                   const mi = from + k;
                   const href = `/student/module/${ch.id}/${mi}`;
@@ -163,7 +161,7 @@ export default function CourseChapters({ course, chapters = course.chapters, win
                           aria-label={`${m.status === "in-progress" ? "Resume" : "Start"} ${m.title}`}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 motion-safe:transition-colors flex-shrink-0"
                         >
-                          {m.status === "in-progress" ? "Resume" : "Start"} <ArrowRight className="w-3.5 h-3.5" />
+                          {m.status === "in-progress" ? "Resume" : "Start"}
                         </Link>
                       </li>
                     );
@@ -181,16 +179,15 @@ export default function CourseChapters({ course, chapters = course.chapters, win
                   );
                 })}
               </ul>
-              {windowed && (clipped || allModules[ch.id]) && (
-                <button
-                  type="button"
-                  onClick={() => setAllModules((a) => ({ ...a, [ch.id]: !a[ch.id] }))}
-                  aria-expanded={!!allModules[ch.id]}
-                  aria-controls={panelId}
-                  className="w-full pl-[88px] pr-5 pt-1 pb-3 text-left text-xs font-semibold text-primary hover:underline"
+              {/* The full list lives in the Module Workspace's course
+                  outline, opened on the module to pick up in this chapter. */}
+              {windowed && clipped && (
+                <Link
+                  to={`/student/module/${ch.id}/${next?.chapterId === ch.id ? next.index : 0}?outline=1`}
+                  className="block pl-[88px] pr-5 pt-1 pb-3 text-xs font-semibold text-primary hover:underline"
                 >
-                  {allModules[ch.id] ? "Show fewer" : `Show all ${ch.modules.length} modules`}
-                </button>
+                  Show all {ch.modules.length} modules
+                </Link>
               )}
               </>
               );

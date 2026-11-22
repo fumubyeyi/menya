@@ -79,7 +79,7 @@ export default function MyStudents() {
               {lastSession && (
                 <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
                   <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>Last: {lastSession.course} · {lastSession.date} · {lastSession.score}pts</span>
+                  <span>Last: {lastSession.course} · {lastSession.date}</span>
                 </div>
               )}
 

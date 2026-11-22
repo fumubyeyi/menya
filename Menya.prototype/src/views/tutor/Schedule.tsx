@@ -88,12 +88,6 @@ const MODES = [
 ] as const;
 type Mode = (typeof MODES)[number]["key"];
 
-function scoreCls(score: number) {
-  if (score >= 80) return "text-emerald-600";
-  if (score >= 65) return "text-amber-600";
-  return "text-red-600";
-}
-
 export default function TutorSchedule() {
   const { user } = useAuth();
   const { tutors } = useTutors();
@@ -419,7 +413,6 @@ export default function TutorSchedule() {
                 <tr className="text-[11px] font-mono text-muted-foreground uppercase tracking-wide">
                   <th className="text-left pb-3 pr-4">Student</th>
                   <th className="text-left pb-3 pr-4">Course</th>
-                  <th className="text-left pb-3 pr-4">Score</th>
                   <th className="text-left pb-3 pr-4">Date</th>
                   <th className="text-left pb-3 pr-4">Duration</th>
                   <th className="text-left pb-3">Materials</th>
@@ -434,7 +427,7 @@ export default function TutorSchedule() {
                         onClick={() => toggleOnlineGroup(student.id)}
                         className="cursor-pointer hover:bg-muted/30 transition-colors"
                       >
-                        <td colSpan={6} className="py-2.5">
+                        <td colSpan={5} className="py-2.5">
                           <div className="flex items-center gap-2">
                             <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-90" : ""}`} />
                             <Avatar name={student.name} size={7} />
@@ -451,7 +444,6 @@ export default function TutorSchedule() {
                           <td className="py-2 pr-4">
                             <CourseTag course={h.course} />
                           </td>
-                          <td className={`py-2 pr-4 font-mono font-semibold text-xs ${scoreCls(h.score)}`}>{h.score}</td>
                           <td className="py-2 pr-4 font-mono text-xs text-muted-foreground">{h.date}</td>
                           <td className="py-2 pr-4 font-mono text-xs text-muted-foreground">{h.duration}m</td>
                           <td className="py-2">

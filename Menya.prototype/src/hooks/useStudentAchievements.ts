@@ -5,11 +5,11 @@ import { useStudentActivity } from "../context/StudentActivityContext";
 import { useStudentCurriculum } from "./useStudentCurriculum";
 import { useEnrollment } from "./useEnrollment";
 
-// One source of truth for a student's badges, shared by My Journey, Goals and
+// One source of truth for a student's badges, shared by Home, Goals and
 // the end-of-module screen, so they can never disagree about what's earned.
 //
 // The progress badges count modules finished across the student's enrolled
-// courses (the same courses and statuses as the My Journey bars), so a target
+// courses (the same courses and statuses as the Home bars), so a target
 // reads as "Finish 29 of your 36 modules".
 export function useStudentAchievements() {
   const student = useCurrentStudent();

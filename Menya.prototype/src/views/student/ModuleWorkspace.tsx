@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import confetti from "canvas-confetti";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, NotebookPen, RotateCcw, Flame, Trophy,
+  ArrowLeft, CheckCircle2, NotebookPen, RotateCcw, Flame, Trophy,
   PartyPopper, ChevronRight, ChevronLeft, Lock, AlertTriangle, HelpCircle, BookOpen, ListTree,
 } from "lucide-react";
 import CourseChapters from "../../components/student/CourseChapters";
@@ -221,7 +221,7 @@ function ModuleWorkspaceInner() {
   };
 
   // Where "Next module" goes: the next module in this chapter, else the
-  // first module of the next chapter, else nowhere (back to My Journey).
+  // first module of the next chapter, else nowhere (back to Home).
   const chapterPos = course.chapters.findIndex((c) => c.id === chapter.id);
   const nextChapter = course.chapters[chapterPos + 1];
   const nextTarget =
@@ -350,7 +350,7 @@ function ModuleWorkspaceInner() {
                 {exerciseCount > 0 && (
                   <div className="flex justify-end">
                     <button type="button" onClick={() => goTo("practice")} className={primaryBtn} style={subjectBtn}>
-                      Start practising <ArrowRight className="w-4 h-4" />
+                      Start practising
                     </button>
                   </div>
                 )}
@@ -419,7 +419,7 @@ function ModuleWorkspaceInner() {
                         </button>
                         {allExercisesDone ? (
                           <button type="button" onClick={() => goTo(hasTest && !chapterTest.complete ? "test" : "finish")} className={primaryBtn} style={subjectBtn}>
-                            {hasTest && !chapterTest.complete ? "Take the chapter test" : "Finish module"} <ArrowRight className="w-4 h-4" />
+                            {hasTest && !chapterTest.complete ? "Take the chapter test" : "Finish module"}
                           </button>
                         ) : !isLastExercise ? (
                           <button type="button" onClick={() => setExerciseStep((s) => Math.min(exerciseCount - 1, s + 1))}
@@ -458,7 +458,7 @@ function ModuleWorkspaceInner() {
                   <div className="flex flex-col items-start gap-3">
                     <p className="text-sm text-muted-foreground">One test covering all of {chapter.title}: {chapterTestTotal} questions, one at a time.</p>
                     <button onClick={startChapterTest} className={primaryBtn} style={subjectBtn}>
-                      Start chapter test <ArrowRight className="w-4 h-4" />
+                      Start chapter test
                     </button>
                   </div>
                 ) : !chapterTest.complete ? (
@@ -488,7 +488,7 @@ function ModuleWorkspaceInner() {
                     {currentChapterTestItem.mark && (
                       <div className="flex justify-end">
                         <button onClick={advanceChapterTest} className={primaryBtn} style={subjectBtn}>
-                          {isLastChapterTestQuestion ? "Finish test" : "Next question"} <ArrowRight className="w-4 h-4" />
+                          {isLastChapterTestQuestion ? "Finish test" : "Next question"}
                         </button>
                       </div>
                     )}
@@ -519,7 +519,7 @@ function ModuleWorkspaceInner() {
                       </button>
                       {moduleComplete && (
                         <button onClick={() => goTo("finish")} className={primaryBtn} style={subjectBtn}>
-                          Finish module <ArrowRight className="w-4 h-4" />
+                          Finish module
                         </button>
                       )}
                     </div>

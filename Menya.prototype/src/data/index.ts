@@ -31,7 +31,7 @@ export const sessions: Session[] = [
   { id: 7,  student: "Amara Osei",       tutorId: 4, course: "Geometry",      time: "Jun 22",   clock: "3:00 PM", duration: 45, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   { id: 8,  student: "Noah Fitzgerald",  tutorId: 5, course: "Calculus",      time: "Today",    clock: "5:00 PM", duration: 60, status: "upcoming", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   { id: 9,  student: "DeShawn Williams", tutorId: 5, course: "Pre-Calculus",  time: "Jun 22",   clock: "4:30 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
-  { id: 10, student: "Sofia Patel",      tutorId: 5, course: "Pre-Alg",       time: "Jun 23",   clock: "3:00 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
+  { id: 10, student: "Sofia Patel",      tutorId: 5, course: "Pre-Alg",       time: "Nov 24",   date: "2026-11-24", clock: "3:00 PM", duration: 60, status: "scheduled", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   { id: 11, student: "DeShawn Williams", tutorId: 5, course: "Pre-Calculus",  time: "Today",    clock: "1:00 PM", duration: 60, status: "upcoming", meetingId: "add_real_meeting_id", password: "add_real_passcode" },
   // Real dated sessions (this week/next week) so Francoise's (tutorId 5) Home >
   // Upcoming Sessions has more than just the two "Today" ones to show. IDs are

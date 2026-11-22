@@ -10,7 +10,7 @@ import { getCourseIcon } from "../../lib/constants";
 import { subjectColor, subjectTint } from "../../lib/subject";
 import type { Session } from "../../types";
 
-// My Journey's Sessions card as a small month calendar. Days with a session
+// Home's Sessions card as a small month calendar. Days with a session
 // get a primary-coloured dot (grey once it's done). Below it: today's
 // sessions, with Join for a live one. Picking another day lists that day
 // instead, with a "Today" link back. A day with no sessions shows nothing.
@@ -56,7 +56,7 @@ export default function SessionsCalendar({ sessions, onJoin, onRequest }: {
   const fmt = (d: Date) => d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5">
+    <div className="bg-card border border-border rounded-xl p-5 lg:bg-transparent lg:border-0 lg:rounded-none lg:px-0 lg:py-6">
       <div className="flex items-center justify-between gap-2 mb-3">
         <h2 className="text-sm font-semibold text-foreground">Sessions</h2>
         <button

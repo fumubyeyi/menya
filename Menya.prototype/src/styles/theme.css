@@ -226,7 +226,14 @@
   .student-theme main .bg-card {
     box-shadow: var(--student-card-shadow);
   }
-  /* My Journey streak flame: a slow, small sway, so it feels alive without
+  /* Inside a page's side panel (Home) the sections are flat on wide
+     screens, separated by rules: no card shadow. Phones keep the cards. */
+  @media (min-width: 64rem) {
+    .student-theme main aside > .bg-card {
+      box-shadow: none;
+    }
+  }
+  /* Home streak flame: a slow, small sway, so it feels alive without
      pulling the eye. Off for reduced motion. */
   @keyframes flame-flicker {
     0%, 100% { transform: rotate(-3deg) scale(1); }

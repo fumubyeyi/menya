@@ -99,7 +99,7 @@
   opacity: 0.92;
 }
 
-/* Student "Sessions" calendar on My Journey: sits flat inside its card (no
+/* Student "Sessions" calendar on Home: sits flat inside its card (no
    second border) with a little room under each day number for the dots. */
 .menya-calendar--sessions.react-calendar {
   border: none;
