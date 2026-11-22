@@ -109,8 +109,9 @@
    so program/tutor views (and the brand guideline's "calm system of record"
    look) are untouched. It adds one colour per subject and rounder cards with
    a soft lift. (Type is shared app-wide; see the base layer.)
-   Amber (--brand-amber) stays reserved for wins — streaks, goals, XP — so
-   course progress uses the subject colour instead. Every subject colour is
+   Every progress bar on the student pages (courses, goals, XP, badges) is
+   amber (--brand-amber), so progress always looks the same; subject colours
+   mark which course something belongs to. Every subject colour is
    ≥ 4.5:1 against both --card and --background in its theme.
    Read these through lib/subject.ts, which falls back to the neutral slate
    outside this scope. */

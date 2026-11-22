@@ -4,7 +4,6 @@ import { Link } from "react-router";
 import ZoomModal from "../../components/ZoomModal";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
-import JourneyMap from "../../components/student/JourneyMap";
 import StreakCard from "../../components/student/StreakCard";
 import AchievementShelf from "../../components/student/AchievementShelf";
 import { useStudentAchievements } from "../../hooks/useStudentAchievements";
@@ -13,7 +12,7 @@ import {
 } from "../../data";
 import {
   achievements, achievementGapLabel, getCourseIcon, goalProgress, goalLabel,
-  chapterAction, courseCompletion,
+  chapterAction, courseCompletion, courseSlug,
 } from "../../lib/constants";
 import { useSessions } from "../../context/SessionsContext";
 import { useStudentGoals } from "../../hooks/useStudentGoals";
@@ -30,20 +29,23 @@ function greeting(date = new Date()): string {
   return "Good evening";
 }
 
-// A small ring for "how far through this chapter", in the subject colour.
-function ChapterRing({ pct, course }: { pct: number; course: string }) {
+// A small ring for "how far through this chapter", drawn on the solid
+// subject-coloured "Up next" card. It uses the card colour (white in light
+// mode) rather than the usual amber: amber on the teal/pink fills is under
+// 3:1 contrast and hard to see.
+function ChapterRing({ pct }: { pct: number }) {
   const size = 72;
   const r = (size - 10) / 2;
   const circ = 2 * Math.PI * r;
   return (
     <div className="relative flex-shrink-0" style={{ width: size, height: size }} role="img" aria-label={`${pct}% of this chapter done`}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }} aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--muted)" strokeWidth={8} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={subjectColor(course)} strokeWidth={8}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="color-mix(in srgb, var(--card) 30%, transparent)" strokeWidth={8} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--card)" strokeWidth={8}
           strokeDasharray={circ} strokeDashoffset={circ - (pct / 100) * circ} strokeLinecap="round"
           className="motion-safe:transition-[stroke-dashoffset] motion-safe:duration-700" />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-foreground">{pct}%</span>
+      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color: "var(--card)" }}>{pct}%</span>
     </div>
   );
 }
@@ -82,16 +84,18 @@ export default function StudentHome() {
     ? Math.round((nextUp.chapter.modules.filter((m) => m.status === "completed").length / nextUp.chapter.modules.length) * 100)
     : 0;
 
-  // Courses on the journey map: every enrolled course that exists in the
-  // curriculum, opening on the one the "Up next" card points at.
+  // My Journey: one progress bar per enrolled course, all shown at once.
+  // Each row links to that course's next module (the first one in progress,
+  // else the first not started), or to My Courses once it's all done.
   const journeyCourses = enrolledCourses
     .map((name) => curriculumCourses.find((c) => c.name === name))
-    .filter((c): c is NonNullable<typeof c> => !!c);
-  const [journeyCourseName, setJourneyCourseName] = useState<string | null>(null);
-  const journeyCourse =
-    journeyCourses.find((c) => c.name === journeyCourseName) ??
-    journeyCourses.find((c) => c.name === nextUp?.mod.course) ??
-    journeyCourses[0];
+    .filter((c): c is NonNullable<typeof c> => !!c)
+    .map((course) => {
+      const stops = course.chapters.flatMap((ch) => ch.modules.map((m, i) => ({ m, chapterId: ch.id, index: i })));
+      const done = stops.filter((s) => s.m.status === "completed").length;
+      const next = stops.find((s) => s.m.status === "in-progress") ?? stops.find((s) => s.m.status === "not-started");
+      return { course, total: stops.length, done, pct: courseCompletion(curriculumCourses, course.name), next };
+    });
 
   const studentSessions = sessions.filter((s) => s.student === student.name);
   const upcomingSessions = studentSessions.filter((s) => s.status !== "completed").slice(0, 3);
@@ -138,34 +142,32 @@ export default function StudentHome() {
       {nextUp && (
         <Link
           to={`/student/module/${nextUp.chapter.id}/${nextUp.action.moduleIndex}`}
-          className="student-card-hover flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 bg-card border-2 rounded-xl p-5 sm:p-6 group"
-          style={{
-            borderColor: subjectTint(nextUp.mod.course, 45),
-            backgroundImage: `linear-gradient(100deg, ${subjectTint(nextUp.mod.course, 12)}, transparent 75%)`,
-          }}
+          // Solid subject colour, so the next step is the boldest thing on the
+          // page. Text uses var(--card): white on the light-mode colours, dark
+          // on the lighter dark-mode ones, ≥ 4.5:1 either way.
+          className="student-card-hover flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 rounded-xl p-5 sm:p-6 group"
+          style={{ backgroundColor: subjectColor(nextUp.mod.course), color: "var(--card)", boxShadow: "var(--student-card-shadow)" }}
         >
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 [&_svg]:w-8 [&_svg]:h-8"
-              style={{ backgroundColor: subjectTint(nextUp.mod.course, 18), color: subjectColor(nextUp.mod.course) }}
+              style={{ backgroundColor: "color-mix(in srgb, var(--card) 20%, transparent)" }}
             >
               {getCourseIcon(nextUp.mod.course)}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: subjectColor(nextUp.mod.course) }}>
-                Up next
-              </p>
-              <p className="text-xl font-display font-bold text-foreground leading-tight line-clamp-2 sm:truncate">{nextUp.action.moduleTitle}</p>
-              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 sm:truncate">
+              <p className="text-xs font-bold uppercase tracking-wide">Up next</p>
+              <p className="text-xl font-display font-bold leading-tight line-clamp-2 sm:truncate">{nextUp.action.moduleTitle}</p>
+              <p className="text-sm mt-0.5 line-clamp-2 sm:truncate">
                 {nextUp.mod.course} · {nextUp.chapter.title} · Module {(nextUp.action.moduleIndex ?? 0) + 1} of {nextUp.chapter.modules.length}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
-            <ChapterRing pct={nextUpChapterPct} course={nextUp.mod.course} />
+            <ChapterRing pct={nextUpChapterPct} />
             <span
-              className="flex items-center gap-2 px-6 py-3 rounded-full text-base font-bold group-hover:brightness-110 motion-safe:transition"
-              style={{ backgroundColor: subjectColor(nextUp.mod.course), color: "var(--card)" }}
+              className="flex items-center gap-2 px-6 py-3 rounded-full text-base font-bold group-hover:brightness-95 motion-safe:transition"
+              style={{ backgroundColor: "var(--card)", color: subjectColor(nextUp.mod.course) }}
             >
               {nextUp.action.label} <ArrowRight className="w-5 h-5" />
             </span>
@@ -175,35 +177,46 @@ export default function StudentHome() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4 min-w-0">
-          {/* My Journey: each course as a winding path of modules */}
+          {/* My Journey: a simple progress bar for every course at once */}
           <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 className="text-lg font-display font-bold text-foreground">My Journey</h2>
-              {journeyCourses.length > 1 && (
-                <div className="flex flex-wrap gap-2" role="tablist" aria-label="Course">
-                  {journeyCourses.map((c) => {
-                    const active = c.name === journeyCourse?.name;
-                    return (
-                      <button
-                        key={c.name}
-                        role="tab"
-                        aria-selected={active}
-                        onClick={() => setJourneyCourseName(c.name)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border-2 motion-safe:transition-colors"
-                        style={active
-                          ? { backgroundColor: subjectTint(c.name, 14), borderColor: subjectColor(c.name), color: subjectColor(c.name) }
-                          : { borderColor: "var(--border)", color: "var(--muted-foreground)" }}
+            <h2 className="text-lg font-display font-bold text-foreground mb-4">My Journey</h2>
+            {journeyCourses.length > 0 ? (
+              <ul className="space-y-2">
+                {journeyCourses.map(({ course, total, done, pct, next }) => (
+                  <li key={course.name}>
+                    <Link
+                      to={next ? `/student/module/${next.chapterId}/${next.index}` : `/student/learning#${courseSlug(course.name)}`}
+                      className="block rounded-xl -mx-2 px-2 py-2.5 hover:bg-muted/50 motion-safe:transition-colors"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <span
+                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: subjectTint(course.name), color: subjectColor(course.name) }}
+                        >
+                          {getCourseIcon(course.name)}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground">{course.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {next ? `Next: ${next.m.title}` : "All modules done!"} · {done}/{total} modules
+                          </p>
+                        </div>
+                        <span className="text-lg font-display font-bold text-foreground flex-shrink-0">{pct}%</span>
+                      </div>
+                      <div
+                        className="h-3 bg-muted rounded-full overflow-hidden"
+                        role="progressbar"
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`${course.name} progress`}
                       >
-                        {getCourseIcon(c.name)} {c.name}
-                        <span className="font-mono text-xs opacity-80">{courseCompletion(curriculumCourses, c.name)}%</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            {journeyCourse ? (
-              <JourneyMap course={journeyCourse} />
+                        <div className="h-full rounded-full bg-brand-amber motion-safe:transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             ) : (
               <div className="flex items-center gap-3 py-6">
                 <BookPlus className="w-5 h-5 text-primary flex-shrink-0" />

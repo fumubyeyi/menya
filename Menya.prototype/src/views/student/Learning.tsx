@@ -109,14 +109,14 @@ export default function Learning() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-foreground">{sd.course}</h3>
-                      <span className="text-lg font-display font-bold" style={{ color }}>{completion}%</span>
+                      <span className="text-lg font-display font-bold text-foreground">{completion}%</span>
                     </div>
                     <p className="text-[11px] font-mono text-muted-foreground">{sd.sessions} sessions · Last: {sd.lastSession}</p>
                   </div>
                 </div>
 
                 <div className="h-2.5 bg-muted rounded-full overflow-hidden mb-4">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${completion}%`, backgroundColor: color }} />
+                  <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${completion}%` }} />
                 </div>
 
                 {/* Related modules */}
