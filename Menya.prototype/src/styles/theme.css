@@ -117,6 +117,16 @@
    outside this scope. */
 .student-theme {
   --radius: 0.875rem;
+  /* Students get a brighter primary than staff: a livelier teal from the
+     brand's green-slate family, so buttons, the trail and the current step
+     pop. White text on it is 5.2:1. Staff pages keep calm slate. */
+  --primary: #0F7A6C;
+  --primary-foreground: #FFFFFF;
+  --ring: #0F7A6C;
+  --sidebar-primary: #0F7A6C;
+  --sidebar-ring: #0F7A6C;
+  --sidebar-accent: color-mix(in srgb, #0F7A6C 12%, transparent);
+  --sidebar-accent-foreground: #0F7A6C;
   --subject-algebra: #7C3AED;
   --subject-algebra-ii: #4F46E5;
   --subject-pre-alg: #BE185D;
@@ -128,6 +138,15 @@
 }
 
 .student-theme.dark {
+  /* Dark mode: a glowing teal (8:1 with its dark text) instead of the
+     near-white slate primary, which read as plain grey. */
+  --primary: #2DD4BF;
+  --primary-foreground: #0B2A26;
+  --ring: #2DD4BF;
+  --sidebar-primary: #2DD4BF;
+  --sidebar-ring: #2DD4BF;
+  --sidebar-accent: color-mix(in srgb, #2DD4BF 14%, transparent);
+  --sidebar-accent-foreground: #2DD4BF;
   --subject-algebra: #A78BFA;
   --subject-algebra-ii: #818CF8;
   --subject-pre-alg: #F472B6;
@@ -271,6 +290,16 @@
   .answer-shake { animation: answer-shake 420ms ease-out both; }
   @media (prefers-reduced-motion: reduce) {
     .answer-bounce, .answer-shake { animation: none; }
+  }
+  /* My Courses trail: a soft halo that breathes out from the current module's
+     stop. Off for reduced motion. */
+  @keyframes trail-pulse {
+    0%   { transform: scale(1); opacity: 0.35; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .trail-pulse { animation: trail-pulse 1.8s ease-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .trail-pulse { animation: none; opacity: 0; }
   }
   .scrollbar-hide {
     scrollbar-width: none;

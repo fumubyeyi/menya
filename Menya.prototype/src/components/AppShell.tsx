@@ -117,7 +117,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/tutor/attendance":   "Attendance",
     "/tutor/search":       "Curriculum Library Search",
     "/student/home":       "My Journey",
-    "/student/learning":   "Learning",
+    "/student/learning":   "My Courses",
     "/student/schedule":   "Schedule",
     "/student/goals":      "Goals & Achievements",
     "/student/module":     "Module Workspace",
@@ -125,6 +125,11 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
 
   const basePath = "/" + location.pathname.split("/").slice(1, 3).join("/");
   const pageTitle = titleMap[basePath] ?? "Dashboard";
+  // Inside a module the workspace has its own course outline, so on wide
+  // screens the app nav shrinks to icons to give the module room. (The phone
+  // drawer is unchanged.) My Courses stays highlighted while in a module.
+  const compactNav = basePath === "/student/module";
+  const navActive = (to: string, isActive: boolean) => isActive || (compactNav && to === "/student/learning");
 
   return (
     <div className={`flex h-screen bg-background overflow-hidden ${theme === "dark" ? "dark" : ""} ${role === "student" ? "student-theme" : ""}`} style={{ colorScheme: theme }}>
@@ -132,13 +137,13 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:relative z-30 inset-y-0 left-0 flex flex-col w-60 flex-shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+        className={`fixed lg:relative z-30 inset-y-0 left-0 flex flex-col w-60 ${compactNav ? "lg:w-[72px]" : ""} flex-shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         {/* Logo */}
-        <div className="px-5 pt-5 pb-4 border-b border-sidebar-border flex items-center justify-between">
+        <div className={`px-5 pt-5 pb-4 border-b border-sidebar-border flex items-center justify-between ${compactNav ? "lg:px-0 lg:justify-center" : ""}`}>
           <div className="flex items-center gap-2">
             <img src="/logo.svg" alt="" className="w-11 h-11 flex-shrink-0" />
-            <div className="leading-none">
+            <div className={`leading-none ${compactNav ? "lg:hidden" : ""}`}>
               <span className="font-brand font-bold text-sidebar-foreground text-lg block">Menya</span>
             </div>
           </div>
@@ -150,19 +155,19 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
           {nav.map(({ to, label, Icon, badge }) => (
-            <NavLink key={to} to={to} onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/60"}`
+            <NavLink key={to} to={to} onClick={() => setMobileOpen(false)} title={compactNav ? label : undefined}
+              className={({ isActive: routeActive }) => { const isActive = navActive(to, routeActive); return (
+                `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${compactNav ? "lg:justify-center lg:px-0" : ""} ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/60"}`); }
               }>
-              {({ isActive }) => (
+              {({ isActive: routeActive }) => { const isActive = navActive(to, routeActive); return (
                 <>
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-accent" : ""}`} />
-                  {label}
-                  {badge && badge > 0 && !isActive
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? (role === "student" ? "text-primary" : "text-accent") : ""}`} />
+                  <span className={compactNav ? "lg:sr-only" : ""}>{label}</span>
+                  {compactNav ? null : badge && badge > 0 && !isActive
                     ? <span className="ml-auto bg-accent text-white text-[10px] font-mono font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">{badge}</span>
-                    : isActive ? <div className="ml-auto w-1 h-1 rounded-full bg-accent" /> : null}
+                    : isActive ? <div className={`ml-auto w-1 h-1 rounded-full ${role === "student" ? "bg-primary" : "bg-accent"}`} /> : null}
                 </>
-              )}
+              ); }}
             </NavLink>
           ))}
         </nav>

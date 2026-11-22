@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import confetti from "canvas-confetti";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, NotebookPen, ClipboardCheck, RotateCcw, Flame, Trophy, Sparkles,
-  PartyPopper, ChevronRight, ChevronLeft, Lock, AlertTriangle, HelpCircle, BookOpen,
+  ArrowLeft, ArrowRight, CheckCircle2, NotebookPen, RotateCcw, Flame, Trophy,
+  PartyPopper, ChevronRight, ChevronLeft, Lock, AlertTriangle, HelpCircle, BookOpen, ListTree,
 } from "lucide-react";
-import CourseTag from "../../components/CourseTag";
+import CourseChapters from "../../components/student/CourseChapters";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "../../app/components/ui/sheet";
+import { useStudentCurriculum } from "../../hooks/useStudentCurriculum";
 import ContentDrawer, { ModuleContentBody } from "../../components/ContentDrawer";
 import RequestHelpModal from "../../components/RequestHelpModal";
 import PracticeCard, { emptyItem, normalizeItem, type ItemState } from "../../components/student/workspace/PracticeCard";
@@ -17,14 +19,8 @@ import { useStudentAchievements } from "../../hooks/useStudentAchievements";
 import { useModuleTime } from "../../hooks/useModuleTime";
 import { getCourseIcon, diffCls, getModuleContent, getChapterTest } from "../../lib/constants";
 import { subjectColor, subjectTint } from "../../lib/subject";
-import { savedPracticeStatus, statusFromMarks, furthestStatus, progressKeys } from "../../lib/studentProgress";
+import { savedPracticeStatus, progressKeys } from "../../lib/studentProgress";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
-
-const statusMeta = {
-  completed:    { label: "Completed",   cls: "text-emerald-700 bg-emerald-50 dark:text-emerald-200 dark:bg-emerald-950/40" },
-  "in-progress":{ label: "In Progress", cls: "text-primary bg-primary/10" },
-  "not-started":{ label: "Not Started", cls: "text-muted-foreground bg-muted" },
-};
 
 interface PracticeState { exercises: ItemState[] }
 interface ChapterTestState { items: ItemState[]; started: boolean; step: number; complete: boolean }
@@ -70,6 +66,16 @@ function ModuleWorkspaceInner() {
   const [visitedPractice, setVisitedPractice] = useState(false);
   const [contentDrawerOpen, setContentDrawerOpen] = useState(false);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+  // On phones the course outline and the notes each slide in from the side.
+  // "All chapters" on My Courses links here with ?outline=1 so the outline
+  // opens straight away there.
+  const [searchParams] = useSearchParams();
+  // (Wide screens already show it beside the module, so it stays shut there.)
+  const [outlineOpen, setOutlineOpen] = useState(
+    () => searchParams.get("outline") === "1" && !window.matchMedia("(min-width: 1024px)").matches,
+  );
+  const [notesOpen, setNotesOpen] = useState(false);
+  const studentCurriculum = useStudentCurriculum();
 
   const [practice, setPractice] = useState<PracticeState>(() => {
     try {
@@ -185,9 +191,6 @@ function ModuleWorkspaceInner() {
   const { course, chapter } = found;
   const color = subjectColor(course.name);
   const tint = subjectTint(course.name);
-  // Live: moves to In Progress / Completed as the student answers, matching
-  // what My Journey and My Courses will show (lib/studentProgress.ts).
-  const status = statusMeta[furthestStatus(courseModule.status, statusFromMarks(practice.exercises.map((it) => it.mark)))];
 
   const chapterTestTotal = chapterTestQuestions.length;
   const currentChapterTestItem = chapterTest.items[chapterTest.step];
@@ -240,58 +243,84 @@ function ModuleWorkspaceInner() {
     complete: false,
   });
 
+  const outlineBody = (
+    <>
+      <div className="px-4 py-3 flex items-center gap-2.5 border-b border-border">
+        <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tint, color }}>
+          {getCourseIcon(course.name)}
+        </span>
+        <p className="flex-1 min-w-0 text-sm font-bold text-foreground truncate">{course.name}</p>
+        {/* The current chapter's difficulty */}
+        <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono flex-shrink-0 ${diffCls[chapter.difficulty]}`}>{chapter.difficulty}</span>
+      </div>
+      <CourseChapters
+        course={studentCurriculum.find((c) => c.name === course.name) ?? course}
+        here={{ chapterId: chapter.id, index }}
+      />
+    </>
+  );
+
   const primaryBtn = "flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold hover:brightness-110 motion-safe:transition";
   // Main actions use the primary colour, like everywhere else in the app.
   const subjectBtn = { backgroundColor: "var(--primary)", color: "var(--primary-foreground)" };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5 pb-24">
-      <Link to="/student/learning" className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="w-3.5 h-3.5" /> Back to My Courses
-      </Link>
+    <div className="max-w-screen-xl mx-auto pb-24 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6 lg:items-start">
+      {/* Course outline: always beside the module on wide screens */}
+      <aside className="hidden lg:block lg:sticky lg:top-0 max-h-[calc(100vh-7rem)] overflow-y-auto bg-card border border-border rounded-xl">
+        {outlineBody}
+      </aside>
 
-      {/* Header */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="h-2 bg-primary" />
-        <div className="p-6">
-          <div className="flex items-center gap-2 flex-wrap mb-2">
-            <CourseTag course={course.name} />
-            <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-muted text-muted-foreground">{chapter.title}</span>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${diffCls[chapter.difficulty]}`}>{chapter.difficulty}</span>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${status.cls}`}>{status.label}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tint }}>
-              <span style={{ color }}>{getCourseIcon(course.name)}</span>
-            </div>
-            <h1 className="text-xl font-display font-semibold text-foreground">{courseModule.title}</h1>
-          </div>
-          <p className="text-sm text-muted-foreground mt-3">{workspace.description}</p>
-        </div>
+      <div className="space-y-5 min-w-0">
+      <div className="flex items-center gap-2">
+        <Link to="/student/learning" className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mr-auto whitespace-nowrap">
+          <ArrowLeft className="w-3.5 h-3.5" /> <span><span className="hidden sm:inline">Back to </span>My Courses</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setOutlineOpen(true)}
+          className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-semibold text-foreground hover:bg-muted whitespace-nowrap"
+        >
+          <ListTree className="w-4 h-4" /> Outline
+        </button>
+        {/* On phones Notes sits here with Outline; wider screens show it by the title */}
+        <button
+          type="button"
+          onClick={() => setNotesOpen(true)}
+          className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-semibold text-foreground hover:bg-muted whitespace-nowrap"
+        >
+          <NotebookPen className="w-4 h-4" /> Notes{notes.trim() && <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-label="has notes" />}
+        </button>
       </div>
 
-      {/* Steps + XP */}
-      <div className="bg-card border border-border rounded-xl p-5 space-y-5">
-        <ModuleStepper steps={steps} current={mode} onSelect={goTo} />
-        <div className="flex items-center gap-4 flex-wrap pt-4 border-t border-border">
-          <div className="flex items-center gap-2 flex-1 min-w-[160px]">
-            <Sparkles className="w-4 h-4 text-brand-amber flex-shrink-0" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Module XP</span>
-                <span className="text-xs font-mono font-semibold text-foreground">{xp}/{maxXp}</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${maxXp ? Math.min(100, (xp / maxXp) * 100) : 0}%` }} />
-              </div>
-            </div>
-          </div>
-          <span className={`text-[11px] px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5 ${masteryTier.cls}`}>
-            <Trophy className="w-3 h-3" />{masteryTier.label}
-          </span>
+      {/* Module title and description as plain text, then its steps */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-display font-bold text-foreground">{courseModule.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{workspace.description}</p>
+        </div>
+        {/* Notes belong to this module, so they sit beside its title */}
+        <button
+          type="button"
+          onClick={() => setNotesOpen(true)}
+          className="mt-1 hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-semibold text-foreground hover:bg-muted whitespace-nowrap flex-shrink-0"
+        >
+          <NotebookPen className="w-4 h-4" /> Notes{notes.trim() && <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-label="has notes" />}
+        </button>
+      </div>
+      <div className="flex items-center gap-x-5 gap-y-3 flex-wrap">
+        <div className="flex-1 min-w-[220px]">
+          <ModuleStepper steps={steps} current={mode} onSelect={goTo} />
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0 empty:hidden">
+          {markedCount > 0 && (
+            <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono flex items-center gap-1 whitespace-nowrap ${masteryTier.cls}`}>
+              <Trophy className="w-3 h-3" />{masteryTier.label}
+            </span>
+          )}
           {combo > 1 && (
-            <span className="text-[11px] px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5 text-foreground bg-brand-amber/15">
-              <Flame className="w-3 h-3 text-brand-amber" />{combo}x Combo
+            <span className="text-[11px] px-2 py-0.5 rounded-full font-mono flex items-center gap-1 whitespace-nowrap text-foreground bg-brand-amber/15">
+              <Flame className="w-3 h-3 text-brand-amber" />{combo}x
             </span>
           )}
         </div>
@@ -310,12 +339,12 @@ function ModuleWorkspaceInner() {
           onReview={() => goTo("practice")}
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
+        <div>
           <div className="space-y-5 min-w-0">
             {mode === "learn" && (
               <>
                 <div className="bg-card border border-border rounded-xl p-6">
-                  <h2 className="text-sm font-semibold text-foreground mb-3">Learn</h2>
+                  <h2 className="sr-only">Learn</h2>
                   <ModuleContentBody workspace={workspace} />
                 </div>
                 {exerciseCount > 0 && (
@@ -330,19 +359,17 @@ function ModuleWorkspaceInner() {
 
             {mode === "practice" && (
               <>
-                <div className="flex justify-end">
-                  <button type="button" onClick={() => setContentDrawerOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-foreground border border-border hover:bg-muted transition-colors">
-                    <BookOpen className="w-3.5 h-3.5" /> Review the lesson
-                  </button>
-                </div>
-
                 <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-semibold text-foreground">Practice</h2>
+                  {/* The step line above names the step; screen readers still get the heading */}
+                  <h2 className="sr-only">Practice</h2>
+                  <div className="flex items-center justify-between gap-3">
                     {exerciseCount > 0 && (
-                      <span className="text-xs font-mono text-muted-foreground ml-auto">Question {currentExerciseIndex + 1} of {exerciseCount}</span>
+                      <p className="text-xs font-mono text-muted-foreground">Question {currentExerciseIndex + 1} of {exerciseCount}</p>
                     )}
+                    <button type="button" onClick={() => setContentDrawerOpen(true)}
+                      className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
+                      <BookOpen className="w-3.5 h-3.5" /> Review the lesson
+                    </button>
                   </div>
                   {exerciseCount === 0 ? (
                     <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-muted/40 border border-border">
@@ -415,13 +442,10 @@ function ModuleWorkspaceInner() {
 
             {mode === "test" && hasTest && (
               <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
-                  <h2 className="text-sm font-semibold text-foreground">Chapter Test</h2>
-                  {chapterTest.started && !chapterTest.complete && (
-                    <span className="text-xs font-mono text-muted-foreground ml-auto">Question {chapterTest.step + 1} of {chapterTestTotal}</span>
-                  )}
-                </div>
+                <h2 className="sr-only">Chapter test</h2>
+                {chapterTest.started && !chapterTest.complete && (
+                  <p className="text-xs font-mono text-muted-foreground text-right">Question {chapterTest.step + 1} of {chapterTestTotal}</p>
+                )}
 
                 {!chapterExercisesComplete ? (
                   <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-muted/40 border border-border">
@@ -505,25 +529,40 @@ function ModuleWorkspaceInner() {
             )}
           </div>
 
-          {/* Notes — alongside every step, not tied to one */}
-          <details open className="bg-card border border-border rounded-xl lg:sticky lg:top-4">
-            <summary className="flex items-center gap-2 p-5 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-              <NotebookPen className="w-4 h-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold text-foreground">Notes</h2>
-              <span className="text-[10px] font-mono text-muted-foreground ml-auto">Saved on this device</span>
-            </summary>
-            <div className="px-5 pb-5">
-              <textarea
-                value={notes}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                rows={8}
-                placeholder="Jot down anything you want to remember about this module…"
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
-              />
-            </div>
-          </details>
         </div>
       )}
+
+      </div>
+
+      <Sheet open={outlineOpen} onOpenChange={setOutlineOpen}>
+        <SheetContent side="left" className="overflow-y-auto p-0 gap-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Course outline</SheetTitle>
+            <SheetDescription>Every chapter and module in {course.name}</SheetDescription>
+          </SheetHeader>
+          {outlineBody}
+        </SheetContent>
+      </Sheet>
+
+      {/* Notes: kept for every step of the module, one tap away */}
+      <Sheet open={notesOpen} onOpenChange={setNotesOpen}>
+        <SheetContent side="right" className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Notes</SheetTitle>
+            <SheetDescription>{courseModule.title} · saved on this device</SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            <textarea
+              value={notes}
+              onChange={(e) => handleNotesChange(e.target.value)}
+              rows={14}
+              autoFocus
+              placeholder="Jot down anything you want to remember about this module…"
+              className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* "I'm stuck": always one tap away, floating bottom-right, so asking
           for help feels normal rather than like a last resort. */}

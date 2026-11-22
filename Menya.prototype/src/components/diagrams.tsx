@@ -5,14 +5,18 @@ import type {
 
 // Every visual here is a small, parameterized inline SVG generated from plain numbers —
 // no external images, so nothing to fetch, host, or break. Colors follow the app's
-// existing chart palette (#2F4F4F primary, #708090 accent, slate greys for axes/grid).
+// theme: primary, accent, and the muted greys for axes, grid and labels.
 
-const PRIMARY = "#2F4F4F";
-const ACCENT = "#708090";
-const GRID = "#e2e8f0";
-const AXIS = "#94a3b8";
-const TEXT = "#334155";
-const MUTED_TEXT = "#64748b";
+// Theme colours, so diagrams follow the student primary and read in dark mode.
+const PRIMARY = "var(--primary)";
+const ACCENT = "var(--accent)";
+const GRID = "var(--border)";
+const AXIS = "color-mix(in srgb, var(--muted-foreground) 60%, transparent)";
+const TEXT = "var(--foreground)";
+const MUTED_TEXT = "var(--muted-foreground)";
+// Text or hollow centres drawn on top of a filled mark
+const ON_FILL = "var(--card)";
+const tint = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, transparent)`;
 
 // ── Function graphs (linear, quadratic, cubic, exponential, log, rational, piecewise, trig) ──
 
@@ -112,8 +116,8 @@ function FunctionGraphSVG({ spec }: { spec: GraphDiagram }) {
 
       {spec.family === "piecewise" && (spec.pieces ?? []).map((p, i) => (
         <g key={i}>
-          <circle cx={toPx(p.from)} cy={toPy(p.m * p.from + p.b)} r={3} fill={p.fromOpen ? "white" : PRIMARY} stroke={PRIMARY} strokeWidth={1.5} />
-          <circle cx={toPx(p.to)} cy={toPy(p.m * p.to + p.b)} r={3} fill={p.toOpen ? "white" : PRIMARY} stroke={PRIMARY} strokeWidth={1.5} />
+          <circle cx={toPx(p.from)} cy={toPy(p.m * p.from + p.b)} r={3} fill={p.fromOpen ? ON_FILL : PRIMARY} stroke={PRIMARY} strokeWidth={1.5} />
+          <circle cx={toPx(p.to)} cy={toPy(p.m * p.to + p.b)} r={3} fill={p.toOpen ? ON_FILL : PRIMARY} stroke={PRIMARY} strokeWidth={1.5} />
         </g>
       ))}
 
@@ -125,7 +129,7 @@ function FunctionGraphSVG({ spec }: { spec: GraphDiagram }) {
       {(spec.markPoints ?? []).map((p, i) => (
         <g key={i}>
           <circle cx={toPx(p.x)} cy={toPy(p.y)} r={3.5} fill={ACCENT} />
-          {p.label && <text x={toPx(p.x)} y={toPy(p.y) - 8} fontSize={10} textAnchor="middle" fill={ACCENT} fontWeight={600}>{p.label}</text>}
+          {p.label && <text x={toPx(p.x)} y={toPy(p.y) - 8} fontSize={13} textAnchor="middle" fill={ACCENT} fontWeight={600}>{p.label}</text>}
         </g>
       ))}
     </svg>
@@ -148,20 +152,20 @@ function NumberLineSVG({ spec }: { spec: NumberLineDiagram }) {
       {ticks.map((t) => (
         <g key={t}>
           <line x1={toPx(t)} y1={H / 2 - 4} x2={toPx(t)} y2={H / 2 + 4} stroke={AXIS} strokeWidth={1} />
-          <text x={toPx(t)} y={H / 2 + 18} fontSize={9} textAnchor="middle" fill={MUTED_TEXT}>{t}</text>
+          <text x={toPx(t)} y={H / 2 + 18} fontSize={12} textAnchor="middle" fill={MUTED_TEXT}>{t}</text>
         </g>
       ))}
       {(spec.intervals ?? []).map((iv, i) => (
         <g key={i}>
           <line x1={toPx(iv.from)} y1={H / 2} x2={toPx(iv.to)} y2={H / 2} stroke={PRIMARY} strokeWidth={4} />
-          <circle cx={toPx(iv.from)} cy={H / 2} r={4.5} fill={iv.fromOpen ? "white" : PRIMARY} stroke={PRIMARY} strokeWidth={2} />
-          <circle cx={toPx(iv.to)} cy={H / 2} r={4.5} fill={iv.toOpen ? "white" : PRIMARY} stroke={PRIMARY} strokeWidth={2} />
+          <circle cx={toPx(iv.from)} cy={H / 2} r={4.5} fill={iv.fromOpen ? ON_FILL : PRIMARY} stroke={PRIMARY} strokeWidth={2} />
+          <circle cx={toPx(iv.to)} cy={H / 2} r={4.5} fill={iv.toOpen ? ON_FILL : PRIMARY} stroke={PRIMARY} strokeWidth={2} />
         </g>
       ))}
       {(spec.points ?? []).map((p, i) => (
         <g key={i}>
           <circle cx={toPx(p.value)} cy={H / 2} r={4} fill={ACCENT} />
-          {p.label && <text x={toPx(p.value)} y={H / 2 - 10} fontSize={9} textAnchor="middle" fill={ACCENT} fontWeight={600}>{p.label}</text>}
+          {p.label && <text x={toPx(p.value)} y={H / 2 - 10} fontSize={12} textAnchor="middle" fill={ACCENT} fontWeight={600}>{p.label}</text>}
         </g>
       ))}
     </svg>
@@ -203,8 +207,8 @@ function renderFactorNode(node: FNode, depth: number, xStart: number, width: num
   const isPrime = !node.children;
   out.push(
     <g key={key + "n"}>
-      <circle cx={cx} cy={cy} r={16} fill={isPrime ? PRIMARY : "white"} stroke={PRIMARY} strokeWidth={1.5} />
-      <text x={cx} y={cy + 4} fontSize={11} textAnchor="middle" fontWeight={700} fill={isPrime ? "white" : PRIMARY}>{node.value}</text>
+      <circle cx={cx} cy={cy} r={16} fill={isPrime ? PRIMARY : ON_FILL} stroke={PRIMARY} strokeWidth={1.5} />
+      <text x={cx} y={cy + 4} fontSize={14} textAnchor="middle" fontWeight={700} fill={isPrime ? ON_FILL : PRIMARY}>{node.value}</text>
     </g>
   );
   return cx;
@@ -237,8 +241,8 @@ function BarChartSVG({ spec }: { spec: BarChartDiagram }) {
         return (
           <g key={i}>
             <rect x={x} y={y} width={w} height={barH} rx={2} fill={hl ? ACCENT : PRIMARY} />
-            <text x={x + w / 2} y={y - 4} fontSize={9} textAnchor="middle" fill={TEXT}>{v}</text>
-            {labels?.[i] && <text x={x + w / 2} y={H - PAD + 12} fontSize={9} textAnchor="middle" fill={MUTED_TEXT}>{labels[i]}</text>}
+            <text x={x + w / 2} y={y - 4} fontSize={12} textAnchor="middle" fill={TEXT}>{v}</text>
+            {labels?.[i] && <text x={x + w / 2} y={H - PAD + 12} fontSize={12} textAnchor="middle" fill={MUTED_TEXT}>{labels[i]}</text>}
           </g>
         );
       })}
@@ -289,11 +293,13 @@ function ShapeSVG({ spec }: { spec: ShapeDiagram }) {
     const labels = spec.labels ?? (isRight ? [String(s1), String(s2), Math.hypot(s1, s2).toFixed(1)] : (spec.sides ?? [3, 4, 5]).map(String));
     return (
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-        <polygon points={pts.map((p) => p.join(",")).join(" ")} fill={`${PRIMARY}14`} stroke={PRIMARY} strokeWidth={2} />
+        <polygon points={pts.map((p) => p.join(",")).join(" ")} fill={tint(PRIMARY, 8)} stroke={PRIMARY} strokeWidth={2} />
         {isRight && <polygon points={rightAngleMarker(A, B, C)} fill="none" stroke={PRIMARY} strokeWidth={1.5} />}
-        <text x={(A[0] + B[0]) / 2} y={(A[1] + B[1]) / 2 + 16} fontSize={10} textAnchor="middle" fill={TEXT}>{labels[0]}</text>
-        <text x={(B[0] + C[0]) / 2 + 12} y={(B[1] + C[1]) / 2} fontSize={10} textAnchor="middle" fill={TEXT}>{labels[1]}</text>
-        <text x={(C[0] + A[0]) / 2 - 12} y={(C[1] + A[1]) / 2} fontSize={10} textAnchor="middle" fill={TEXT}>{labels[2]}</text>
+        <text x={(A[0] + B[0]) / 2} y={(A[1] + B[1]) / 2 + 16} fontSize={13} textAnchor="middle" fill={TEXT}>{labels[0]}</text>
+        {/* A right triangle's labels are [leg on A–B, leg on C–A, hypotenuse B–C];
+            any other triangle's follow its sides A–B, B–C, C–A. */}
+        <text x={(B[0] + C[0]) / 2 + 12} y={(B[1] + C[1]) / 2} fontSize={13} textAnchor="middle" fill={TEXT}>{labels[isRight ? 2 : 1]}</text>
+        <text x={(C[0] + A[0]) / 2 - 12} y={(C[1] + A[1]) / 2} fontSize={13} textAnchor="middle" fill={TEXT}>{labels[isRight ? 1 : 2]}</text>
       </svg>
     );
   }
@@ -304,12 +310,17 @@ function ShapeSVG({ spec }: { spec: ShapeDiagram }) {
     const smallPts = fitPoints(triangleVertices(small[0], small[1], small[2]), 110, H, 18);
     const largePtsRaw = triangleVertices(large[0], large[1], large[2]);
     const largePts = fitPoints(largePtsRaw, 150, H, 18).map(([x, y]) => [x + 130, y] as Pt);
+    // Crop the frame to the triangles (plus room for their labels) so short,
+    // wide triangles don't leave a tall empty band above them.
+    const allY = [...smallPts, ...largePts].map((p) => p[1]);
+    const top = Math.max(0, Math.min(...allY) - 16);
+    const bottom = Math.min(H, Math.max(...allY) + 20);
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-        <polygon points={smallPts.map((p) => p.join(",")).join(" ")} fill={`${PRIMARY}14`} stroke={PRIMARY} strokeWidth={2} />
-        <polygon points={largePts.map((p) => p.join(",")).join(" ")} fill={`${ACCENT}14`} stroke={ACCENT} strokeWidth={2} />
-        {small.map((s, i) => <text key={i} x={smallPts[i][0]} y={smallPts[i][1] + (i === 2 ? -6 : 14)} fontSize={9} textAnchor="middle" fill={PRIMARY}>{s}</text>)}
-        {large.map((s, i) => <text key={i} x={largePts[i][0]} y={largePts[i][1] + (i === 2 ? -6 : 14)} fontSize={9} textAnchor="middle" fill={ACCENT}>{s}</text>)}
+      <svg viewBox={`0 ${top} ${W} ${bottom - top}`} className="w-full h-auto">
+        <polygon points={smallPts.map((p) => p.join(",")).join(" ")} fill={tint(PRIMARY, 8)} stroke={PRIMARY} strokeWidth={2} />
+        <polygon points={largePts.map((p) => p.join(",")).join(" ")} fill={tint(ACCENT, 8)} stroke={ACCENT} strokeWidth={2} />
+        {small.map((s, i) => <text key={i} x={smallPts[i][0]} y={smallPts[i][1] + (i === 2 ? -6 : 14)} fontSize={12} textAnchor="middle" fill={PRIMARY}>{s}</text>)}
+        {large.map((s, i) => <text key={i} x={largePts[i][0]} y={largePts[i][1] + (i === 2 ? -6 : 14)} fontSize={12} textAnchor="middle" fill={ACCENT}>{s}</text>)}
       </svg>
     );
   }
@@ -320,10 +331,10 @@ function ShapeSVG({ spec }: { spec: ShapeDiagram }) {
     const radiusLabel = spec.sides?.[0] ?? 4;
     return (
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-        <circle cx={cx} cy={cy} r={r} fill={`${PRIMARY}0d`} stroke={PRIMARY} strokeWidth={2} />
+        <circle cx={cx} cy={cy} r={r} fill={tint(PRIMARY, 5)} stroke={PRIMARY} strokeWidth={2} />
         <line x1={cx} y1={cy} x2={cx + r} y2={cy} stroke={ACCENT} strokeWidth={2} />
         <circle cx={cx} cy={cy} r={2.5} fill={TEXT} />
-        <text x={cx + r / 2} y={cy - 6} fontSize={10} textAnchor="middle" fill={ACCENT} fontWeight={600}>r = {radiusLabel}</text>
+        <text x={cx + r / 2} y={cy - 6} fontSize={13} textAnchor="middle" fill={ACCENT} fontWeight={600}>r = {radiusLabel}</text>
       </svg>
     );
   }
@@ -333,9 +344,9 @@ function ShapeSVG({ spec }: { spec: ShapeDiagram }) {
     const pts = fitPoints([[0, 0], [w, 0], [w, h], [0, h]], W, H);
     return (
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-        <polygon points={pts.map((p) => p.join(",")).join(" ")} fill={`${PRIMARY}14`} stroke={PRIMARY} strokeWidth={2} />
-        <text x={(pts[0][0] + pts[1][0]) / 2} y={pts[0][1] + 16} fontSize={10} textAnchor="middle" fill={TEXT}>{w}</text>
-        <text x={pts[1][0] + 14} y={(pts[1][1] + pts[2][1]) / 2} fontSize={10} textAnchor="middle" fill={TEXT}>{h}</text>
+        <polygon points={pts.map((p) => p.join(",")).join(" ")} fill={tint(PRIMARY, 8)} stroke={PRIMARY} strokeWidth={2} />
+        <text x={(pts[0][0] + pts[1][0]) / 2} y={pts[0][1] + 16} fontSize={13} textAnchor="middle" fill={TEXT}>{w}</text>
+        <text x={pts[1][0] + 14} y={(pts[1][1] + pts[2][1]) / 2} fontSize={13} textAnchor="middle" fill={TEXT}>{h}</text>
       </svg>
     );
   }
@@ -351,7 +362,7 @@ function ShapeSVG({ spec }: { spec: ShapeDiagram }) {
         <line x1={20} y1={cy} x2={W - 20} y2={cy} stroke={PRIMARY} strokeWidth={2} />
         <line x1={p2[0]} y1={p2[1]} x2={p1[0]} y2={p1[1]} stroke={ACCENT} strokeWidth={2} />
         <path d={`M ${cx + 24} ${cy} A 24 24 0 0 0 ${cx + 24 * Math.cos(rad)} ${cy - 24 * Math.sin(rad)}`} fill="none" stroke={TEXT} strokeWidth={1} />
-        <text x={cx + 34} y={cy - 10} fontSize={10} fill={TEXT}>{deg}°</text>
+        <text x={cx + 34} y={cy - 10} fontSize={13} fill={TEXT}>{deg}°</text>
       </svg>
     );
   }
@@ -365,7 +376,7 @@ function ShapeSVG({ spec }: { spec: ShapeDiagram }) {
   });
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-      <polygon points={pts.map((p) => p.join(",")).join(" ")} fill={`${PRIMARY}14`} stroke={PRIMARY} strokeWidth={2} />
+      <polygon points={pts.map((p) => p.join(",")).join(" ")} fill={tint(PRIMARY, 8)} stroke={PRIMARY} strokeWidth={2} />
     </svg>
   );
 }
@@ -384,8 +395,8 @@ function RatioBarSVG({ spec }: { spec: RatioBarDiagram }) {
         const el = (
           <g key={i}>
             <rect x={x} y={14} width={w} height={24} fill={p.color} />
-            <text x={x + w / 2} y={30} fontSize={10} textAnchor="middle" fill="white" fontWeight={700}>{p.value}</text>
-            <text x={x + w / 2} y={53} fontSize={9} textAnchor="middle" fill={MUTED_TEXT}>{p.label}</text>
+            <text x={x + w / 2} y={30} fontSize={13} textAnchor="middle" fill="white" fontWeight={700}>{p.value}</text>
+            <text x={x + w / 2} y={53} fontSize={12} textAnchor="middle" fill={MUTED_TEXT}>{p.label}</text>
           </g>
         );
         x += w;
@@ -407,10 +418,10 @@ function BalanceScaleSVG({ spec }: { spec: BalanceScaleDiagram }) {
       <line x1={W / 2} y1={58} x2={W / 2} y2={104} stroke={AXIS} strokeWidth={3} />
       <line x1={40} y1={58} x2={40} y2={88} stroke={AXIS} strokeWidth={2} />
       <line x1={W - 40} y1={58} x2={W - 40} y2={88} stroke={AXIS} strokeWidth={2} />
-      <rect x={8} y={88} width={64} height={28} rx={5} fill={`${PRIMARY}14`} stroke={PRIMARY} strokeWidth={1.5} />
-      <text x={40} y={106} fontSize={11} textAnchor="middle" fill={PRIMARY} fontWeight={700}>{spec.leftLabel}</text>
-      <rect x={W - 72} y={88} width={64} height={28} rx={5} fill={`${ACCENT}14`} stroke={ACCENT} strokeWidth={1.5} />
-      <text x={W - 40} y={106} fontSize={11} textAnchor="middle" fill={ACCENT} fontWeight={700}>{spec.rightLabel}</text>
+      <rect x={8} y={88} width={64} height={28} rx={5} fill={tint(PRIMARY, 8)} stroke={PRIMARY} strokeWidth={1.5} />
+      <text x={40} y={106} fontSize={14} textAnchor="middle" fill={PRIMARY} fontWeight={700}>{spec.leftLabel}</text>
+      <rect x={W - 72} y={88} width={64} height={28} rx={5} fill={tint(ACCENT, 8)} stroke={ACCENT} strokeWidth={1.5} />
+      <text x={W - 40} y={106} fontSize={14} textAnchor="middle" fill={ACCENT} fontWeight={700}>{spec.rightLabel}</text>
     </svg>
   );
 }
@@ -427,10 +438,10 @@ function StepSequenceSVG({ spec }: { spec: StepSequenceDiagram }) {
         const color = i % 2 === 0 ? PRIMARY : ACCENT;
         return (
           <g key={i}>
-            <rect x={10} y={y} width={W - 20} height={boxH} rx={8} fill={`${color}0d`} stroke={color} strokeWidth={1.5} />
+            <rect x={10} y={y} width={W - 20} height={boxH} rx={8} fill={tint(color, 5)} stroke={color} strokeWidth={1.5} />
             <circle cx={27} cy={y + boxH / 2} r={9} fill={color} />
-            <text x={27} y={y + boxH / 2 + 3.5} fontSize={10} textAnchor="middle" fill="white" fontWeight={700}>{i + 1}</text>
-            <text x={44} y={y + boxH / 2 + 4} fontSize={9.5} fill={TEXT}>{s}</text>
+            <text x={27} y={y + boxH / 2 + 3.5} fontSize={13} textAnchor="middle" fill={ON_FILL} fontWeight={700}>{i + 1}</text>
+            <text x={44} y={y + boxH / 2 + 4} fontSize={12} fill={TEXT}>{s}</text>
             {i < spec.steps.length - 1 && <line x1={W / 2} y1={y + boxH} x2={W / 2} y2={y + boxH + gap} stroke={GRID} strokeWidth={1.5} />}
           </g>
         );
@@ -452,7 +463,7 @@ function UnitCircleSVG({ spec }: { spec: UnitCircleDiagram }) {
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={PRIMARY} strokeWidth={1.5} />
       <line x1={cx} y1={cy} x2={px} y2={py} stroke={ACCENT} strokeWidth={2} />
       <circle cx={px} cy={py} r={4} fill={ACCENT} />
-      <text x={px + (px > cx ? 8 : -8)} y={py} fontSize={10} textAnchor={px > cx ? "start" : "end"} fill={ACCENT} fontWeight={600}>{spec.angleDeg}°</text>
+      <text x={px + (px > cx ? 8 : -8)} y={py} fontSize={13} textAnchor={px > cx ? "start" : "end"} fill={ACCENT} fontWeight={600}>{spec.angleDeg}°</text>
     </svg>
   );
 }
@@ -461,7 +472,10 @@ function UnitCircleSVG({ spec }: { spec: UnitCircleDiagram }) {
 
 export default function Diagram({ spec }: { spec: DiagramSpec }) {
   return (
-    <div className="bg-muted/30 border border-border rounded-lg p-4">
+    // Each SVG is drawn ~300 units wide and scales to fit. Capped at 18rem so
+    // it stays about its drawn size instead of stretching (and growing ~3×
+    // taller) across a wide lesson card; centred in its frame.
+    <div className="bg-muted/30 border border-border rounded-lg px-4 py-3 [&_svg]:block [&_svg]:mx-auto [&_svg]:max-w-[18rem]">
       {spec.kind === "graph" && <FunctionGraphSVG spec={spec} />}
       {spec.kind === "number-line" && <NumberLineSVG spec={spec} />}
       {spec.kind === "factor-tree" && <FactorTreeSVG spec={spec} />}
