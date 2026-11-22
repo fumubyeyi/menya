@@ -118,8 +118,8 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/tutor/search":       "Curriculum Library Search",
     "/student/home":       "My Journey",
     "/student/learning":   "My Courses",
-    "/student/schedule":   "Schedule",
-    "/student/goals":      "Goals & Achievements",
+    "/student/schedule":   "My Schedule",
+    "/student/goals":      "Goals",
     "/student/module":     "Module Workspace",
   };
 
