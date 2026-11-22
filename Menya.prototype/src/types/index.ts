@@ -96,6 +96,8 @@ export interface Session {
   password?: string;
   // Absent means "virtual" — in-person sessions carry no Zoom meetingId/password.
   location?: "in-person" | "virtual";
+  // True while a student's request waits for the tutor to confirm it.
+  requested?: boolean;
 }
 
 // Sent to a tutor when program staff publish a batch of sessions for an

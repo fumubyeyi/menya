@@ -275,7 +275,17 @@
   .badge-new-tag {
     animation: badge-new-tag 400ms ease-out 700ms both;
   }
+  /* Student inline forms: arrive with a short slide so the eye goes to
+     them (they replace modals, so they need the pull). */
+  @keyframes panel-in {
+    0%   { transform: translateY(-6px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  .panel-in {
+    animation: panel-in 220ms ease-out both;
+  }
   @media (prefers-reduced-motion: reduce) {
+    .panel-in { animation: none; }
     .badge-unlock, .badge-new-tag { animation: none; }
     .badge-confetti { display: none; }
   }

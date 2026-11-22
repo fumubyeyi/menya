@@ -22,6 +22,7 @@ import {
 import { statusMeta, formatTime12h, gradesSummary, attendanceForSession, matchStrengthMeta, weekdayName, shortDate, PREFERENCE_DAYS } from "../../lib/constants";
 import { mondayOf, toISODate } from "../program/Schedule";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
+import { bySessionStart } from "../../lib/sessionOrder";
 
 function timeAgo(iso: string): string {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -99,7 +100,7 @@ export default function TutorHome() {
   const pendingRollCalls = tutorSessions
     .filter((s) => s.location === "in-person" && s.date === todayISO)
     .filter((s) => !attendanceForSession(s, sessions, attendanceSessions))
-    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+    .sort(bySessionStart);
 
   const [modal, setModal] = useState(false);
   const [checkInStudent, setCheckInStudent] = useState<string | null>(null);

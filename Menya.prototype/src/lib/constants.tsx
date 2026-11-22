@@ -493,8 +493,8 @@ type AchievementMetric = "streak" | "sessions" | "sessionsAttended" | "modules";
 const ACHIEVEMENT_DEFS: { id: string; label: string; Icon: React.ElementType; color: string; metric: AchievementMetric; target?: number; share?: number }[] = [
   { id: "streak-5",    label: "5-Day Streak",      Icon: Flame,        color: "#F0981E", metric: "streak",           target: 5   },
   { id: "streak-7",    label: "Week Warrior",      Icon: Trophy,       color: "#C9922E", metric: "streak",           target: 7   },
-  { id: "score-80",    label: "80+ Score",         Icon: Target,       color: "#708090", metric: "modules",          share: 0.8  },
-  { id: "score-90",    label: "Top Performer",     Icon: Star,         color: "#059669", metric: "modules",          share: 0.9  },
+  { id: "score-80",    label: "80% Done",          Icon: Target,       color: "#708090", metric: "modules",          share: 0.8  },
+  { id: "score-90",    label: "90% Done",          Icon: Star,         color: "#059669", metric: "modules",          share: 0.9  },
   { id: "sessions-10", label: "10 Sessions",       Icon: CheckCircle2, color: "#3B82F6", metric: "sessions",         target: 10  },
   { id: "sessions-15", label: "Dedicated Learner", Icon: BookMarked,   color: "#8B5CF6", metric: "sessions",         target: 15  },
   { id: "showed-up",   label: "Showed Up",         Icon: BadgeCheck,   color: "#708090", metric: "sessionsAttended", target: 1   },
@@ -541,7 +541,7 @@ export function nextAchievement(s: AchievementInput): { achievement: Achievement
 export function achievementHint(a: Achievement, s: AchievementInput): string {
   const n = achievementTarget(a, s);
   switch (a.metric) {
-    case "streak": return `Practise ${n} days in a row`;
+    case "streak": return `Practice ${n} days in a row`;
     case "modules": return `Finish ${n} of your ${s.modulesTotal} modules`;
     case "sessions": return `Complete ${n} sessions`;
     case "sessionsAttended": return n === 1 ? "Attend a live session" : `Attend ${n} live sessions`;
@@ -579,3 +579,8 @@ export function goalProgress(
     : [Math.min(activity.sessionsThisWeek, goal.targetPerWeek), goal.targetPerWeek];
   return { current, target, pct: Math.min(100, Math.round((current / target) * 100)) };
 }
+
+// Where weekly in-person sessions happen, shown on the student's My Schedule
+// and in calendar files. Empty hides it. (Set by the program; placeholder
+// until the real place and room are known.)
+export const IN_PERSON_LOCATION = "";

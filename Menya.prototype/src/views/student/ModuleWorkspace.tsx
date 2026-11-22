@@ -9,7 +9,7 @@ import CourseChapters from "../../components/student/CourseChapters";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "../../app/components/ui/sheet";
 import { useStudentCurriculum } from "../../hooks/useStudentCurriculum";
 import ContentDrawer, { ModuleContentBody } from "../../components/ContentDrawer";
-import RequestHelpModal from "../../components/RequestHelpModal";
+import HelpDialog from "../../components/student/workspace/HelpDialog";
 import PracticeCard, { emptyItem, normalizeItem, type ItemState } from "../../components/student/workspace/PracticeCard";
 import ModuleStepper, { type Step, type StepId } from "../../components/student/workspace/ModuleStepper";
 import ModuleComplete from "../../components/student/workspace/ModuleComplete";
@@ -65,7 +65,7 @@ function ModuleWorkspaceInner() {
   const [mode, setMode] = useState<StepId>("learn");
   const [visitedPractice, setVisitedPractice] = useState(false);
   const [contentDrawerOpen, setContentDrawerOpen] = useState(false);
-  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   // On phones the course outline and the notes each slide in from the side.
   // "All chapters" on My Courses links here with ?outline=1 so the outline
   // opens straight away there.
@@ -350,7 +350,7 @@ function ModuleWorkspaceInner() {
                 {exerciseCount > 0 && (
                   <div className="flex justify-end">
                     <button type="button" onClick={() => goTo("practice")} className={primaryBtn} style={subjectBtn}>
-                      Start practising
+                      Start practicing
                     </button>
                   </div>
                 )}
@@ -392,7 +392,7 @@ function ModuleWorkspaceInner() {
                               key={i}
                               type="button"
                               onClick={() => setExerciseStep(i)}
-                              aria-label={`Question ${i + 1}${it?.mark === "correct" ? ", right" : it?.mark === "practice" ? ", to practise" : ""}`}
+                              aria-label={`Question ${i + 1}${it?.mark === "correct" ? ", right" : it?.mark === "practice" ? ", to practice" : ""}`}
                               aria-current={isCur ? "step" : undefined}
                               className={`h-2 rounded-full transition-all ${isCur ? "w-7" : "w-3.5 hover:opacity-70"}`}
                               style={{ backgroundColor: bg }}
@@ -508,7 +508,7 @@ function ModuleWorkspaceInner() {
                           <p className="text-xs text-muted-foreground mt-1">{q.answer}</p>
                           <span className={`inline-flex items-center gap-1 mt-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded-full ${chapterTest.items[i].mark === "correct" ? "text-emerald-800 bg-emerald-50 dark:text-emerald-200 dark:bg-emerald-950/40" : "text-amber-800 bg-amber-50 dark:text-amber-200 dark:bg-amber-950/40"}`}>
                             {chapterTest.items[i].mark === "correct" ? <CheckCircle2 className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
-                            {chapterTest.items[i].mark === "correct" ? "Right" : "Worth practising"}
+                            {chapterTest.items[i].mark === "correct" ? "Right" : "Worth practicing"}
                           </span>
                         </div>
                       ))}
@@ -569,7 +569,9 @@ function ModuleWorkspaceInner() {
       {mode !== "finish" && (
         <button
           type="button"
-          onClick={() => setHelpModalOpen(true)}
+          onClick={() => setHelpOpen(true)}
+          data-help-trigger
+          aria-haspopup="dialog"
           className="fixed bottom-5 right-5 z-30 flex items-center gap-2 pl-3 pr-4 py-3 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-lg hover:bg-primary/90 motion-safe:transition motion-safe:hover:-translate-y-0.5"
         >
           <HelpCircle className="w-5 h-5" /> I'm stuck
@@ -578,18 +580,19 @@ function ModuleWorkspaceInner() {
 
       <ContentDrawer open={contentDrawerOpen} onOpenChange={setContentDrawerOpen} workspace={workspace} moduleTitle={courseModule.title} />
 
-      {helpModalOpen && (
-        <RequestHelpModal
-          onClose={() => setHelpModalOpen(false)}
-          studentId={student.id}
-          studentName={student.name}
-          course={course.name}
-          chapterId={chapter.id}
-          chapterTitle={chapter.title}
-          moduleIndex={index}
-          moduleTitle={courseModule.title}
-        />
-      )}
+      {/* Rendered always so Radix can animate and restore focus to the
+          "I'm stuck" button on close */}
+      <HelpDialog
+        open={helpOpen}
+        onOpenChange={setHelpOpen}
+        studentId={student.id}
+        studentName={student.name}
+        course={course.name}
+        chapterId={chapter.id}
+        chapterTitle={chapter.title}
+        moduleIndex={index}
+        moduleTitle={courseModule.title}
+      />
     </div>
   );
 }

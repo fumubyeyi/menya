@@ -7,7 +7,7 @@ const CURRICULUM_KEY = "menya:curriculum";
 // Client-side curriculum state (no backend) — seeded from the static curriculum
 // export, overridden once program staff edit it here. Shared via context (rather
 // than the plain-hook pattern used by enrollment) because several independent
-// views (Curriculum, ModuleWorkspace, Learning, EnrollmentModal) all need to see
+// views (Curriculum, ModuleWorkspace, Learning, EnrollmentPicker) all need to see
 // the same live edits, not just one component instance.
 function readCurriculum(): CurriculumCourse[] {
   try {

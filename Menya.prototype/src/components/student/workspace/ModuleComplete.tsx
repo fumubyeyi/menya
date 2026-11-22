@@ -33,7 +33,7 @@ export default function ModuleComplete({ course, moduleTitle, correct, total, xp
     ? "Every answer right. Brilliant."
     : correct / Math.max(total, 1) >= 0.6
     ? "Great work. Keep that momentum going."
-    : "Finishing is a win. Practise the tricky ones again whenever you like.";
+    : "Finishing is a win. Practice the tricky ones again whenever you like.";
 
   const stats = [
     { label: "Correct", value: `${correct}/${total}` },

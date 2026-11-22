@@ -5,6 +5,7 @@ import ProfileBanner from "../../components/ProfileBanner";
 import EditTutorForm from "../../components/EditTutorForm";
 import { useTutors } from "../../context/TutorsContext";
 import { useSessions } from "../../context/SessionsContext";
+import { bySessionStart } from "../../lib/sessionOrder";
 
 export default function TutorDetail() {
   const { id } = useParams<{ id: string }>();
@@ -19,7 +20,7 @@ export default function TutorDetail() {
 
   const upcoming = sessions
     .filter((s) => s.tutorId === tutor.id)
-    .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+    .sort(bySessionStart);
 
   const preferredDays = tutor.preferredDays ?? [];
 

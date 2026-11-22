@@ -9,6 +9,7 @@ import {
 import { statusMeta, courseColor } from "../../lib/constants";
 import { getEnrolledCourses } from "../../hooks/useEnrollment";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
+import { byRecordDateDesc } from "../../lib/sessionOrder";
 
 export default function MyStudents() {
   const { user } = useAuth();
@@ -33,7 +34,7 @@ export default function MyStudents() {
           const needsAttention = student.status === "at-risk" || student.status === "needs-support";
           const enrolled = getEnrolledCourses(student.id, student.courses);
           const courses = (studentCourseDetail[student.id] ?? []).filter((sd) => enrolled.includes(sd.course));
-          const history = studentSessionHistory[student.id] ?? [];
+          const history = [...(studentSessionHistory[student.id] ?? [])].sort(byRecordDateDesc);
           const lastSession = history[0];
 
           return (

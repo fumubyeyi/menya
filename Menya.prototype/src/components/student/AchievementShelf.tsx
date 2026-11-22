@@ -7,8 +7,9 @@ import type { useStudentAchievements } from "../../hooks/useStudentAchievements"
 // the streak) and the full shelf on Goals.
 // - Earned badges are in full colour. One earned since the student last
 //   looked flips in with a burst of confetti and a "New!" tag, once.
-// - Locked badges are mystery silhouettes with a progress ring around them
-//   and a hint saying how to earn them. The badge the student is closest to
+// - Badges are drawn as medals (rosette + ribbon tails).
+// - Locked badges are grey mystery medals with progress as an amber arc on
+//   the inner ring, and a hint saying how to earn them. The badge the student is closest to
 //   is named ("Almost there!"); the rest stay "Mystery badge" until then.
 
 type Achievements = ReturnType<typeof useStudentAchievements>;
@@ -19,32 +20,72 @@ const CONFETTI = Array.from({ length: 12 }, (_, i) => {
   return { dx: Math.cos(angle) * dist, dy: Math.sin(angle) * dist, rot: (i * 47) % 360, delay: (i % 4) * 30 };
 });
 
-function ProgressRing({ pct, size, children }: { pct: number; size: number; children: React.ReactNode }) {
-  const r = (size - 6) / 2;
-  const circ = 2 * Math.PI * r;
+// Medal artwork, drawn in a 64 x 76 box: a scalloped rosette (centre 32,30)
+// with two ribbon tails below. Earned medals are solid in the badge colour;
+// locked ones are the same shape in grey, with an amber arc on the inner ring
+// for progress.
+const VB_W = 64;
+const VB_H = 76;
+const CX = 32;
+const CY = 30;
+const INNER_R = 19;
+const ROSETTE = (() => {
+  const points = 24;
+  let d = "";
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 === 0 ? 28 : 25.5;
+    const t = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+    d += `${i === 0 ? "M" : "L"}${(CX + r * Math.cos(t)).toFixed(2)},${(CY + r * Math.sin(t)).toFixed(2)}`;
+  }
+  return d + "Z";
+})();
+const RIBBON_LEFT = "17,44 29,49 23,75 18.5,70 12,73";
+const RIBBON_RIGHT = "47,44 35,49 41,75 45.5,70 52,73";
+
+function Medal({ size, color, earned, pct = 0, children }: {
+  size: number; color: string; earned: boolean; pct?: number; children: React.ReactNode;
+}) {
+  const w = size;
+  const h = (size * VB_H) / VB_W;
+  const circ = 2 * Math.PI * INNER_R;
+  const dark = `color-mix(in srgb, ${color} 72%, black)`;
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="absolute inset-0" style={{ transform: "rotate(-90deg)" }} aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--muted)" strokeWidth={4} />
-        {pct > 0 && (
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--brand-amber)" strokeWidth={4}
-            strokeDasharray={circ} strokeDashoffset={circ - (pct / 100) * circ} strokeLinecap="round" />
+    <div className="relative" style={{ width: w, height: h }}>
+      <svg width={w} height={h} viewBox={`0 0 ${VB_W} ${VB_H}`} className="absolute inset-0 overflow-visible" aria-hidden>
+        {/* Ribbon tails */}
+        <polygon points={RIBBON_LEFT} fill={earned ? dark : "var(--border)"} />
+        <polygon points={RIBBON_RIGHT} fill={earned ? dark : "var(--border)"} />
+        {/* Rosette */}
+        <path d={ROSETTE} fill={earned ? color : "var(--muted)"} stroke={earned ? dark : "var(--border)"} strokeWidth={1} strokeLinejoin="round"
+          style={earned ? { filter: `drop-shadow(0 2px 3px ${color}55)` } : undefined} />
+        {/* Inner disc and ring */}
+        <circle cx={CX} cy={CY} r={INNER_R} fill={earned ? color : "var(--card)"} stroke={earned ? "white" : "var(--border)"} strokeOpacity={earned ? 0.85 : 1} strokeWidth={2} />
+        {/* Locked: progress as an amber arc on the inner ring */}
+        {!earned && pct > 0 && (
+          <circle cx={CX} cy={CY} r={INNER_R} fill="none" stroke="var(--brand-amber)" strokeWidth={3}
+            strokeDasharray={circ} strokeDashoffset={circ - (Math.min(pct, 100) / 100) * circ} strokeLinecap="round"
+            transform={`rotate(-90 ${CX} ${CY})`} />
         )}
+        {/* Earned: a soft shine across the top */}
+        {earned && <ellipse cx={CX - 6} cy={CY - 9} rx={10} ry={5} fill="white" opacity={0.22} transform={`rotate(-25 ${CX - 6} ${CY - 9})`} />}
       </svg>
-      {children}
+      {/* Icon, centred on the inner disc */}
+      <div className="absolute flex items-center justify-center" style={{ left: 0, width: w, top: (CY / VB_H) * h - w * 0.2, height: w * 0.4 }}>
+        {children}
+      </div>
     </div>
   );
 }
 
 function EarnedBadge({ a, size, isNew }: { a: Achievement; size: number; isNew: boolean }) {
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+    <div className="relative">
       {isNew && (
         <span aria-hidden className="absolute inset-0 pointer-events-none">
           {CONFETTI.map((c, i) => (
             <span
               key={i}
-              className="badge-confetti absolute left-1/2 top-1/2 w-1.5 h-2.5 rounded-sm"
+              className="badge-confetti absolute left-1/2 top-[40%] w-1.5 h-2.5 rounded-sm"
               style={{
                 backgroundColor: i % 3 === 0 ? "var(--brand-amber)" : i % 3 === 1 ? a.color : "var(--primary)",
                 "--dx": `${c.dx}px`, "--dy": `${c.dy}px`, "--rot": `${c.rot}deg`,
@@ -54,11 +95,10 @@ function EarnedBadge({ a, size, isNew }: { a: Achievement; size: number; isNew: 
           ))}
         </span>
       )}
-      <div
-        className={`rounded-full flex items-center justify-center ${isNew ? "badge-unlock" : ""}`}
-        style={{ width: size, height: size, backgroundColor: `${a.color}22`, boxShadow: `inset 0 0 0 3px ${a.color}55` }}
-      >
-        <a.Icon style={{ width: size * 0.45, height: size * 0.45, color: a.color }} />
+      <div className={isNew ? "badge-unlock" : ""}>
+        <Medal size={size} color={a.color} earned>
+          <a.Icon style={{ width: size * 0.3, height: size * 0.3, color: "white" }} strokeWidth={2.5} />
+        </Medal>
       </div>
     </div>
   );
@@ -66,27 +106,30 @@ function EarnedBadge({ a, size, isNew }: { a: Achievement; size: number; isNew: 
 
 function LockedBadge({ a, size, pct }: { a: Achievement; size: number; pct: number }) {
   return (
-    <ProgressRing pct={pct} size={size}>
-      {/* Silhouette: the badge's shape as a solid grey fill, with a "?" chip */}
-      <a.Icon
-        aria-hidden
-        style={{ width: size * 0.46, height: size * 0.46, color: "var(--muted-foreground)", fill: "currentColor", opacity: 0.28 }}
-      />
+    <div className="relative">
+      <Medal size={size} color={a.color} earned={false} pct={pct}>
+        {/* Silhouette of the badge's icon */}
+        <a.Icon
+          aria-hidden
+          style={{ width: size * 0.3, height: size * 0.3, color: "var(--muted-foreground)", fill: "currentColor", opacity: 0.3 }}
+        />
+      </Medal>
+      {/* "?" chip on the rosette's lower right */}
       <span
         aria-hidden
         className="absolute rounded-full bg-card flex items-center justify-center"
-        style={{ width: size * 0.34, height: size * 0.34, right: size * 0.06, bottom: size * 0.06, boxShadow: "0 0 0 2px var(--card)" }}
+        style={{ width: size * 0.3, height: size * 0.3, left: size * 0.66, top: size * 0.56, boxShadow: "0 0 0 2px var(--card)" }}
       >
         <HelpCircle style={{ width: "100%", height: "100%", color: "var(--muted-foreground)" }} />
       </span>
-    </ProgressRing>
+    </div>
   );
 }
 
 export default function AchievementShelf({ data, variant }: { data: Achievements; variant: "icons" | "full" }) {
   const { earned, locked, input, next, fresh } = data;
   const compact = variant === "icons";
-  const size = compact ? 40 : 64;
+  const size = compact ? 40 : 76;
   // Which badge the caption under the icon row describes (tap/click/focus).
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -154,8 +197,9 @@ export default function AchievementShelf({ data, variant }: { data: Achievements
     );
   }
 
-  // Goals: the whole shelf. Only the badge to aim for next shows its name
-  // and hint; the other locked ones are quiet mystery badges with a count.
+  // Goals: the whole shelf. Only the badge to aim for next shows its name;
+  // the other locked ones stay mystery badges, but every locked badge says
+  // how to earn it, so its count means something.
   return (
     <ul className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-3 gap-y-6">
       {earnedItems}
@@ -172,11 +216,7 @@ export default function AchievementShelf({ data, variant }: { data: Achievements
             <span className={`text-sm font-semibold leading-tight ${isNext ? "text-foreground" : "text-muted-foreground"}`}>
               {isNext ? a.label : "Mystery badge"}
             </span>
-            {isNext ? (
-              <span className="text-xs text-muted-foreground leading-tight">{hint} · <span className="font-mono">{current}/{target}</span></span>
-            ) : (
-              <span className="text-xs font-mono text-muted-foreground">{current}/{target}</span>
-            )}
+            <span className="text-xs text-muted-foreground leading-tight">{hint} · <span className="font-mono">{current}/{target}</span></span>
           </li>
         );
       })}

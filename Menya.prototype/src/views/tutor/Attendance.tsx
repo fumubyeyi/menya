@@ -13,6 +13,7 @@ import { attendanceRate, getTutorById, CURRENT_TUTOR_ID } from "../../data";
 import { parseGroupLabel, gradesSummary, attendanceForSession, rosterForSession, sessionGroupLabel, sameGrades, sessionFieldsForSlot, formatTime12h, shortDate } from "../../lib/constants";
 import type { Session, AttendanceMark, AttendanceEntry, AttendanceSession, Student, Tutor } from "../../types";
 import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
+import { bySessionStartDesc } from "../../lib/sessionOrder";
 
 const MODES = [
   { key: "in-person", label: "In-Person" },
@@ -200,7 +201,7 @@ export default function TutorAttendance() {
   // today's session(s) — not the whole history, which already lives in Schedule's
   // Session History. Online keeps the full list; it isn't recurring-slot driven.
   const tutorSessions = (mode === "in-person" ? modeSessions.filter((s) => s.date === todayISO) : modeSessions)
-    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+    .sort(bySessionStartDesc);
 
   // Recurring slots that fall on today but don't yet have a session card above —
   // Program hasn't published a dated Session for this week's occurrence yet. Gives

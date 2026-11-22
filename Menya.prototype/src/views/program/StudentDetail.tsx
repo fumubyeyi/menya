@@ -14,6 +14,7 @@ import { getEnrolledCourses } from "../../hooks/useEnrollment";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { useStudents } from "../../context/StudentsContext";
 import type { StudentStatus, SessionRecord } from "../../types";
+import { byRecordDateDesc } from "../../lib/sessionOrder";
 
 const DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -61,11 +62,11 @@ export default function StudentDetail() {
   const needsAttention = student.status === "at-risk" || student.status === "needs-support";
   const enrolled    = getEnrolledCourses(student.id, student.courses);
   const courses    = (studentCourseDetail[student.id] ?? []).filter((sd) => enrolled.includes(sd.course));
-  const history     = studentSessionHistory[student.id] ?? [];
+  const history     = [...(studentSessionHistory[student.id] ?? [])].sort(byRecordDateDesc);
   const weekActivity = weekdayActivity(history);
   // Staff view still reads the roster's hand-set fields. Expressing progress
   // as "progress of 100 modules" keeps the progress badges' old meaning
-  // here (80+ Score = progress ≥ 80).
+  // here (80% Done = progress ≥ 80).
   const badgeInput  = { streak: student.streak, sessions: student.sessions, modulesDone: student.progress, modulesTotal: 100 };
   const earned      = achievements.filter((a) => a.condition(badgeInput));
 

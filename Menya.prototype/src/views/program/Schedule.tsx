@@ -12,6 +12,7 @@ import { useRecurringSlots, type RecurringSlot } from "../../context/RecurringSl
 import { formatSessionTime, formatTime12h, gradesSummary, PREFERENCE_DAYS } from "../../lib/constants";
 import type { Session } from "../../types";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
+import { bySessionStart } from "../../lib/sessionOrder";
 
 export type { RecurringSlot };
 
@@ -91,7 +92,7 @@ export default function Schedule() {
   // one Session per assigned tutor, so merge those back into a single row.
   const publishedSessions = sessions
     .filter((s) => s.date && s.date >= weekStartISO && s.date <= weekEndISO)
-    .sort((a, b) => (a.date === b.date ? a.clock.localeCompare(b.clock) : (a.date ?? "").localeCompare(b.date ?? "")));
+    .sort(bySessionStart);
 
   const publishedGroups: PublishedGroup[] = (() => {
     const map = new Map<string, PublishedGroup>();

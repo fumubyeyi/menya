@@ -13,6 +13,7 @@ import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { attendanceRate, attendanceSessionLabel, getTutorById } from "../../data";
 import { ALL_COURSES, GRADE_GROUPS, formatTime12h } from "../../lib/constants";
 import { PageHeaderSubtitle } from "../../context/PageHeaderContext";
+import { bySessionStart } from "../../lib/sessionOrder";
 
 const MODES = [
   { key: "in-person", label: "In-Person" },
@@ -82,7 +83,7 @@ export default function Sessions() {
     ));
 
   const modeSessions = sessions.filter((s) => (mode === "online" ? s.location !== "in-person" : s.location === "in-person"));
-  const filtered = modeSessions.filter((s) => {
+  const filtered = [...modeSessions].sort(bySessionStart).filter((s) => {
     if (statusTab === "all")       return true;
     if (statusTab === "today")     return s.time === "Today";
     if (statusTab === "live")      return s.status === "in-progress";

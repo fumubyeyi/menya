@@ -18,6 +18,7 @@ import { gradesSummary, parseGroupLabel, attendanceForSession, nextDateForWeekda
 import { mondayOf, toISODate } from "../program/Schedule";
 import type { AttendanceSession, Student } from "../../types";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
+import { clockMinutes, byRecordDateDesc, bySessionStartDesc } from "../../lib/sessionOrder";
 
 // The grade band or course an in-person group session was booked for — reversed
 // from the "Grades 6, 7 Group" / "<Course> Group" label the same way editing one
@@ -92,7 +93,7 @@ export default function TutorSchedule() {
   const { user } = useAuth();
   const { tutors } = useTutors();
   const tutorId = user?.tutorId ?? CURRENT_TUTOR_ID;
-  const { sessions, removeSession } = useSessions();
+  const { sessions, removeSession, updateSession } = useSessions();
   const { students } = useStudents();
   const { attendanceSessions } = useAttendance();
   const { recurringSlots, skipOccurrence, isOccurrenceSkipped } = useRecurringSlots();
@@ -155,14 +156,6 @@ export default function TutorSchedule() {
       })
     : [];
 
-  const clockMinutes = (clock: string): number => {
-    const match = clock.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (!match) return 0;
-    let hours = Number(match[1]) % 12;
-    if (match[3].toUpperCase() === "PM") hours += 12;
-    return hours * 60 + Number(match[2]);
-  };
-
   const upcomingRows = [
     ...upcomingModeSessions.map(({ session, date }) => ({ kind: "real" as const, session, date, clock: session.clock })),
     ...projectedOccurrences.map(({ slot, date }) => {
@@ -174,13 +167,13 @@ export default function TutorSchedule() {
   // Online history grouped by student — each student's course sessions nest
   // underneath their row once expanded.
   const onlineHistoryGroups = tutorStudents
-    .map((s) => ({ student: s, records: (studentSessionHistory[s.id] ?? []).slice().sort((a, b) => b.date.localeCompare(a.date)) }))
+    .map((s) => ({ student: s, records: (studentSessionHistory[s.id] ?? []).slice().sort(byRecordDateDesc) }))
     .filter((g) => g.records.length > 0);
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const inPersonHistory = tutorSessions
     .filter((s) => s.location === "in-person" && !!s.date && s.date <= todayISO)
-    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+    .sort(bySessionStartDesc);
 
   // Same idea for In-Person — grouped by the recurring grade-group/course label
   // (e.g. "Grades 6, 7 Group"), with each occurrence's own course tag nested
@@ -261,7 +254,7 @@ export default function TutorSchedule() {
               if (row.kind === "projected") {
                 const isThisWeek = row.date <= thisWeekEndISO;
                 return (
-                  <div key={`${row.slot.id}-${row.date}`} className="grid grid-cols-[2.25rem_1fr_10.5rem_3.5rem_6.5rem_5.5rem] items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <div key={`${row.slot.id}-${row.date}`} className="grid grid-cols-[2.25rem_1fr_10.5rem_3.5rem_6.5rem_9rem] items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <School className="w-4 h-4 text-primary" />
                     </div>
@@ -285,7 +278,7 @@ export default function TutorSchedule() {
 
               const s = row.session;
               return (
-                <div key={s.id} className="grid grid-cols-[2.25rem_1fr_10.5rem_3.5rem_6.5rem_5.5rem] items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <div key={s.id} className="grid grid-cols-[2.25rem_1fr_10.5rem_3.5rem_6.5rem_9rem] items-center gap-3 py-3 first:pt-0 last:pb-0">
                   <Avatar name={s.student} size={9} />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{s.student}</p>
@@ -297,8 +290,19 @@ export default function TutorSchedule() {
                     <span className="text-muted-foreground">· {s.clock}</span>
                   </div>
                   <span className="text-[11px] font-mono text-muted-foreground">{s.duration}m</span>
-                  <SessionStatusPill status={s.status} />
-                  <div className="justify-self-start">
+                  {/* A student's request shows as Requested until the tutor confirms it */}
+                  {s.requested
+                    ? <span className="justify-self-start text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Requested</span>
+                    : <SessionStatusPill status={s.status} />}
+                  <div className="justify-self-start flex items-center gap-1.5">
+                    {s.requested && (
+                      <button
+                        onClick={() => updateSession({ ...s, requested: false })}
+                        className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        Confirm
+                      </button>
+                    )}
                     {s.status === "in-progress" && s.meetingId && (
                       <button
                         onClick={() => setActiveSession(s)}

@@ -118,7 +118,7 @@ export default function PracticeCard({ question, item, seed, combo, onAttemptCha
         <div>
           <p className="font-bold leading-tight">{missed ? "Not quite yet" : "Good call"}</p>
           <p className="text-sm mt-0.5">
-            {missed ? NUDGES[(seed + item.wrongAttempts) % NUDGES.length] : "Practising is how it sticks. Have another go when you're ready."}
+            {missed ? NUDGES[(seed + item.wrongAttempts) % NUDGES.length] : "Practicing is how it sticks. Have another go when you're ready."}
           </p>
         </div>
         <span className="text-xs font-bold font-mono flex-shrink-0 mt-0.5">+10 XP for trying</span>

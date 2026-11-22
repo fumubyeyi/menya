@@ -8,6 +8,7 @@ import { useTutors } from "../../context/TutorsContext";
 import { useKioskCheckIn } from "../../hooks/useKioskCheckIn";
 import { getTutorById } from "../../data";
 import { sessionGroupLabel, localISODate } from "../../lib/constants";
+import { bySessionStart } from "../../lib/sessionOrder";
 
 // Shared front-desk kiosk — one per site, not per group. Tutors tap in here when
 // they arrive on site; each group then has its own kiosk (StudentCheckInKiosk) for
@@ -20,7 +21,7 @@ export default function TutorCheckInKiosk() {
   const todayISO = localISODate();
   const todaysInPerson = sessions
     .filter((s) => s.location === "in-person" && s.date === todayISO)
-    .sort((a, b) => a.clock.localeCompare(b.clock));
+    .sort(bySessionStart);
 
   return (
     <KioskBackdrop>

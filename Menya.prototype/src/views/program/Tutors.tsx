@@ -9,17 +9,10 @@ import { useTutors } from "../../context/TutorsContext";
 import { useSessions } from "../../context/SessionsContext";
 import { useRecurringSlots } from "../../context/RecurringSlotsContext";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
+import { bySessionStart } from "../../lib/sessionOrder";
 
 // Mon-first ordering for a tutor's recurring days, so "Mon, Wed" never renders "Wed, Mon".
 const WEEKDAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-// Today/Tomorrow first, then everything else in the order it appears — the Session
-// model only stores display labels ("Today"/"Tomorrow"/"Jun 22"), not sortable dates.
-function dayRank(time: string): number {
-  if (time === "Today") return 0;
-  if (time === "Tomorrow") return 1;
-  return 2;
-}
 
 interface TutorImportRow {
   firstName: string;
@@ -82,7 +75,7 @@ export default function Tutors() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((t) => {
-            const upcoming = sessions.filter((s) => s.tutorId === t.id).sort((a, b) => dayRank(a.time) - dayRank(b.time));
+            const upcoming = sessions.filter((s) => s.tutorId === t.id).sort(bySessionStart);
             // Preferred days = the recurring weekly slots this tutor is actually
             // assigned to on Program > Schedule, deduped and ordered Mon-first.
             const preferredDays = Array.from(

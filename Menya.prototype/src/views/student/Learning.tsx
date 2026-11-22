@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Settings2, BookPlus } from "lucide-react";
-import EnrollmentModal from "../../components/EnrollmentModal";
+import EnrollmentPicker from "../../components/student/EnrollmentPicker";
 import CourseChapters, { nextStop } from "../../components/student/CourseChapters";
 import { getCourseIcon, courseSlug } from "../../lib/constants";
 import { useEnrollment } from "../../hooks/useEnrollment";
@@ -74,16 +74,20 @@ export default function Learning() {
 
       {/* Changing courses is occasional, so it's a quiet button above the
           courses rather than a header action. */}
-      {enrolled.length > 0 && (
+      {/* Manage Enrollment opens here, on the page (no modal) */}
+      {enrollOpen && (
+        <EnrollmentPicker enrolled={enrolledCourses} onSave={updateEnrollment} onClose={() => setEnrollOpen(false)} />
+      )}
+      {enrolled.length > 0 && !enrollOpen && (
         <div className="flex justify-end">
           <button onClick={() => setEnrollOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 border border-border bg-card text-foreground rounded-lg text-sm font-semibold hover:bg-muted transition-colors">
+            className="flex items-center gap-2 px-3.5 py-2 border border-border text-foreground rounded-lg text-sm font-semibold hover:bg-muted transition-colors">
             <Settings2 className="w-4 h-4 text-muted-foreground" /> Manage Enrollment
           </button>
         </div>
       )}
 
-      {enrolled.length === 0 && (
+      {enrolled.length === 0 && !enrollOpen && (
         <div className="bg-card border border-dashed border-border rounded-xl p-10 flex flex-col items-center text-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <BookPlus className="w-6 h-6 text-primary" />
@@ -141,9 +145,6 @@ export default function Learning() {
         </section>
       )}
 
-      {enrollOpen && (
-        <EnrollmentModal enrolled={enrolledCourses} onSave={updateEnrollment} onClose={() => setEnrollOpen(false)} />
-      )}
     </div>
   );
 }

@@ -74,6 +74,12 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     return () => document.body.classList.remove("student-theme");
   }, [isStudent]);
 
+  // Moving to another page closes any open header menu.
+  useEffect(() => {
+    setProfileMenuOpen(false);
+    setNotifOpen(false);
+  }, [location.pathname]);
+
   if (!user) return <Navigate to="/login" replace />;
 
   const role = user.role;
@@ -303,6 +309,8 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
               >
                 <Avatar name={user.name} size={9} />
               </button>
+              {/* Click-away layer, like the notifications menu */}
+              {profileMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />}
               {profileMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-border bg-card p-1.5 shadow-lg z-50">
                   <button

@@ -9,6 +9,7 @@ import { tutorNameById } from "../../data";
 import { getCourseIcon } from "../../lib/constants";
 import { subjectColor, subjectTint } from "../../lib/subject";
 import type { Session } from "../../types";
+import { bySessionStart } from "../../lib/sessionOrder";
 
 // Home's Sessions card as a small month calendar. Days with a session
 // get a primary-coloured dot (grey once it's done). Below it: today's
@@ -52,7 +53,7 @@ export default function SessionsCalendar({ sessions, onJoin, onRequest }: {
   };
 
   const isToday = dayKey(selected) === dayKey(todayStart);
-  const onDay = byDay.get(dayKey(selected)) ?? [];
+  const onDay = [...(byDay.get(dayKey(selected)) ?? [])].sort(bySessionStart);
   const fmt = (d: Date) => d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 
   return (
@@ -61,6 +62,8 @@ export default function SessionsCalendar({ sessions, onJoin, onRequest }: {
         <h2 className="text-sm font-semibold text-foreground">Sessions</h2>
         <button
           onClick={onRequest}
+          data-request-trigger
+          aria-haspopup="dialog"
           className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" /> Request

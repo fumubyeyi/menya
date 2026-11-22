@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Plus, ArrowRight, BookPlus } from "lucide-react";
 import { Link } from "react-router";
+import RequestSessionDialog from "../../components/student/RequestSessionDialog";
 import ZoomModal from "../../components/ZoomModal";
-import ScheduleModal from "../../components/ScheduleModal";
 import StreakCard from "../../components/student/StreakCard";
 import SessionsCalendar from "../../components/student/SessionsCalendar";
 import AchievementShelf from "../../components/student/AchievementShelf";
@@ -21,6 +21,7 @@ import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import { useEnrollment } from "../../hooks/useEnrollment";
 import { useStudentCurriculum } from "../../hooks/useStudentCurriculum";
 import { subjectColor, subjectTint } from "../../lib/subject";
+import { bySessionStart } from "../../lib/sessionOrder";
 
 function greeting(date = new Date()): string {
   const h = date.getHours();
@@ -44,7 +45,7 @@ function effortLine(modules: number, sessions: number) {
 
 export default function StudentHome() {
   const student = useCurrentStudent();
-  const [modal, setModal] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
   const { sessions, updateSession } = useSessions();
   const { goals } = useStudentGoals();
   const { courses: enrolledCourses } = useEnrollment();
@@ -81,7 +82,7 @@ export default function StudentHome() {
       return { course, total: stops.length, done, pct: courseCompletion(curriculumCourses, course.name), next };
     });
 
-  const studentSessions = sessions.filter((s) => s.student === student.name);
+  const studentSessions = sessions.filter((s) => s.student === student.name).sort(bySessionStart);
   const upcomingSessions = studentSessions.filter((s) => s.status !== "completed").slice(0, 3);
   const [activeSession, setActiveSession] = useState<typeof upcomingSessions[number] | null>(null);
   const liveSession = upcomingSessions.find((s) => s.status === "in-progress" && !!s.meetingId);
@@ -231,7 +232,8 @@ export default function StudentHome() {
 
         {/* Sessions as a small calendar: dots on session days, the chosen
             day's sessions below, plus Request and Past sessions. */}
-        <SessionsCalendar sessions={studentSessions} onJoin={setActiveSession} onRequest={() => setModal(true)} />
+        <SessionsCalendar sessions={studentSessions} onJoin={setActiveSession} onRequest={() => setRequestOpen(true)} />
+        <RequestSessionDialog open={requestOpen} onOpenChange={setRequestOpen} student={student} />
 
         {/* Goals: only when the student has set some. With none, the
             streak card links to the Goals page instead of an empty card. */}
@@ -258,7 +260,6 @@ export default function StudentHome() {
         )}
       </aside>
 
-      {modal && <ScheduleModal defaultStudent={student.name} onClose={() => setModal(false)} />}
       {activeSession?.meetingId && (
         <ZoomModal
           meetingId={activeSession.meetingId}

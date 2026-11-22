@@ -39,14 +39,14 @@ export default function StreakCard({ streak, action, children }: { streak: numbe
               <span className="text-5xl">{streak}</span>
               <span className="text-lg ml-1.5">day{streak === 1 ? "" : "s"}</span>
             </p>
-            <p className="text-sm font-semibold text-foreground mt-1.5">practising in a row. You're on fire!</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Practise today to keep it going.</p>
+            <p className="text-sm font-semibold text-foreground mt-1.5">practicing in a row. You're on fire!</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Practice today to keep it going.</p>
             {action}
           </>
         ) : (
           <>
             <p className="font-display font-bold text-foreground text-xl leading-tight">Start a streak</p>
-            <p className="text-xs text-muted-foreground mt-1">Answer one practice question today. Practise every day and your flame grows.</p>
+            <p className="text-xs text-muted-foreground mt-1">Answer one practice question today. Practice every day and your flame grows.</p>
             {action}
           </>
         )}
