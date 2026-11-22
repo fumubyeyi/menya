@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import confetti from "canvas-confetti";
 import { ArrowRight, RotateCcw, Trophy } from "lucide-react";
 import { achievementGapLabel } from "../../../lib/constants";
-import { subjectColor, subjectTint } from "../../../lib/subject";
 import { formatMinutes } from "../../../hooks/useModuleTime";
 import type { useStudentAchievements } from "../../../hooks/useStudentAchievements";
 
@@ -23,7 +22,7 @@ interface Props {
 }
 
 export default function ModuleComplete({ course, moduleTitle, correct, total, xp, seconds, nextBadge, next, onReview }: Props) {
-  const color = subjectColor(course);
+  const color = "var(--primary)";
 
   useEffect(() => {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, disableForReducedMotion: true });
@@ -45,9 +44,9 @@ export default function ModuleComplete({ course, moduleTitle, correct, total, xp
   return (
     <div
       className="bg-card border border-border rounded-xl p-6 sm:p-10 text-center space-y-6"
-      style={{ backgroundImage: `radial-gradient(circle at 50% 0%, ${subjectTint(course, 16)}, transparent 60%)` }}
+      style={{ backgroundImage: "radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 60%)" }}
     >
-      <div className="answer-bounce mx-auto w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: subjectTint(course, 20) }}>
+      <div className="answer-bounce mx-auto w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
         <Trophy className="w-10 h-10" style={{ color }} />
       </div>
       <div>
@@ -87,7 +86,7 @@ export default function ModuleComplete({ course, moduleTitle, correct, total, xp
           <Link
             to={next.href}
             className="flex items-center gap-2 px-7 py-3 rounded-full text-base font-bold hover:brightness-110 motion-safe:transition"
-            style={{ backgroundColor: color, color: "var(--card)" }}
+            style={{ backgroundColor: color, color: "var(--primary-foreground)" }}
           >
             {next.label} <ArrowRight className="w-5 h-5" />
           </Link>

@@ -241,7 +241,8 @@ function ModuleWorkspaceInner() {
   });
 
   const primaryBtn = "flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold hover:brightness-110 motion-safe:transition";
-  const subjectBtn = { backgroundColor: color, color: "var(--card)" };
+  // Main actions use the primary colour, like everywhere else in the app.
+  const subjectBtn = { backgroundColor: "var(--primary)", color: "var(--primary-foreground)" };
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 pb-24">
@@ -251,8 +252,8 @@ function ModuleWorkspaceInner() {
 
       {/* Header */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="h-2" style={{ backgroundColor: color }} />
-        <div className="p-6" style={{ backgroundImage: `linear-gradient(135deg, ${subjectTint(course.name, 9)}, transparent 60%)` }}>
+        <div className="h-2 bg-primary" />
+        <div className="p-6">
           <div className="flex items-center gap-2 flex-wrap mb-2">
             <CourseTag course={course.name} />
             <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-muted text-muted-foreground">{chapter.title}</span>
@@ -271,7 +272,7 @@ function ModuleWorkspaceInner() {
 
       {/* Steps + XP */}
       <div className="bg-card border border-border rounded-xl p-5 space-y-5">
-        <ModuleStepper steps={steps} current={mode} course={course.name} onSelect={goTo} />
+        <ModuleStepper steps={steps} current={mode} onSelect={goTo} />
         <div className="flex items-center gap-4 flex-wrap pt-4 border-t border-border">
           <div className="flex items-center gap-2 flex-1 min-w-[160px]">
             <Sparkles className="w-4 h-4 text-brand-amber flex-shrink-0" />
@@ -355,7 +356,7 @@ function ModuleWorkspaceInner() {
                         {workspace.exercises.map((_, i) => {
                           const it = practice.exercises[i];
                           const isCur = i === currentExerciseIndex;
-                          const bg = isCur ? color
+                          const bg = isCur ? "var(--primary)"
                             : it?.mark === "correct" ? "#10B981"
                             : it?.mark === "practice" ? "var(--brand-amber)"
                             : "var(--border)";
@@ -441,7 +442,7 @@ function ModuleWorkspaceInner() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {chapterTestQuestions.map((_, i) => {
                         const it = chapterTest.items[i];
-                        const bg = i === chapterTest.step ? color
+                        const bg = i === chapterTest.step ? "var(--primary)"
                           : it?.mark === "correct" ? "#10B981"
                           : it?.mark === "practice" ? "var(--brand-amber)"
                           : "var(--border)";

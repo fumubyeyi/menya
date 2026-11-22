@@ -1,10 +1,10 @@
 import { useState, type CSSProperties } from "react";
-import { HelpCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { achievementHint, achievementTarget, achievementValue, type Achievement } from "../../lib/constants";
 import type { useStudentAchievements } from "../../hooks/useStudentAchievements";
 
-// The student's badge shelf: a row of icons on My Journey (5 at a time,
-// under the streak) and the full shelf on Goals.
+// The student's badge shelf: a small row on My Journey (earned + next, under
+// the streak) and the full shelf on Goals.
 // - Earned badges are in full colour. One earned since the student last
 //   looked flips in with a burst of confetti and a "New!" tag, once.
 // - Locked badges are mystery silhouettes with a progress ring around them
@@ -83,13 +83,12 @@ function LockedBadge({ a, size, pct }: { a: Achievement; size: number; pct: numb
   );
 }
 
-const PAGE = 5;
-
 export default function AchievementShelf({ data, variant }: { data: Achievements; variant: "icons" | "full" }) {
   const { earned, locked, input, next, fresh } = data;
   const compact = variant === "icons";
   const size = compact ? 40 : 64;
-  const [page, setPage] = useState(0);
+  // Which badge the caption under the icon row describes (tap/click/focus).
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Closest locked badges first, so the one to aim for leads the locked row.
   const lockedSorted = locked
@@ -113,47 +112,44 @@ export default function AchievementShelf({ data, variant }: { data: Achievements
     );
   });
 
-  // My Journey: icons only, 5 at a time, earned first then the closest
-  // locked ones. Names and hints are in each icon's tooltip and label.
+  // My Journey: kept calm on purpose. Just the earned badges and the one to
+  // aim for next, with one line about it underneath. Mystery badges and the
+  // full set live on the Goals page ("See all"). Tapping or focusing an
+  // earned badge swaps that line for its name, so names work on touch too.
   if (compact) {
-    const all = [
-      ...earned.map((a) => {
-        const target = achievementTarget(a, input);
-        return { a, earned: true as const, pct: 100, count: `${target}/${target}`, label: a.label };
-      }),
-      ...lockedSorted.map(({ a, current, target, pct }) => {
-        const isNext = a.id === next?.achievement.id;
-        return { a, earned: false as const, pct, count: `${current}/${target}`, label: `${isNext ? `Next: ${a.label}` : "Mystery badge"}. ${achievementHint(a, input)}` };
-      }),
-    ];
-    const pages = Math.max(1, Math.ceil(all.length / PAGE));
-    const current = Math.min(page, pages - 1);
-    const shown = all.slice(current * PAGE, current * PAGE + PAGE);
-    const arrow = "w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:pointer-events-none flex-shrink-0";
+    const nextLocked = lockedSorted.find(({ a }) => a.id === next?.achievement.id);
+    const unit: Record<string, string> = { streak: "days", sessions: "sessions", sessionsAttended: "live sessions", modules: "modules" };
+    const nextLine = nextLocked
+      ? <><span className="font-bold">Next: {nextLocked.a.label}</span> · <span className="font-mono">{nextLocked.current}/{nextLocked.target}</span> {unit[nextLocked.a.metric]}</>
+      : <span className="font-bold">Every badge earned!</span>;
+    const picked = earned.find((a) => a.id === selectedId);
+    const caption = picked ? <><span className="font-bold">{picked.label}</span> · Earned!</> : nextLine;
+
     return (
-      <div className="flex items-center gap-1">
-        {pages > 1 && (
-          <button type="button" onClick={() => setPage(current - 1)} disabled={current === 0} className={arrow} aria-label="Previous badges">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-        )}
-        <ul className="flex-1 grid grid-cols-5 gap-1 justify-items-center">
-          {shown.map((b) => (
-            <li key={b.a.id} title={`${b.label} (${b.count})`} aria-label={`${b.label}, ${b.count}${b.earned ? ", earned" : ", locked"}`} className="flex flex-col items-center gap-1">
-              {b.earned ? <EarnedBadge a={b.a} size={size} isNew={fresh.has(b.a.id)} /> : <LockedBadge a={b.a} size={size} pct={b.pct} />}
-              {b.earned && fresh.has(b.a.id) ? (
-                <span className="badge-new-tag text-[10px] font-bold px-1.5 rounded-full bg-brand-amber text-warning-foreground">New!</span>
-              ) : (
-                <span className={`text-[11px] font-mono leading-none ${b.earned ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{b.count}</span>
-              )}
+      <div>
+        <ul className="flex flex-wrap items-center gap-2">
+          {earned.map((a) => (
+            <li key={a.id}>
+              <button
+                type="button"
+                onClick={() => setSelectedId(a.id)}
+                onFocus={() => setSelectedId(a.id)}
+                onBlur={() => setSelectedId(null)}
+                aria-label={`${a.label}, earned`}
+                title={a.label}
+                className={`relative block rounded-full ${selectedId === a.id ? "ring-2 ring-primary/40 ring-offset-2 ring-offset-card" : ""}`}
+              >
+                <EarnedBadge a={a} size={size} isNew={fresh.has(a.id)} />
+              </button>
             </li>
           ))}
+          {nextLocked && (
+            <li title={`Next: ${nextLocked.a.label}`} aria-label={`Next badge: ${nextLocked.a.label}, ${nextLocked.current} of ${nextLocked.target}`}>
+              <LockedBadge a={nextLocked.a} size={size} pct={nextLocked.pct} />
+            </li>
+          )}
         </ul>
-        {pages > 1 && (
-          <button type="button" onClick={() => setPage(current + 1)} disabled={current === pages - 1} className={arrow} aria-label="More badges">
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
+        <p className="mt-2.5 text-xs text-foreground" aria-live="polite">{caption}</p>
       </div>
     );
   }

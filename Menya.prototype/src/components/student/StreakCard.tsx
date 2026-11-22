@@ -15,7 +15,7 @@ export default function StreakCard({ streak, action, children }: { streak: numbe
 
   return (
     <div
-      className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 h-full"
+      className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4"
       style={lit ? { backgroundImage: "linear-gradient(135deg, color-mix(in srgb, var(--brand-amber) 16%, transparent), transparent 70%)" } : undefined}
     >
       <div className="flex items-center gap-4">
@@ -52,7 +52,7 @@ export default function StreakCard({ streak, action, children }: { streak: numbe
         )}
       </div>
       </div>
-      {children && <div className="mt-auto pt-4 border-t border-border">{children}</div>}
+      {children && <div className="pt-4 border-t border-border">{children}</div>}
     </div>
   );
 }

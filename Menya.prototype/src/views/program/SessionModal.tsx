@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import "./calendar.css";
+import "../../styles/calendar.css";
 import { X, Video, MapPin, ChevronDown, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CalendarRange } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from "../../app/components/ui/dropdown-menu";
 import { Popover, PopoverTrigger, PopoverContent } from "../../app/components/ui/popover";

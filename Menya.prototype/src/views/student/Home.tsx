@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Plus, ArrowRight, BookPlus } from "lucide-react";
 import { Link } from "react-router";
 import ZoomModal from "../../components/ZoomModal";
-import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
 import StreakCard from "../../components/student/StreakCard";
+import SessionsCalendar from "../../components/student/SessionsCalendar";
 import AchievementShelf from "../../components/student/AchievementShelf";
 import { useStudentAchievements } from "../../hooks/useStudentAchievements";
 import {
@@ -111,7 +111,9 @@ export default function StudentHome() {
         </div>
       )}
 
-      {/* Left: greeting and Up next. Right: the streak, with badges under it. */}
+      {/* Two continuous columns, so neither leaves a gap beside the other.
+          Left (learning): greeting, Up next, Course progress.
+          Right (time and people): streak with badges, sessions, goals. */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4 min-w-0">
           <div className="bg-card border border-border rounded-xl p-6">
@@ -123,102 +125,72 @@ export default function StudentHome() {
             </p>
           </div>
 
-          {/* Up next */}
+          {/* Up next: a plain card like the others. Accents (stripe, label,
+              Resume) use the primary colour; only the course icon keeps its
+              course colour. */}
           {nextUp && (
             <Link
               to={`/student/module/${nextUp.chapter.id}/${nextUp.action.moduleIndex}`}
-              // Solid subject colour, so the next step is the boldest thing on the
-              // page. Text uses var(--card): white on the light-mode colours, dark
-              // on the lighter dark-mode ones, ≥ 4.5:1 either way.
-              className="student-card-hover flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 rounded-xl p-5 sm:p-6 group"
-              style={{ backgroundColor: subjectColor(nextUp.mod.course), color: "var(--card)", boxShadow: "var(--student-card-shadow)" }}
+              className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 bg-card border border-border hover:border-primary/40 transition-colors rounded-xl p-5 group overflow-hidden relative"
             >
-              <div className="flex items-center gap-4 flex-1 min-w-0">
+              <span aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-primary" />
+              <div className="flex items-center gap-4 flex-1 min-w-0 pl-1">
                 <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 [&_svg]:w-8 [&_svg]:h-8"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--card) 20%, transparent)" }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 [&_svg]:w-6 [&_svg]:h-6"
+                  style={{ backgroundColor: subjectTint(nextUp.mod.course), color: subjectColor(nextUp.mod.course) }}
                 >
                   {getCourseIcon(nextUp.mod.course)}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide">Up next</p>
-                  <p className="text-xl font-display font-bold leading-tight line-clamp-2 sm:truncate">{nextUp.action.moduleTitle}</p>
-                  <p className="text-sm mt-0.5 line-clamp-2 sm:truncate">
+                  <p className="text-xs font-bold uppercase tracking-wide text-primary">Up next</p>
+                  <p className="text-lg font-display font-bold text-foreground leading-tight line-clamp-2 sm:truncate">{nextUp.action.moduleTitle}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 sm:truncate">
                     {nextUp.mod.course} · {nextUp.chapter.title} · Module {(nextUp.action.moduleIndex ?? 0) + 1} of {nextUp.chapter.modules.length}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
-                <span
-                  className="flex items-center gap-2 px-6 py-3 rounded-full text-base font-bold group-hover:brightness-95 motion-safe:transition"
-                  style={{ backgroundColor: "var(--card)", color: subjectColor(nextUp.mod.course) }}
-                >
-                  {nextUp.action.label} <ArrowRight className="w-5 h-5" />
-                </span>
-              </div>
+              <span
+                className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold flex-shrink-0 bg-primary text-primary-foreground group-hover:bg-primary/90 transition-colors"
+              >
+                {nextUp.action.label} <ArrowRight className="w-4 h-4" />
+              </span>
             </Link>
           )}
-        </div>
 
-        <StreakCard
-          streak={streak}
-          // With no goals, the Goals card is hidden, so point to them here:
-          // a weekly goal is what keeps a streak going.
-          action={goals.length === 0 && (
-            <Link to="/student/goals" className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-primary hover:underline">
-              Set a weekly goal <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          )}
-        >
-          <div className="flex items-baseline justify-between mb-3">
-            <h3 className="text-sm font-semibold text-foreground">Achievements</h3>
-            <Link to="/student/goals" className="text-xs font-semibold text-primary hover:underline">
-              {badges.earned.length}/{achievements.length} · See all
-            </Link>
-          </div>
-          <AchievementShelf data={badges} variant="icons" />
-        </StreakCard>
-      </div>
-
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4 min-w-0">
           {/* Course progress: a simple progress bar for every course at once */}
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-lg font-display font-bold text-foreground mb-4">Course progress</h2>
             {journeyCourses.length > 0 ? (
-              <ul className="space-y-2">
+              <ul className="space-y-1">
+                {/* One line per course: name, bar, percentage, module count */}
                 {journeyCourses.map(({ course, total, done, pct, next }) => (
                   <li key={course.name}>
                     <Link
                       to={next ? `/student/module/${next.chapterId}/${next.index}` : `/student/learning#${courseSlug(course.name)}`}
-                      className="block rounded-xl -mx-2 px-2 py-2.5 hover:bg-muted/50 motion-safe:transition-colors"
+                      className="flex items-center gap-2 sm:gap-3 rounded-xl -mx-2 px-2 py-2.5 hover:bg-muted/50 motion-safe:transition-colors"
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        <span
-                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: subjectTint(course.name), color: subjectColor(course.name) }}
-                        >
-                          {getCourseIcon(course.name)}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-foreground">{course.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {next ? `Next: ${next.m.title}` : "All modules done!"} · {done}/{total} modules
-                          </p>
-                        </div>
-                        <span className="text-lg font-display font-bold text-foreground flex-shrink-0">{pct}%</span>
-                      </div>
-                      <div
-                        className="h-3 bg-muted rounded-full overflow-hidden"
+                      <span
+                        // Icon hidden on phones so the bar keeps room
+                        className="hidden sm:flex w-8 h-8 rounded-lg items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: subjectTint(course.name), color: subjectColor(course.name) }}
+                      >
+                        {getCourseIcon(course.name)}
+                      </span>
+                      <span className="w-[5.5rem] sm:w-28 text-sm font-bold text-foreground truncate flex-shrink-0">{course.name}</span>
+                      <span
+                        className="flex-1 min-w-[60px] h-3 bg-muted rounded-full overflow-hidden"
                         role="progressbar"
                         aria-valuenow={pct}
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-label={`${course.name} progress`}
                       >
-                        <div className="h-full rounded-full bg-brand-amber motion-safe:transition-all" style={{ width: `${pct}%` }} />
-                      </div>
+                        <span className="block h-full rounded-full bg-brand-amber motion-safe:transition-all" style={{ width: `${pct}%` }} />
+                      </span>
+                      <span className="w-10 text-right text-sm font-bold text-foreground flex-shrink-0">{pct}%</span>
+                      <span className="w-11 sm:w-24 text-right text-xs font-mono text-muted-foreground flex-shrink-0">
+                        {done}/{total}<span className="hidden sm:inline"> modules</span>
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -233,57 +205,30 @@ export default function StudentHome() {
           </div>
         </div>
 
+        {/* Right column: streak and badges, sessions, goals */}
         <div className="space-y-4">
-          {/* Sessions: what's booked, and booking another, in one place.
-              Not just today's, so it isn't empty on non-session days; the
-              full list lives on My Schedule. */}
-          <div className="bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <h2 className="text-sm font-semibold text-foreground">Sessions</h2>
-              <button
-                onClick={() => setModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> Request
-              </button>
-            </div>
-            {upcomingSessions.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No sessions booked yet. Request one and a tutor will meet you.</p>
-            ) : (
-              <div className="divide-y divide-border">
-                {upcomingSessions.map((s) => {
-                  const live = s.status === "in-progress" && !!s.meetingId;
-                  return (
-                    <div key={s.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: subjectTint(s.course), color: subjectColor(s.course) }}>
-                        {getCourseIcon(s.course)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{s.course}</p>
-                        {/* When first, so a narrow column trims the tutor's name, not the time */}
-                        <p className="text-[11px] font-mono text-muted-foreground truncate">{s.time} · {s.clock} · {tutorNameById(s.tutorId)}</p>
-                      </div>
-                      {live ? (
-                        <button
-                          onClick={() => setActiveSession(s)}
-                          className="px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-xs font-semibold hover:bg-primary/90 transition-colors flex-shrink-0"
-                        >
-                          Join
-                        </button>
-                      ) : (
-                        <SessionStatusPill status={s.status} />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+          <StreakCard
+            streak={streak}
+            // With no goals, the Goals card is hidden, so point to them here:
+            // a weekly goal is what keeps a streak going.
+            action={goals.length === 0 && (
+              <Link to="/student/goals" className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-primary hover:underline">
+                Set a weekly goal <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             )}
-            {/* History lives on My Schedule; one tap away rather than repeated here */}
-            <Link to="/student/schedule#past-sessions" className="mt-3 pt-3 border-t border-border flex items-center justify-end gap-1 text-xs font-semibold text-primary hover:underline">
-              Past sessions <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+          >
+            <div className="flex items-baseline justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Achievements</h3>
+              <Link to="/student/goals" className="text-xs font-semibold text-primary hover:underline">
+                {badges.earned.length}/{achievements.length} · See all
+              </Link>
+            </div>
+            <AchievementShelf data={badges} variant="icons" />
+          </StreakCard>
+
+          {/* Sessions as a small calendar: dots on session days, the chosen
+              day's sessions below, plus Request and Past sessions. */}
+          <SessionsCalendar sessions={studentSessions} onJoin={setActiveSession} onRequest={() => setModal(true)} />
 
           {/* Goals: only when the student has set some. With none, the
               streak card links to the Goals page instead of an empty card. */}

@@ -1,21 +1,19 @@
 import { Check, Lock } from "lucide-react";
-import { subjectColor, subjectTint } from "../../../lib/subject";
 
 // The module's path as steps (Learn → Practice → Chapter test → Finish),
-// standing in for tabs. Finished steps are filled with the subject colour,
+// standing in for tabs. Finished steps are filled with the primary colour,
 // the open one is ringed, and Finish stays locked until the module's work is
-// done. Text on a subject fill uses var(--card) for contrast in both themes.
+// done.
 
 export type StepId = "learn" | "practice" | "test" | "finish";
 export interface Step { id: StepId; label: string; detail?: string; done: boolean; locked?: boolean }
 
-export default function ModuleStepper({ steps, current, course, onSelect }: {
+export default function ModuleStepper({ steps, current, onSelect }: {
   steps: Step[];
   current: StepId;
-  course: string;
   onSelect: (id: StepId) => void;
 }) {
-  const color = subjectColor(course);
+  const color = "var(--primary)";
   return (
     <ol className="flex items-start">
       {steps.map((s, i) => {
@@ -39,12 +37,12 @@ export default function ModuleStepper({ steps, current, course, onSelect }: {
               className="relative z-10 flex flex-col items-center gap-1.5 group disabled:cursor-not-allowed"
             >
               <span
-                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold motion-safe:transition-transform group-enabled:group-hover:scale-110"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
                 style={
                   s.done
-                    ? { backgroundColor: color, color: "var(--card)" }
+                    ? { backgroundColor: color, color: "var(--primary-foreground)" }
                     : isCurrent
-                    ? { backgroundColor: "var(--card)", color, boxShadow: `inset 0 0 0 3px ${color}, 0 0 0 5px ${subjectTint(course, 20)}` }
+                    ? { backgroundColor: "var(--card)", color, boxShadow: `inset 0 0 0 3px ${color}, 0 0 0 5px color-mix(in srgb, var(--primary) 18%, transparent)` }
                     : { backgroundColor: "var(--card)", color: "var(--muted-foreground)", boxShadow: "inset 0 0 0 2px var(--border)" }
                 }
               >

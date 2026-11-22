@@ -96,7 +96,7 @@ export default function Learning() {
           return (
             <div key={sd.course} id={courseSlug(sd.course)} className="bg-card border border-border rounded-xl overflow-hidden scroll-mt-20">
               {/* Subject-coloured header band */}
-              <div className="h-2 w-full" style={{ backgroundColor: color }} />
+              <div className="h-2 w-full bg-primary" />
 
               <div className="p-5">
                 <div className="flex items-start gap-3 mb-4">
@@ -205,7 +205,7 @@ export default function Learning() {
               const action = firstChapter ? chapterAction(firstChapter) : null;
               const moduleCount = course.chapters.reduce((sum, ch) => sum + ch.modules.length, 0);
               return (
-                <div key={courseName} className="student-card-hover flex items-center gap-3 p-4 rounded-xl border border-border bg-background">
+                <div key={courseName} className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tint }}>
                     <span style={{ color }}>{getCourseIcon(courseName)}</span>
                   </div>

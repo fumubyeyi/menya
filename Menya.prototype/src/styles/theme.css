@@ -207,15 +207,6 @@
   .student-theme main .bg-card {
     box-shadow: var(--student-card-shadow);
   }
-  .student-card-hover {
-    transition: transform 150ms ease, box-shadow 150ms ease;
-  }
-  .student-card-hover:hover {
-    transform: translateY(-2px);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .student-card-hover:hover { transform: none; }
-  }
   /* My Journey streak flame: a slow, small sway, so it feels alive without
      pulling the eye. Off for reduced motion. */
   @keyframes flame-flicker {

@@ -98,3 +98,29 @@
   background: var(--primary);
   opacity: 0.92;
 }
+
+/* Student "Sessions" calendar on My Journey: sits flat inside its card (no
+   second border) with a little room under each day number for the dots. */
+.menya-calendar--sessions.react-calendar {
+  border: none;
+  padding: 0;
+}
+.menya-calendar--sessions .react-calendar__tile {
+  padding: 0.35rem 0 0.3rem;
+  min-height: 2.5rem;
+}
+/* Days with a session are highlighted with a soft tint (plus their dots);
+   the selected day keeps the solid --active style above. */
+.menya-calendar--sessions .react-calendar__tile.has-session:not(.react-calendar__tile--active) {
+  font-weight: 700;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+.menya-calendar--sessions .react-calendar__tile.has-session:not(.react-calendar__tile--active):enabled:hover,
+.menya-calendar--sessions .react-calendar__tile.has-session:not(.react-calendar__tile--active):enabled:focus {
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+}
+/* On the selected (solid primary) day, the dot flips to the light colour
+   so it stays visible. */
+.menya-calendar--sessions .react-calendar__tile--active .session-dot {
+  background-color: var(--primary-foreground) !important;
+}

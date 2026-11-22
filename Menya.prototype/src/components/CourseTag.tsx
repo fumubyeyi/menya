@@ -1,12 +1,13 @@
-import { subjectColor, subjectTint } from "../lib/subject";
+import { courseColor } from "../lib/constants";
 
-// Subject-coloured in the student view; the neutral slate everywhere else
-// (see lib/subject.ts).
+// A neutral course label. On student pages the course's own colour is kept
+// for its icon only; tags, buttons and highlights stay neutral/primary.
 export default function CourseTag({ course }: { course: string }) {
+  const color = courseColor[course] || "#5E6B72";
   return (
     <span
       className="text-[11px] px-2 py-0.5 rounded-md font-mono"
-      style={{ backgroundColor: subjectTint(course, 8), color: subjectColor(course) }}
+      style={{ backgroundColor: `${color}15`, color }}
     >
       {course}
     </span>
