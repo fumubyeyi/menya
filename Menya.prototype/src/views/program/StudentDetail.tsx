@@ -63,7 +63,11 @@ export default function StudentDetail() {
   const courses    = (studentCourseDetail[student.id] ?? []).filter((sd) => enrolled.includes(sd.course));
   const history     = studentSessionHistory[student.id] ?? [];
   const weekActivity = weekdayActivity(history);
-  const earned      = achievements.filter((a) => a.condition({ streak: student.streak, progress: student.progress, sessions: student.sessions }));
+  // Staff view still reads the roster's hand-set fields. Expressing progress
+  // as "progress of 100 modules" keeps the progress badges' old meaning
+  // here (80+ Score = progress ≥ 80).
+  const badgeInput  = { streak: student.streak, sessions: student.sessions, modulesDone: student.progress, modulesTotal: 100 };
+  const earned      = achievements.filter((a) => a.condition(badgeInput));
 
   // In-person sessions recur weekly on the student's grade-band slots (Monday/
   // Wednesday, see RecurringSlotsContext) — always resolve to whichever of
@@ -204,7 +208,7 @@ export default function StudentDetail() {
                 <h2 className="text-sm font-semibold text-foreground mb-3">Achievements</h2>
                 <div className="grid grid-cols-3 gap-2">
                   {achievements.map((ach) => {
-                    const unlocked = ach.condition({ streak: student.streak, progress: student.progress, sessions: student.sessions });
+                    const unlocked = ach.condition(badgeInput);
                     return (
                       <div key={ach.id} title={ach.label} className={`flex flex-col items-center gap-1 p-2 rounded-lg border ${unlocked ? "border-border bg-accent/10" : "border-transparent bg-muted opacity-40"}`}>
                         <ach.Icon className="w-5 h-5" style={{ color: unlocked ? ach.color : "#9ca3af" }} />

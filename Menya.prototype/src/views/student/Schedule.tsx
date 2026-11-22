@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router";
 import { Clock, Plus, CalendarClock } from "lucide-react";
 import ZoomModal from "../../components/ZoomModal";
 import type { Session } from "../../types";
@@ -26,6 +27,13 @@ export default function StudentSchedule() {
   const studentSessions = sessions.filter((s) => s.student === student.name);
   const [modal, setModal] = useState(false);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const location = useLocation();
+
+  // Deep links like /student/schedule#past-sessions (from My Journey's
+  // Sessions card) jump straight to that section.
+  useEffect(() => {
+    if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [location.hash]);
 
   // Same in-person schedule Program plans under Program > Schedule, narrowed
   // to the grade band that actually covers this student.
@@ -106,7 +114,7 @@ export default function StudentSchedule() {
       )}
 
       {/* Past Sessions */}
-      <div className="bg-card border border-border rounded-xl p-5">
+      <div id="past-sessions" className="bg-card border border-border rounded-xl p-5 scroll-mt-4">
         <h2 className="text-sm font-semibold text-foreground mb-4">Past Sessions</h2>
         <div className="divide-y divide-border">
           {sessionHistory.map((h, i) => (

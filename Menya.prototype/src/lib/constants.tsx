@@ -474,37 +474,63 @@ export const verificationMeta: Record<VerificationSource, { label: string; cls: 
   "self-reported": { label: "Self-Reported",  cls: "text-gray-600 bg-gray-100",      Icon: MessageCircleMore },
 };
 
-type AchievementInput = { streak: number; progress: number; sessions: number; sessionsAttended?: number };
-type AchievementMetric = keyof AchievementInput;
+export type AchievementInput = {
+  streak: number;
+  sessions: number;
+  sessionsAttended?: number;
+  // Modules finished, out of all modules in the student's enrolled courses.
+  modulesDone: number;
+  modulesTotal: number;
+};
+type AchievementMetric = "streak" | "sessions" | "sessionsAttended" | "modules";
 
-// Each badge is "reach `target` on `metric`" — stated as data rather than an
-// opaque predicate so the student Home can say how close the next one is
-// ("2 more sessions to Dedicated Learner"). `condition` is derived from it.
-const ACHIEVEMENT_DEFS: { id: string; label: string; Icon: React.ElementType; color: string; metric: AchievementMetric; target: number }[] = [
-  { id: "streak-5",    label: "5-Day Streak",      Icon: Flame,        color: "#F0981E", metric: "streak",           target: 5  },
-  { id: "streak-7",    label: "Week Warrior",      Icon: Trophy,       color: "#C9922E", metric: "streak",           target: 7  },
-  { id: "score-80",    label: "80+ Score",         Icon: Target,       color: "#708090", metric: "progress",         target: 80 },
-  { id: "score-90",    label: "Top Performer",     Icon: Star,         color: "#059669", metric: "progress",         target: 90 },
-  { id: "sessions-10", label: "10 Sessions",       Icon: CheckCircle2, color: "#3B82F6", metric: "sessions",         target: 10 },
-  { id: "sessions-15", label: "Dedicated Learner", Icon: BookMarked,   color: "#8B5CF6", metric: "sessions",         target: 15 },
-  { id: "showed-up",   label: "Showed Up",         Icon: BadgeCheck,   color: "#708090", metric: "sessionsAttended", target: 1  },
+// Each badge is "reach a target on a metric", stated as data so the student
+// pages can say how close the next one is ("2 more sessions to Dedicated
+// Learner"). Most targets are fixed; the two progress badges use `share`, a
+// fraction of the student's own modules, so they read as a count students
+// can picture ("Finish 29 of your 36 modules") rather than an average
+// percentage that matches none of their course bars.
+const ACHIEVEMENT_DEFS: { id: string; label: string; Icon: React.ElementType; color: string; metric: AchievementMetric; target?: number; share?: number }[] = [
+  { id: "streak-5",    label: "5-Day Streak",      Icon: Flame,        color: "#F0981E", metric: "streak",           target: 5   },
+  { id: "streak-7",    label: "Week Warrior",      Icon: Trophy,       color: "#C9922E", metric: "streak",           target: 7   },
+  { id: "score-80",    label: "80+ Score",         Icon: Target,       color: "#708090", metric: "modules",          share: 0.8  },
+  { id: "score-90",    label: "Top Performer",     Icon: Star,         color: "#059669", metric: "modules",          share: 0.9  },
+  { id: "sessions-10", label: "10 Sessions",       Icon: CheckCircle2, color: "#3B82F6", metric: "sessions",         target: 10  },
+  { id: "sessions-15", label: "Dedicated Learner", Icon: BookMarked,   color: "#8B5CF6", metric: "sessions",         target: 15  },
+  { id: "showed-up",   label: "Showed Up",         Icon: BadgeCheck,   color: "#708090", metric: "sessionsAttended", target: 1   },
 ];
+
+type AchievementDef = (typeof ACHIEVEMENT_DEFS)[number];
+
+// The number a badge needs for this student (a share resolves against their
+// module count; at least 1 so an empty enrollment can't award it).
+export function achievementTarget(a: AchievementDef, s: AchievementInput): number {
+  return a.share !== undefined ? Math.max(1, Math.ceil(a.share * s.modulesTotal)) : a.target ?? 0;
+}
+
+// Where the student is on a badge's metric right now, capped at its target.
+export function achievementValue(a: AchievementDef, s: AchievementInput): number {
+  const v = a.metric === "modules" ? s.modulesDone : s[a.metric] ?? 0;
+  return Math.min(v, achievementTarget(a, s));
+}
 
 export const achievements = ACHIEVEMENT_DEFS.map((a) => ({
   ...a,
-  condition: (s: AchievementInput) => (s[a.metric] ?? 0) >= a.target,
+  condition: (s: AchievementInput) =>
+    (a.metric === "modules" ? s.modulesDone : s[a.metric] ?? 0) >= achievementTarget(a, s),
 }));
 
 export type Achievement = (typeof achievements)[number];
 
 // The locked badge the student is closest to (by fraction of its target),
 // with how many more units it needs — or null once every badge is earned.
-export function nextAchievement(s: AchievementInput): { achievement: Achievement; current: number; remaining: number; pct: number } | null {
+export function nextAchievement(s: AchievementInput): { achievement: Achievement; current: number; target: number; remaining: number; pct: number } | null {
   const ranked = achievements
     .filter((a) => !a.condition(s))
     .map((a) => {
-      const current = s[a.metric] ?? 0;
-      return { achievement: a, current, remaining: a.target - current, pct: Math.round((current / a.target) * 100) };
+      const current = achievementValue(a, s);
+      const target = achievementTarget(a, s);
+      return { achievement: a, current, target, remaining: target - current, pct: Math.round((current / target) * 100) };
     })
     .sort((x, y) => y.pct - x.pct || x.remaining - y.remaining);
   return ranked[0] ?? null;
@@ -512,23 +538,23 @@ export function nextAchievement(s: AchievementInput): { achievement: Achievement
 
 // What a locked badge asks for, in the student's words — shown under the
 // mystery silhouette so they know how to earn it.
-export function achievementHint(a: Achievement): string {
-  const n = a.target;
+export function achievementHint(a: Achievement, s: AchievementInput): string {
+  const n = achievementTarget(a, s);
   switch (a.metric) {
     case "streak": return `Practise ${n} days in a row`;
-    case "progress": return `Reach ${n}% course progress`;
+    case "modules": return `Finish ${n} of your ${s.modulesTotal} modules`;
     case "sessions": return `Complete ${n} sessions`;
     case "sessionsAttended": return n === 1 ? "Attend a live session" : `Attend ${n} live sessions`;
   }
 }
 
-// "2 more sessions", "1 more day in a row", "6% more progress" — the unit a
+// "2 more sessions", "1 more day in a row", "3 more modules" — the unit a
 // badge's remaining gap is counted in.
 export function achievementGapLabel(metric: AchievementMetric, remaining: number): string {
   const plural = remaining === 1 ? "" : "s";
   switch (metric) {
     case "streak": return `${remaining} more day${plural} in a row`;
-    case "progress": return `${remaining}% more course progress`;
+    case "modules": return `${remaining} more module${plural}`;
     case "sessions": return `${remaining} more session${plural}`;
     case "sessionsAttended": return `attend ${remaining} session${plural}`;
   }

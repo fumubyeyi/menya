@@ -1,9 +1,10 @@
-import type { CSSProperties } from "react";
-import { HelpCircle } from "lucide-react";
-import { achievementHint, type Achievement } from "../../lib/constants";
+import { useState, type CSSProperties } from "react";
+import { HelpCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { achievementHint, achievementTarget, achievementValue, type Achievement } from "../../lib/constants";
 import type { useStudentAchievements } from "../../hooks/useStudentAchievements";
 
-// The student's badge shelf, on My Journey (compact) and Goals (full).
+// The student's badge shelf: a row of icons on My Journey (5 at a time,
+// under the streak) and the full shelf on Goals.
 // - Earned badges are in full colour. One earned since the student last
 //   looked flips in with a burst of confetti and a "New!" tag, once.
 // - Locked badges are mystery silhouettes with a progress ring around them
@@ -82,62 +83,104 @@ function LockedBadge({ a, size, pct }: { a: Achievement; size: number; pct: numb
   );
 }
 
-export default function AchievementShelf({ data, variant }: { data: Achievements; variant: "compact" | "full" }) {
-  const { earned, locked, input, next, fresh } = data;
-  const size = variant === "compact" ? 48 : 64;
+const PAGE = 5;
 
-  // Closest locked badges first, so "Almost there" leads the locked row.
+export default function AchievementShelf({ data, variant }: { data: Achievements; variant: "icons" | "full" }) {
+  const { earned, locked, input, next, fresh } = data;
+  const compact = variant === "icons";
+  const size = compact ? 40 : 64;
+  const [page, setPage] = useState(0);
+
+  // Closest locked badges first, so the one to aim for leads the locked row.
   const lockedSorted = locked
     .map((a) => {
-      const current = Math.min(input[a.metric] ?? 0, a.target);
-      return { a, current, pct: Math.round((current / a.target) * 100) };
+      const current = achievementValue(a, input);
+      const target = achievementTarget(a, input);
+      return { a, current, target, pct: Math.round((current / target) * 100) };
     })
     .sort((x, y) => y.pct - x.pct);
 
-  const grid = variant === "compact"
-    ? "grid grid-cols-3 gap-x-2 gap-y-4"
-    : "grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-3 gap-y-6";
-  const nameCls = variant === "compact" ? "text-[11px]" : "text-sm";
-  const hintCls = variant === "compact" ? "text-[10px]" : "text-xs";
+  const earnedItems = earned.map((a) => {
+    const isNew = fresh.has(a.id);
+    return (
+      <li key={`earned-${a.id}`} className={`flex flex-col items-center text-center gap-1.5 ${compact ? "w-[72px]" : ""}`}>
+        <EarnedBadge a={a} size={size} isNew={isNew} />
+        <span className={`${compact ? "text-[11px]" : "text-sm"} font-semibold text-foreground leading-tight`}>{a.label}</span>
+        {isNew && (
+          <span className="badge-new-tag text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-amber text-warning-foreground">New!</span>
+        )}
+      </li>
+    );
+  });
 
+  // My Journey: icons only, 5 at a time, earned first then the closest
+  // locked ones. Names and hints are in each icon's tooltip and label.
+  if (compact) {
+    const all = [
+      ...earned.map((a) => {
+        const target = achievementTarget(a, input);
+        return { a, earned: true as const, pct: 100, count: `${target}/${target}`, label: a.label };
+      }),
+      ...lockedSorted.map(({ a, current, target, pct }) => {
+        const isNext = a.id === next?.achievement.id;
+        return { a, earned: false as const, pct, count: `${current}/${target}`, label: `${isNext ? `Next: ${a.label}` : "Mystery badge"}. ${achievementHint(a, input)}` };
+      }),
+    ];
+    const pages = Math.max(1, Math.ceil(all.length / PAGE));
+    const current = Math.min(page, pages - 1);
+    const shown = all.slice(current * PAGE, current * PAGE + PAGE);
+    const arrow = "w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:pointer-events-none flex-shrink-0";
+    return (
+      <div className="flex items-center gap-1">
+        {pages > 1 && (
+          <button type="button" onClick={() => setPage(current - 1)} disabled={current === 0} className={arrow} aria-label="Previous badges">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        )}
+        <ul className="flex-1 grid grid-cols-5 gap-1 justify-items-center">
+          {shown.map((b) => (
+            <li key={b.a.id} title={`${b.label} (${b.count})`} aria-label={`${b.label}, ${b.count}${b.earned ? ", earned" : ", locked"}`} className="flex flex-col items-center gap-1">
+              {b.earned ? <EarnedBadge a={b.a} size={size} isNew={fresh.has(b.a.id)} /> : <LockedBadge a={b.a} size={size} pct={b.pct} />}
+              {b.earned && fresh.has(b.a.id) ? (
+                <span className="badge-new-tag text-[10px] font-bold px-1.5 rounded-full bg-brand-amber text-warning-foreground">New!</span>
+              ) : (
+                <span className={`text-[11px] font-mono leading-none ${b.earned ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{b.count}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+        {pages > 1 && (
+          <button type="button" onClick={() => setPage(current + 1)} disabled={current === pages - 1} className={arrow} aria-label="More badges">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Goals: the whole shelf. Only the badge to aim for next shows its name
+  // and hint; the other locked ones are quiet mystery badges with a count.
   return (
-    <ul className={grid}>
-      {earned.map((a) => {
-        const isNew = fresh.has(a.id);
-        return (
-          <li key={`earned-${a.id}`} className="flex flex-col items-center text-center gap-1.5">
-            <EarnedBadge a={a} size={size} isNew={isNew} />
-            <span className={`${nameCls} font-semibold text-foreground leading-tight`}>{a.label}</span>
-            {isNew ? (
-              <span className="badge-new-tag text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-amber text-warning-foreground">
-                New!
-              </span>
-            ) : (
-              variant === "full" && <span className={`${hintCls} text-muted-foreground leading-tight`}>{achievementHint(a)}</span>
-            )}
-          </li>
-        );
-      })}
-      {lockedSorted.map(({ a, current, pct }) => {
-        const isNext = next?.achievement.id === a.id;
-        const almost = isNext && pct >= 50;
-        const hint = achievementHint(a);
+    <ul className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-3 gap-y-6">
+      {earnedItems}
+      {lockedSorted.map(({ a, current, target, pct }) => {
+        const isNext = a.id === next?.achievement.id;
+        const hint = achievementHint(a, input);
         return (
           <li
             key={`locked-${a.id}`}
             className="flex flex-col items-center text-center gap-1.5"
-            aria-label={`${isNext ? a.label : "Mystery badge"}, locked. ${hint}. ${current} of ${a.target}.`}
+            aria-label={`${isNext ? a.label : "Mystery badge"}, locked. ${hint}. ${current} of ${target}.`}
           >
             <LockedBadge a={a} size={size} pct={pct} />
-            <span className={`${nameCls} font-semibold leading-tight ${isNext ? "text-foreground" : "text-muted-foreground"}`}>
+            <span className={`text-sm font-semibold leading-tight ${isNext ? "text-foreground" : "text-muted-foreground"}`}>
               {isNext ? a.label : "Mystery badge"}
             </span>
-            {almost && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-amber/20 text-foreground">Almost there!</span>
+            {isNext ? (
+              <span className="text-xs text-muted-foreground leading-tight">{hint} · <span className="font-mono">{current}/{target}</span></span>
+            ) : (
+              <span className="text-xs font-mono text-muted-foreground">{current}/{target}</span>
             )}
-            <span className={`${hintCls} text-muted-foreground leading-tight`}>
-              {hint} · <span className="font-mono">{current}/{a.target}</span>
-            </span>
           </li>
         );
       })}

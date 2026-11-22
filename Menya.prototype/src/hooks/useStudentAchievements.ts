@@ -1,34 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
-import { studentCourseDetail } from "../data";
-import { achievements, nextAchievement, courseCompletion } from "../lib/constants";
+import { achievements, nextAchievement } from "../lib/constants";
 import { useCurrentStudent } from "./useCurrentStudent";
 import { useStudentActivity } from "../context/StudentActivityContext";
 import { useStudentCurriculum } from "./useStudentCurriculum";
+import { useEnrollment } from "./useEnrollment";
 
-// One source of truth for a student's badges, shared by My Journey and Goals
-// so the two pages can never disagree about what's earned.
+// One source of truth for a student's badges, shared by My Journey, Goals and
+// the end-of-module screen, so they can never disagree about what's earned.
 //
-// "Progress" averages courseCompletion (curriculum modules marked completed)
-// across the student's courses rather than reading the student's separately
-// hand-set `progress` field, so it always matches the per-course percentages
-// on the journey map and on My Courses.
+// The progress badges count modules finished across the student's enrolled
+// courses (the same courses and statuses as the My Journey bars), so a target
+// reads as "Finish 29 of your 36 modules".
 export function useStudentAchievements() {
   const student = useCurrentStudent();
   const curriculumCourses = useStudentCurriculum();
+  const { courses: enrolled } = useEnrollment();
   const { streak, sessionsAttendedTotal } = useStudentActivity();
 
-  const courseDetails = studentCourseDetail[student.id] ?? [];
-  const progress = courseDetails.length > 0
-    ? Math.round(courseDetails.reduce((sum, cd) => sum + courseCompletion(curriculumCourses, cd.course), 0) / courseDetails.length)
-    : student.progress;
+  const modules = curriculumCourses
+    .filter((c) => enrolled.includes(c.name))
+    .flatMap((c) => c.chapters.flatMap((ch) => ch.modules));
+  const modulesDone = modules.filter((m) => m.status === "completed").length;
 
-  const input = { streak, progress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal };
+  const input = { streak, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal, modulesDone, modulesTotal: modules.length };
   const earned = achievements.filter((a) => a.condition(input));
   const locked = achievements.filter((a) => !a.condition(input));
   const next = nextAchievement(input);
   const fresh = useFreshUnlocks(student.id, earned.map((a) => a.id));
 
-  return { input, progress, earned, locked, next, fresh };
+  return { input, earned, locked, next, fresh };
 }
 
 const seenKey = (studentId: number) => `menya:badges-seen:${studentId}`;
