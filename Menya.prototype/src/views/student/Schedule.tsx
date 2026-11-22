@@ -12,7 +12,8 @@ import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import {
   studentSessionHistory, tutorNameById,
 } from "../../data";
-import { getCourseIcon, courseColor, formatTime12h, gradesSummary, gradeGroupFor } from "../../lib/constants";
+import { getCourseIcon, formatTime12h, gradesSummary, gradeGroupFor } from "../../lib/constants";
+import { subjectColor, subjectTint } from "../../lib/subject";
 import { WEEKDAYS } from "../program/RecurringSlotModal";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
@@ -55,9 +56,9 @@ export default function StudentSchedule() {
               <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${courseColor[s.course] ?? "#5E6B72"}15` }}
+                  style={{ backgroundColor: subjectTint(s.course) }}
                 >
-                  <span style={{ color: courseColor[s.course] ?? "#5E6B72" }}>
+                  <span style={{ color: subjectColor(s.course) }}>
                     {getCourseIcon(s.course)}
                   </span>
                 </div>
@@ -113,9 +114,9 @@ export default function StudentSchedule() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${courseColor[h.course] ?? "#5E6B72"}15` }}
+                  style={{ backgroundColor: subjectTint(h.course) }}
                 >
-                  <span style={{ color: courseColor[h.course] ?? "#5E6B72" }}>
+                  <span style={{ color: subjectColor(h.course) }}>
                     {getCourseIcon(h.course)}
                   </span>
                 </div>

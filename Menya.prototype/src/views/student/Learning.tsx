@@ -8,10 +8,11 @@ import EnrollmentModal from "../../components/EnrollmentModal";
 import {
   studentCourseDetail, studentModules,
 } from "../../data";
-import { getCourseIcon, courseColor, chapterAction, courseCompletion, courseSlug } from "../../lib/constants";
+import { getCourseIcon, chapterAction, courseCompletion, courseSlug } from "../../lib/constants";
 import { useEnrollment } from "../../hooks/useEnrollment";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import { useCurriculum } from "../../context/CurriculumContext";
+import { subjectColor, subjectTint } from "../../lib/subject";
 import type { CurriculumCourse, CurriculumChapter, CourseDetail } from "../../types";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
@@ -87,20 +88,21 @@ export default function Learning() {
       {activeCourseDetails.length > 0 && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {activeCourseDetails.map((sd) => {
-          const color = courseColor[sd.course] ?? "#5E6B72";
+          const color = subjectColor(sd.course);
+          const tint = subjectTint(sd.course);
           const relatedModules = modules.filter((m) => m.course === sd.course);
           const completion = courseCompletion(courses, sd.course);
 
           return (
             <div key={sd.course} id={courseSlug(sd.course)} className="bg-card border border-border rounded-xl overflow-hidden scroll-mt-20">
-              {/* Colored top bar */}
-              <div className="h-1.5 w-full" style={{ backgroundColor: color }} />
+              {/* Subject-coloured header band */}
+              <div className="h-2 w-full" style={{ backgroundColor: color }} />
 
               <div className="p-5">
                 <div className="flex items-start gap-3 mb-4">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${color}18` }}
+                    style={{ backgroundColor: tint }}
                   >
                     <span style={{ color }}>{getCourseIcon(sd.course)}</span>
                   </div>
@@ -113,8 +115,8 @@ export default function Learning() {
                   </div>
                 </div>
 
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-4">
-                  <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${completion}%` }} />
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden mb-4">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${completion}%`, backgroundColor: color }} />
                 </div>
 
                 {/* Related modules */}
@@ -131,7 +133,7 @@ export default function Learning() {
                           <div className="flex items-center gap-3">
                             <div
                               className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: `${color}15` }}>
+                              style={{ backgroundColor: tint }}>
                               <span style={{ color }}>{getCourseIcon(mod.course)}</span>
                             </div>
                             <div className="flex-1 min-w-0">
@@ -195,13 +197,14 @@ export default function Learning() {
             {notStartedCourses.map((courseName) => {
               const course = courses.find((c) => c.name === courseName);
               if (!course) return null;
-              const color = courseColor[courseName] ?? "#5E6B72";
+              const color = subjectColor(courseName);
+              const tint = subjectTint(courseName);
               const firstChapter = course.chapters[0];
               const action = firstChapter ? chapterAction(firstChapter) : null;
               const moduleCount = course.chapters.reduce((sum, ch) => sum + ch.modules.length, 0);
               return (
-                <div key={courseName} className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${color}18` }}>
+                <div key={courseName} className="student-card-hover flex items-center gap-3 p-4 rounded-xl border border-border bg-background">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tint }}>
                     <span style={{ color }}>{getCourseIcon(courseName)}</span>
                   </div>
                   <div className="flex-1 min-w-0">

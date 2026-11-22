@@ -39,7 +39,7 @@ export default function PublicHeader() {
     <header className="relative z-30 flex items-center justify-between gap-3 px-4 sm:px-10 py-4 sm:py-5">
       <Link to="/about" className="flex items-center gap-2">
         <img src="/logo.svg" alt="" className="w-11 h-11 flex-shrink-0" />
-        <span className="font-display font-bold text-foreground text-2xl leading-none">Menya</span>
+        <span className="font-brand font-bold text-foreground text-2xl leading-none">Menya</span>
       </Link>
 
       {/* Desktop / tablet nav */}

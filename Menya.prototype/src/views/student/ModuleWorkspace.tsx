@@ -13,7 +13,8 @@ import RequestHelpModal from "../../components/RequestHelpModal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../app/components/ui/tabs";
 import { useCurriculum } from "../../context/CurriculumContext";
 import { useStudentActivity } from "../../context/StudentActivityContext";
-import { getCourseIcon, courseColor, diffCls, getModuleContent, getChapterTest, isNumericAnswerCorrect } from "../../lib/constants";
+import { getCourseIcon, diffCls, getModuleContent, getChapterTest, isNumericAnswerCorrect } from "../../lib/constants";
+import { subjectColor, subjectTint } from "../../lib/subject";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import type { PracticeItem } from "../../types";
 
@@ -360,7 +361,8 @@ export default function ModuleWorkspace() {
   }
 
   const { course, chapter } = found;
-  const color = courseColor[course.name] ?? "#5E6B72";
+  const color = subjectColor(course.name);
+  const tint = subjectTint(course.name);
   const status = statusMeta[courseModule.status];
 
   const chapterTestTotal = chapterTestQuestions.length;
@@ -401,8 +403,8 @@ export default function ModuleWorkspace() {
 
       {/* Header */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="h-1.5" style={{ backgroundColor: color }} />
-        <div className="p-6">
+        <div className="h-2" style={{ backgroundColor: color }} />
+        <div className="p-6" style={{ backgroundImage: `linear-gradient(135deg, ${subjectTint(course.name, 9)}, transparent 60%)` }}>
           <div className="flex items-center gap-2 flex-wrap mb-2">
             <CourseTag course={course.name} />
             <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-muted text-muted-foreground">{chapter.title}</span>
@@ -410,7 +412,7 @@ export default function ModuleWorkspace() {
             <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${status.cls}`}>{status.label}</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${color}18` }}>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tint }}>
               <span style={{ color }}>{getCourseIcon(course.name)}</span>
             </div>
             <h1 className="text-xl font-display font-semibold text-foreground">{courseModule.title}</h1>

@@ -1,21 +1,19 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { achievements, goalLabel, goalProgress } from "../../lib/constants";
+import AchievementShelf from "../../components/student/AchievementShelf";
+import { useStudentAchievements } from "../../hooks/useStudentAchievements";
 import { useStudentGoals } from "../../hooks/useStudentGoals";
 import { useStudentActivity } from "../../context/StudentActivityContext";
-import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import AddGoalModal from "../../components/AddGoalModal";
 import { PageHeaderSubtitle, PageHeaderActions } from "../../context/PageHeaderContext";
 
 export default function Goals() {
-  const student = useCurrentStudent();
   const [addOpen, setAddOpen] = useState(false);
   const { goals, addGoal, removeGoal } = useStudentGoals();
-  const { streak, sessionsAttendedTotal, studyDaysThisWeek, sessionsThisWeek } = useStudentActivity();
-
-  const achievementInput = { streak, progress: student.progress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal };
-  const earnedAchievements = achievements.filter((a) => a.condition(achievementInput));
-  const lockedAchievements = achievements.filter((a) => !a.condition(achievementInput));
+  const { studyDaysThisWeek, sessionsThisWeek } = useStudentActivity();
+  // Shared with My Journey, so both pages agree on what's earned.
+  const badges = useStudentAchievements();
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -65,35 +63,13 @@ export default function Goals() {
         </div>
       )}
 
-      {/* Achievements — an inline badge strip rather than a card per achievement,
-          so a full trophy case reads as one compact shelf instead of a grid of
-          near-empty tiles. */}
+      {/* Achievements — earned badges, then mystery badges with how to earn them */}
       <div className="bg-card border border-border rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-foreground mb-4">
+        <h2 className="text-sm font-semibold text-foreground mb-5">
           Achievements
-          <span className="ml-2 text-xs font-mono text-muted-foreground">({earnedAchievements.length}/{achievements.length} earned)</span>
+          <span className="ml-2 text-xs font-mono text-muted-foreground">({badges.earned.length}/{achievements.length} earned)</span>
         </h2>
-        <div className="flex flex-wrap gap-2">
-          {earnedAchievements.map((a) => (
-            <div key={a.id} className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-border bg-muted/30">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: `${a.color}18` }}
-              >
-                <a.Icon className="w-3.5 h-3.5" style={{ color: a.color }} />
-              </div>
-              <span className="text-xs font-medium text-foreground">{a.label}</span>
-            </div>
-          ))}
-          {lockedAchievements.map((a) => (
-            <div key={a.id} className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-border bg-muted/10 opacity-50">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-muted">
-                <a.Icon className="w-3.5 h-3.5 text-muted-foreground" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">{a.label}</span>
-            </div>
-          ))}
-        </div>
+        <AchievementShelf data={badges} variant="full" />
       </div>
 
       {addOpen && <AddGoalModal onSave={addGoal} onClose={() => setAddOpen(false)} />}

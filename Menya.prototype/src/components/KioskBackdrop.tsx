@@ -11,7 +11,7 @@ const WEDGE_LEFT = "polygon(0 0, 0 100%, 100% 100%)";
 
 // Flat, hard-edged brand shapes scattered down both gutters — gives the kiosk's
 // centered card something to sit against, in the same graphic register as the
-// app's serif/mono type rather than a soft blur or a repeating texture. Kept as a
+// app's type rather than a soft blur or a repeating texture. Kept as a
 // list so the composition is easy to re-tune in one place.
 //
 // Opacities stay in the 0.08–0.14 band on purpose: from a step or two away these
@@ -32,7 +32,7 @@ const SHAPES: { className: string; style: CSSProperties }[] = [
 // Shared by both check-in kiosks so their backgrounds can't drift apart.
 export default function KioskBackdrop({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#F1F4F5] flex flex-col items-center px-6 py-10 sm:py-14" style={{ fontFamily: "Manrope, sans-serif" }}>
+    <div className="min-h-screen relative overflow-hidden bg-[#F1F4F5] flex flex-col items-center px-6 py-10 sm:py-14">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         {SHAPES.map((shape, i) => (
           <div key={i} className={`absolute ${shape.className}`} style={shape.style} />

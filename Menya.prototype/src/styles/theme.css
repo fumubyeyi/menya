@@ -105,6 +105,38 @@
   --sidebar-ring: #E3E9EC;
 }
 
+/* Student theme — applied by AppShell only when the signed-in role is student,
+   so program/tutor views (and the brand guideline's "calm system of record"
+   look) are untouched. It adds one colour per subject and rounder cards with
+   a soft lift. (Type is shared app-wide; see the base layer.)
+   Amber (--brand-amber) stays reserved for wins — streaks, goals, XP — so
+   course progress uses the subject colour instead. Every subject colour is
+   ≥ 4.5:1 against both --card and --background in its theme.
+   Read these through lib/subject.ts, which falls back to the neutral slate
+   outside this scope. */
+.student-theme {
+  --radius: 0.875rem;
+  --subject-algebra: #7C3AED;
+  --subject-algebra-ii: #4F46E5;
+  --subject-pre-alg: #BE185D;
+  --subject-geometry: #0F766E;
+  --subject-statistics: #2563EB;
+  --subject-pre-calculus: #15803D;
+  --subject-calculus: #C2410C;
+  --student-card-shadow: 0 1px 2px rgba(47, 79, 79, 0.06), 0 6px 18px -6px rgba(47, 79, 79, 0.14);
+}
+
+.student-theme.dark {
+  --subject-algebra: #A78BFA;
+  --subject-algebra-ii: #818CF8;
+  --subject-pre-alg: #F472B6;
+  --subject-geometry: #2DD4BF;
+  --subject-statistics: #60A5FA;
+  --subject-pre-calculus: #4ADE80;
+  --subject-calculus: #FB923C;
+  --student-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 20px -8px rgba(0, 0, 0, 0.5);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -154,11 +186,80 @@
 }
 
 @layer utilities {
-  .font-display {
+  /* One typeface app-wide: Atkinson Hyperlegible Next (set on body below).
+     Its distinct I/l/1 and 0/O matter for rosters, IDs and maths.
+     - font-brand: the "Menya" wordmark only, kept on the brand serif.
+     - font-display: headings and big numbers, same face, slightly tightened.
+     - font-mono: was DM Mono for data/labels; now the same face with
+       tabular figures so columns of scores, dates and times still line up. */
+  .font-brand {
     font-family: "Fraunces", Georgia, serif;
   }
+  .font-display {
+    font-family: inherit;
+    letter-spacing: -0.01em;
+  }
   .font-mono {
-    font-family: "DM Mono", "Courier New", monospace;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+  }
+  .student-theme main .bg-card {
+    box-shadow: var(--student-card-shadow);
+  }
+  .student-card-hover {
+    transition: transform 150ms ease, box-shadow 150ms ease;
+  }
+  .student-card-hover:hover {
+    transform: translateY(-2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .student-card-hover:hover { transform: none; }
+  }
+  /* My Journey streak flame: a slow, small sway, so it feels alive without
+     pulling the eye. Off for reduced motion. */
+  @keyframes flame-flicker {
+    0%, 100% { transform: rotate(-3deg) scale(1); }
+    50%      { transform: rotate(3deg) scale(1.06); }
+  }
+  .flame-flicker {
+    transform-origin: 50% 90%;
+    animation: flame-flicker 2.4s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flame-flicker { animation: none; }
+  }
+  /* Badge unlock (AchievementShelf): the badge flips in and pops, confetti
+     bursts out from behind it, and the "New!" tag bounces in. Each runs once.
+     With reduced motion the badge simply appears, with its "New!" tag. */
+  @keyframes badge-unlock {
+    0%   { transform: perspective(400px) rotateY(180deg) scale(0.5); opacity: 0; }
+    60%  { transform: perspective(400px) rotateY(0deg) scale(1.18); opacity: 1; }
+    80%  { transform: scale(0.95); }
+    100% { transform: scale(1); }
+  }
+  .badge-unlock {
+    animation: badge-unlock 900ms cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+  }
+  @keyframes badge-confetti {
+    0%   { transform: translate(-50%, -50%) rotate(0deg) scale(0.4); opacity: 1; }
+    70%  { opacity: 1; }
+    100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(1); opacity: 0; }
+  }
+  .badge-confetti {
+    opacity: 0;
+    animation: badge-confetti 1100ms ease-out 350ms both;
+  }
+  @keyframes badge-new-tag {
+    0%   { transform: scale(0); }
+    70%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  .badge-new-tag {
+    animation: badge-new-tag 400ms ease-out 700ms both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .badge-unlock, .badge-new-tag { animation: none; }
+    .badge-confetti { display: none; }
   }
   .scrollbar-hide {
     scrollbar-width: none;
@@ -176,7 +277,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Manrope", system-ui, sans-serif;
+    font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif;
   }
 
   /**

@@ -3,7 +3,7 @@ import PublicHeader from "../../components/PublicHeader";
 
 export default function Contact() {
   return (
-    <div className="min-h-screen bg-[#F1F4F5]" style={{ fontFamily: "Manrope, sans-serif" }}>
+    <div className="min-h-screen bg-[#F1F4F5]">
       <PublicHeader />
 
       <section className="border-y border-[#708090]/35 bg-[#F1F4F5]">

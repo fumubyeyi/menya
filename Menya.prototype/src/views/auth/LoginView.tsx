@@ -348,7 +348,6 @@ export default function LoginView() {
   return (
     <div
       className="min-h-screen bg-[#F1F4F5]"
-      style={{ fontFamily: "Manrope, sans-serif" }}
     >
       {showCreateModal && (
         <CreateAccountModal

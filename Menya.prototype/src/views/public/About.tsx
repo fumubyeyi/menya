@@ -114,7 +114,7 @@ export default function About() {
   const [expanded, setExpanded] = useState<{ src: string; alt: string } | null>(null);
 
   return (
-    <div className="min-h-screen bg-[#F1F4F5]" style={{ fontFamily: "Manrope, sans-serif" }}>
+    <div className="min-h-screen bg-[#F1F4F5]">
       <PublicHeader />
 
       {/* About hero */}

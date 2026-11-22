@@ -1,25 +1,52 @@
 import { useState } from "react";
-import { Plus, TrendingUp, TrendingDown, Minus, BookPlus, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight, BookPlus, PartyPopper } from "lucide-react";
 import { Link } from "react-router";
 import ZoomModal from "../../components/ZoomModal";
 import SessionStatusPill from "../../components/SessionStatusPill";
 import ScheduleModal from "../../components/ScheduleModal";
+import JourneyMap from "../../components/student/JourneyMap";
+import StreakCard from "../../components/student/StreakCard";
+import AchievementShelf from "../../components/student/AchievementShelf";
+import { useStudentAchievements } from "../../hooks/useStudentAchievements";
 import {
-  studentCourseDetail, studentSessionHistory, studentModules, tutorNameById,
+  studentSessionHistory, studentModules, tutorNameById,
 } from "../../data";
-import { achievements, getCourseIcon, courseColor, goalProgress, goalLabel, chapterAction, courseCompletion, courseSlug } from "../../lib/constants";
+import {
+  achievements, achievementGapLabel, getCourseIcon, goalProgress, goalLabel,
+  chapterAction, courseCompletion,
+} from "../../lib/constants";
 import { useSessions } from "../../context/SessionsContext";
 import { useStudentGoals } from "../../hooks/useStudentGoals";
 import { useStudentActivity } from "../../context/StudentActivityContext";
 import { useCurrentStudent } from "../../hooks/useCurrentStudent";
 import { useEnrollment } from "../../hooks/useEnrollment";
 import { useCurriculum } from "../../context/CurriculumContext";
+import { subjectColor, subjectTint } from "../../lib/subject";
 
-const TREND_META = {
-  up:   { Icon: TrendingUp,   cls: "text-emerald-600" },
-  down: { Icon: TrendingDown, cls: "text-red-600" },
-  flat: { Icon: Minus,        cls: "text-muted-foreground" },
-} as const;
+function greeting(date = new Date()): string {
+  const h = date.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+// A small ring for "how far through this chapter", in the subject colour.
+function ChapterRing({ pct, course }: { pct: number; course: string }) {
+  const size = 72;
+  const r = (size - 10) / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }} role="img" aria-label={`${pct}% of this chapter done`}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }} aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--muted)" strokeWidth={8} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={subjectColor(course)} strokeWidth={8}
+          strokeDasharray={circ} strokeDashoffset={circ - (pct / 100) * circ} strokeLinecap="round"
+          className="motion-safe:transition-[stroke-dashoffset] motion-safe:duration-700" />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-foreground">{pct}%</span>
+    </div>
+  );
+}
 
 export default function StudentHome() {
   const student = useCurrentStudent();
@@ -28,44 +55,20 @@ export default function StudentHome() {
   const { goals } = useStudentGoals();
   const { courses: enrolledCourses } = useEnrollment();
   const { courses: curriculumCourses } = useCurriculum();
-  const { streak, sessionsAttendedTotal, studyDaysThisWeek, sessionsThisWeek, logSessionAttended } = useStudentActivity();
+  const { streak, studyDaysThisWeek, sessionsThisWeek, logSessionAttended } = useStudentActivity();
+  const badges = useStudentAchievements();
 
-  const courseDetails = studentCourseDetail[student.id] ?? [];
   const sessionHistory = studentSessionHistory[student.id] ?? [];
   const studyHours = Math.round(sessionHistory.reduce((sum, h) => sum + h.duration, 0) / 60);
-  const notStartedCourses = enrolledCourses.filter((c) => !courseDetails.some((cd) => cd.course === c));
+  const firstName = student.name.split(" ")[0];
 
-  // The "Progress" stat is the average of the exact percentages listed in
-  // Course Progress below it, computed here rather than read from the
-  // student's own (separately hand-set) `progress` field — so the headline
-  // number can never drift from the per-course breakdown that explains it.
-  // Course Progress itself uses courseCompletion (curriculum modules marked
-  // completed) rather than the course's `score` field (a per-session quiz/
-  // assessment average) — score answers "how well," completion answers "how
-  // far," and completion is what My Courses shows for the same course, so
-  // that's the number that has to match here.
-  const computedProgress = courseDetails.length > 0
-    ? Math.round(courseDetails.reduce((sum, cd) => sum + courseCompletion(curriculumCourses, cd.course), 0) / courseDetails.length)
-    : student.progress;
+  // Same progress figure the badges use (see useStudentAchievements).
+  const computedProgress = badges.progress;
 
-  // Resolve a course's own Resume/Start target the same way My Courses does —
-  // its active chapter's next actionable module — so links to a course jump
-  // straight into that module instead of just landing on the course's card.
-  // Falls back to the course's My Courses anchor once nothing is left to do.
+  // "Up next": the first active module (across every enrolled course) that
+  // still has an actionable next step, resolved the same way My Courses
+  // resolves its own Resume/Start buttons.
   const courseModules = studentModules[student.id] ?? [];
-  function courseTarget(course: string): string {
-    const mod = courseModules.find((m) => m.course === course);
-    const chapter = mod ? curriculumCourses.find((c) => c.name === course)?.chapters.find((ch) => ch.title === mod.title) : undefined;
-    const action = chapter ? chapterAction(chapter) : null;
-    return chapter && action && action.moduleIndex !== undefined && action.label !== "Completed"
-      ? `/student/module/${chapter.id}/${action.moduleIndex}`
-      : `/student/learning#${courseSlug(course)}`;
-  }
-
-  // "Pick up where you left off" — the first active module (across every
-  // enrolled course) that still has an actionable next step, resolved the same
-  // way My Courses resolves its own Resume/Start buttons, so this card links
-  // straight into real curriculum content instead of just restating a percent.
   const nextUp = courseModules
     .map((mod) => {
       const chapter = curriculumCourses.find((c) => c.name === mod.course)?.chapters.find((ch) => ch.title === mod.title);
@@ -75,42 +78,141 @@ export default function StudentHome() {
         : null;
     })
     .find((x): x is NonNullable<typeof x> => x !== null);
+  const nextUpChapterPct = nextUp
+    ? Math.round((nextUp.chapter.modules.filter((m) => m.status === "completed").length / nextUp.chapter.modules.length) * 100)
+    : 0;
+
+  // Courses on the journey map: every enrolled course that exists in the
+  // curriculum, opening on the one the "Up next" card points at.
+  const journeyCourses = enrolledCourses
+    .map((name) => curriculumCourses.find((c) => c.name === name))
+    .filter((c): c is NonNullable<typeof c> => !!c);
+  const [journeyCourseName, setJourneyCourseName] = useState<string | null>(null);
+  const journeyCourse =
+    journeyCourses.find((c) => c.name === journeyCourseName) ??
+    journeyCourses.find((c) => c.name === nextUp?.mod.course) ??
+    journeyCourses[0];
 
   const studentSessions = sessions.filter((s) => s.student === student.name);
   const upcomingSessions = studentSessions.filter((s) => s.status !== "completed").slice(0, 3);
   const [activeSession, setActiveSession] = useState<typeof upcomingSessions[number] | null>(null);
-  const earnedAchievements = achievements.filter((a) => a.condition({ streak, progress: computedProgress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal }));
-  const lockedAchievements = achievements.filter((a) => !a.condition({ streak, progress: computedProgress, sessions: student.sessions, sessionsAttended: sessionsAttendedTotal }));
+
+  const nextBadge = badges.next;
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl mx-auto">
-      {/* Next Module — a direct continue/start link into the student's next
-          incomplete module, so there's a concrete next action on Home instead
-          of only aggregate stats. */}
+      {/* Greeting + streak */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6 flex flex-col justify-center gap-4">
+          <h2 className="font-display font-bold text-foreground text-2xl sm:text-3xl leading-tight">
+            {greeting()}, {firstName}!
+          </h2>
+          {nextBadge ? (
+            <div className="flex items-center gap-3">
+              <span
+                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${nextBadge.achievement.color}1F` }}
+              >
+                <nextBadge.achievement.Icon className="w-5 h-5" style={{ color: nextBadge.achievement.color }} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground">
+                  <span className="font-bold">{achievementGapLabel(nextBadge.achievement.metric, nextBadge.remaining)}</span>
+                  {" "}to unlock <span className="font-bold">{nextBadge.achievement.label}</span>
+                </p>
+                <div className="mt-1.5 h-2 max-w-sm bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-brand-amber motion-safe:transition-all" style={{ width: `${nextBadge.pct}%` }} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="flex items-center gap-2 text-sm text-foreground">
+              <PartyPopper className="w-5 h-5 text-brand-amber" /> You've earned every badge. Amazing work!
+            </p>
+          )}
+        </div>
+        <StreakCard streak={streak} />
+      </div>
+
+      {/* Up next */}
       {nextUp && (
         <Link
           to={`/student/module/${nextUp.chapter.id}/${nextUp.action.moduleIndex}`}
-          className="flex items-center gap-4 bg-primary/5 border border-primary/30 rounded-xl p-4 hover:bg-primary/10 hover:border-primary/60 transition-colors group"
+          className="student-card-hover flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 bg-card border-2 rounded-xl p-5 sm:p-6 group"
+          style={{
+            borderColor: subjectTint(nextUp.mod.course, 45),
+            backgroundImage: `linear-gradient(100deg, ${subjectTint(nextUp.mod.course, 12)}, transparent 75%)`,
+          }}
         >
-          <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${courseColor[nextUp.mod.course] ?? "#5E6B72"}18` }}
-          >
-            <span style={{ color: courseColor[nextUp.mod.course] ?? "#5E6B72" }}>{getCourseIcon(nextUp.mod.course)}</span>
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 [&_svg]:w-8 [&_svg]:h-8"
+              style={{ backgroundColor: subjectTint(nextUp.mod.course, 18), color: subjectColor(nextUp.mod.course) }}
+            >
+              {getCourseIcon(nextUp.mod.course)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: subjectColor(nextUp.mod.course) }}>
+                Up next
+              </p>
+              <p className="text-xl font-display font-bold text-foreground leading-tight line-clamp-2 sm:truncate">{nextUp.action.moduleTitle}</p>
+              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 sm:truncate">
+                {nextUp.mod.course} · {nextUp.chapter.title} · Module {(nextUp.action.moduleIndex ?? 0) + 1} of {nextUp.chapter.modules.length}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-mono text-primary uppercase tracking-wide">Pick up where you left off</p>
-            <p className="text-sm font-semibold text-foreground truncate">{nextUp.action.moduleTitle}</p>
-            <p className="text-[11px] font-mono text-muted-foreground">{nextUp.mod.course} · {nextUp.chapter.title}</p>
+          <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
+            <ChapterRing pct={nextUpChapterPct} course={nextUp.mod.course} />
+            <span
+              className="flex items-center gap-2 px-6 py-3 rounded-full text-base font-bold group-hover:brightness-110 motion-safe:transition"
+              style={{ backgroundColor: subjectColor(nextUp.mod.course), color: "var(--card)" }}
+            >
+              {nextUp.action.label} <ArrowRight className="w-5 h-5" />
+            </span>
           </div>
-          <span className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold group-hover:bg-primary/90 transition-colors">
-            {nextUp.action.label} <ArrowRight className="w-3.5 h-3.5" />
-          </span>
         </Link>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4 min-w-0">
+          {/* My Journey: each course as a winding path of modules */}
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="text-lg font-display font-bold text-foreground">My Journey</h2>
+              {journeyCourses.length > 1 && (
+                <div className="flex flex-wrap gap-2" role="tablist" aria-label="Course">
+                  {journeyCourses.map((c) => {
+                    const active = c.name === journeyCourse?.name;
+                    return (
+                      <button
+                        key={c.name}
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => setJourneyCourseName(c.name)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border-2 motion-safe:transition-colors"
+                        style={active
+                          ? { backgroundColor: subjectTint(c.name, 14), borderColor: subjectColor(c.name), color: subjectColor(c.name) }
+                          : { borderColor: "var(--border)", color: "var(--muted-foreground)" }}
+                      >
+                        {getCourseIcon(c.name)} {c.name}
+                        <span className="font-mono text-xs opacity-80">{courseCompletion(curriculumCourses, c.name)}%</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {journeyCourse ? (
+              <JourneyMap course={journeyCourse} />
+            ) : (
+              <div className="flex items-center gap-3 py-6">
+                <BookPlus className="w-5 h-5 text-primary flex-shrink-0" />
+                <p className="text-sm text-muted-foreground flex-1">Pick a course to start your journey.</p>
+                <Link to="/student/learning" className="text-sm font-semibold text-primary hover:underline">Browse courses</Link>
+              </div>
+            )}
+          </div>
+
           {/* Upcoming Sessions — not just today, so this card isn't empty on
               non-session days; the full list still lives on the Schedule page. */}
           {upcomingSessions.length > 0 && (
@@ -120,8 +222,8 @@ export default function StudentHome() {
                 {upcomingSessions.map((s) => (
                   <div key={s.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: `${courseColor[s.course] ?? "#5E6B72"}18` }}>
-                      <span style={{ color: courseColor[s.course] ?? "#5E6B72" }}>
+                      style={{ backgroundColor: subjectTint(s.course) }}>
+                      <span style={{ color: subjectColor(s.course) }}>
                         {getCourseIcon(s.course)}
                       </span>
                     </div>
@@ -143,50 +245,6 @@ export default function StudentHome() {
               </div>
             </div>
           )}
-
-          {/* Course Progress */}
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-foreground mb-3">Course Progress</h2>
-            <div className="space-y-3">
-              {courseDetails.map((sd) => {
-                const trend = TREND_META[sd.trend];
-                const completion = courseCompletion(curriculumCourses, sd.course);
-                return (
-                  <Link
-                    key={sd.course}
-                    to={courseTarget(sd.course)}
-                    className="block rounded-lg -mx-2 px-2 py-1 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="flex items-center gap-2">
-                        <span style={{ color: courseColor[sd.course] ?? "#5E6B72" }}>{getCourseIcon(sd.course)}</span>
-                        <span className="text-sm font-medium text-foreground">{sd.course}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <trend.Icon className={`w-3 h-3 ${trend.cls}`} />
-                        <span className="text-xs font-mono text-muted-foreground">{completion}%</span>
-                      </div>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-brand-amber transition-all" style={{ width: `${completion}%` }} />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-            {notStartedCourses.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-border flex items-center gap-2.5">
-                <BookPlus className="w-4 h-4 text-primary flex-shrink-0" />
-                <p className="text-xs text-muted-foreground flex-1">
-                  {notStartedCourses.length === 1
-                    ? `You're enrolled in ${notStartedCourses[0]} but haven't started yet.`
-                    : `You're enrolled in ${notStartedCourses.length} courses you haven't started yet.`}
-                </p>
-                <Link to="/student/learning" className="text-xs font-medium text-primary hover:underline flex-shrink-0">Start now</Link>
-              </div>
-            )}
-          </div>
-
         </div>
 
         <div className="space-y-4">
@@ -197,24 +255,15 @@ export default function StudentHome() {
             <Plus className="w-4 h-4" /> Request a Session
           </button>
 
-          {/* Recent Sessions */}
+          {/* Achievements */}
           <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-foreground mb-3">Recent Sessions</h2>
-            <div className="space-y-2">
-              {sessionHistory.slice(0, 3).map((h, i) => (
-                <div key={i} className="flex items-center gap-2 py-1.5">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${courseColor[h.course] ?? "#5E6B72"}15` }}>
-                    <span style={{ color: courseColor[h.course] ?? "#5E6B72" }}>{getCourseIcon(h.course)}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground">{h.course}</p>
-                    <p className="text-[10px] font-mono text-muted-foreground">{h.date}</p>
-                  </div>
-                  <span className={`text-xs font-mono font-semibold ${h.score >= 80 ? "text-emerald-600" : h.score >= 65 ? "text-amber-600" : "text-red-600"}`}>{h.score}</span>
-                </div>
-              ))}
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="text-sm font-semibold text-foreground">Achievements</h2>
+              <Link to="/student/goals" className="text-xs font-semibold text-primary hover:underline">
+                {badges.earned.length}/{achievements.length} · See all
+              </Link>
             </div>
+            <AchievementShelf data={badges} variant="compact" />
           </div>
 
           {/* Goals Snapshot */}
@@ -236,7 +285,7 @@ export default function StudentHome() {
                         <span className="text-[11px] font-mono text-muted-foreground">{current}/{target}</span>
                       </div>
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: "#F0981E" }} />
+                        <div className="h-full rounded-full transition-all bg-brand-amber" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );
@@ -245,35 +294,35 @@ export default function StudentHome() {
             )}
           </div>
 
-          {/* Achievements */}
+          {/* Recent Sessions */}
           <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-foreground mb-3">Achievements</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {earnedAchievements.map((a) => (
-                <div key={a.id} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/40">
-                  <a.Icon className="w-5 h-5" style={{ color: a.color }} />
-                  <span className="text-[9px] font-mono text-center text-foreground leading-tight">{a.label}</span>
-                </div>
-              ))}
-              {lockedAchievements.map((a) => (
-                <div key={a.id} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/20 opacity-40">
-                  <a.Icon className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-[9px] font-mono text-center text-muted-foreground leading-tight">{a.label}</span>
+            <h2 className="text-sm font-semibold text-foreground mb-3">Recent Sessions</h2>
+            <div className="space-y-2">
+              {sessionHistory.slice(0, 3).map((h, i) => (
+                <div key={i} className="flex items-center gap-2 py-1.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: subjectTint(h.course) }}>
+                    <span style={{ color: subjectColor(h.course) }}>{getCourseIcon(h.course)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">{h.course}</p>
+                    <p className="text-[10px] font-mono text-muted-foreground">{h.date}</p>
+                  </div>
+                  <span className={`text-xs font-mono font-semibold ${h.score >= 80 ? "text-emerald-600" : h.score >= 65 ? "text-amber-600" : "text-red-600"}`}>{h.score}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Stats — the streak has its own card at the top. */}
+          <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Progress", value: `${computedProgress}%`, color: "#708090" },
-              { label: "Sessions", value: student.sessions, color: "#5E6B72" },
-              { label: "Streak", value: `${streak}d`, color: "#F0981E" },
-              { label: "Study Hours", value: `${studyHours}h`, color: "#5E6B72" },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-display font-bold" style={{ color }}>{value}</p>
+              { label: "Progress", value: `${computedProgress}%` },
+              { label: "Sessions", value: student.sessions },
+              { label: "Study hrs", value: `${studyHours}h` },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-card border border-border rounded-xl p-3 text-center">
+                <p className="text-2xl font-display font-bold text-foreground">{value}</p>
                 <p className="text-[11px] font-mono text-muted-foreground mt-1 uppercase tracking-wide">{label}</p>
               </div>
             ))}

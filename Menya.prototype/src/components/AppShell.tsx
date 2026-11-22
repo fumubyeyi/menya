@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, Navigate, useNavigate, useLocation } from "react-router";
 import {
   LayoutDashboard, Users, BookOpen, Calendar,
@@ -34,7 +34,7 @@ const NAV: Record<Role, { to: string; label: string; Icon: React.ElementType; ba
     { to: "/tutor/search",      label: "Curriculum Search", Icon: Search },
   ],
   student: [
-    { to: "/student/home",     label: "My Home",     Icon: LayoutDashboard },
+    { to: "/student/home",     label: "My Journey",  Icon: LayoutDashboard },
     { to: "/student/learning", label: "My Courses", Icon: BookOpen        },
     { to: "/student/schedule", label: "My Schedule", Icon: Calendar        },
     { to: "/student/goals",    label: "Goals",       Icon: Trophy          },
@@ -63,6 +63,16 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   const [subtitleEl, setSubtitleEl] = useState<HTMLElement | null>(null);
   const [actionsEl, setActionsEl] = useState<HTMLElement | null>(null);
   const pageHeaderSlots = useMemo(() => ({ subtitleEl, actionsEl }), [subtitleEl, actionsEl]);
+
+  // Radix dialogs, selects, tooltips, etc. portal to the end of <body>, outside
+  // this shell's wrapper, so mirror the student theme onto <body> too — that
+  // way anything a student opens picks up the subject colours.
+  const isStudent = user?.role === "student";
+  useEffect(() => {
+    if (!isStudent) return;
+    document.body.classList.add("student-theme");
+    return () => document.body.classList.remove("student-theme");
+  }, [isStudent]);
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -106,7 +116,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
     "/tutor/schedule":     "Schedule",
     "/tutor/attendance":   "Attendance",
     "/tutor/search":       "Curriculum Library Search",
-    "/student/home":       "My Home",
+    "/student/home":       "My Journey",
     "/student/learning":   "Learning",
     "/student/schedule":   "Schedule",
     "/student/goals":      "Goals & Achievements",
@@ -117,7 +127,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
   const pageTitle = titleMap[basePath] ?? "Dashboard";
 
   return (
-    <div className={`flex h-screen bg-background overflow-hidden ${theme === "dark" ? "dark" : ""}`} style={{ fontFamily: "Manrope, sans-serif", colorScheme: theme }}>
+    <div className={`flex h-screen bg-background overflow-hidden ${theme === "dark" ? "dark" : ""} ${role === "student" ? "student-theme" : ""}`} style={{ colorScheme: theme }}>
       {mobileOpen && <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setMobileOpen(false)} />}
 
       {/* Sidebar */}
@@ -129,7 +139,7 @@ export default function AppShell({ onSchedule }: { onSchedule?: (student?: strin
           <div className="flex items-center gap-2">
             <img src="/logo.svg" alt="" className="w-11 h-11 flex-shrink-0" />
             <div className="leading-none">
-              <span className="font-display font-bold text-sidebar-foreground text-lg block">Menya</span>
+              <span className="font-brand font-bold text-sidebar-foreground text-lg block">Menya</span>
             </div>
           </div>
           <button onClick={() => setMobileOpen(false)} className="lg:hidden text-sidebar-foreground/50 hover:text-sidebar-foreground">

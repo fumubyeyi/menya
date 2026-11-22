@@ -14,7 +14,7 @@ export default function SuccessStories() {
   const stemRate = alumni.length ? Math.round((stemCount / alumni.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#F1F4F5]" style={{ fontFamily: "Manrope, sans-serif" }}>
+    <div className="min-h-screen bg-[#F1F4F5]">
       <PublicHeader />
 
       {/* Stories hero */}
